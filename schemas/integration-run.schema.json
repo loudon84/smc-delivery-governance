@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "integration_run_id",
+    "scenario_id",
+    "feature_id",
+    "inputs",
+    "execution",
+    "result"
+  ],
+  "properties": {
+    "integration_run_id": {"type": "string"},
+    "scenario_id": {"type": "string"},
+    "feature_id": {"type": "string"},
+    "inputs": {
+      "type": "object",
+      "required": ["provider", "consumer"],
+      "properties": {
+        "provider": {
+          "type": "object",
+          "required": ["repository_id", "commit", "release"],
+          "properties": {
+            "repository_id": {"type": "string"},
+            "commit": {"type": "string"},
+            "release": {"type": "string"}
+          },
+          "additionalProperties": false
+        },
+        "consumer": {
+          "type": "object",
+          "required": ["repository_id", "commit"],
+          "properties": {
+            "repository_id": {"type": "string"},
+            "commit": {"type": "string"}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string"},
+        "endpoint_ref": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "execution": {
+      "type": "object",
+      "required": ["workflow_run_id"],
+      "properties": {
+        "workflow_run_id": {"type": ["string", "integer"]},
+        "repository": {"type": "string"},
+        "workflow": {"type": "string"},
+        "provenance": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "result": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {"enum": ["RUNNING", "PASS", "FAIL"]},
+        "evidence": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,8 +1,8 @@
-# SMC Delivery Governance v1.1
+# SMC Delivery Governance v1.2
 
 `smc-delivery-governance` 是 SMC 内部多仓库、多团队研发的 **Engineering Delivery Control Plane**。
 
-它管理跨仓库的 Feature、Contract、依赖、Repo Work Package、状态机与 Evidence；各项目继续在本仓库执行 `lat.md → Stage PRD → Plan → Execute → Review → Verification`。
+Git YAML 保存 **Current Materialized State**；`audit/transitions/` 保存 **Lifecycle Audit Facts**。
 
 ## 1. 边界
 

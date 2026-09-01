@@ -1,0 +1,47 @@
+feature_id: FEAT-SKILL-FIRST-001
+work_package_id: WP-SKILL-FIRST-SMC-COPILOT
+repository_id: REPO-SMC-COPILOT
+source_revision: SKILL-FIRST-PRD@4.0.1
+observed_at: '2026-09-01T13:58:36.920995+00:00'
+receipt_path: examples\sample-receipts\REPO-SMC-COPILOT.yaml
+status: IMPLEMENTING
+sync_state: SYNCED
+delivery:
+  stage_prds:
+  - artifact_id: PRD-WORK-v4.0.1
+    repository_id: REPO-SMC-COPILOT
+    path: docs/work/PRD-WORK-v4.0.1-skill-first-layout-run-integration.md
+    artifact_type: STAGE_PRD
+    status: APPROVED
+    commit: abcdef0123456789abcdef0123456789abcdef01
+    source_revision: SKILL-FIRST-PRD@4.0.1
+  issues: []
+  bugs: []
+  plans:
+  - artifact_id: PLAN-WORK-v4.0.1
+    repository_id: REPO-SMC-COPILOT
+    path: .cursor/plans/work-v4.0.1.plan.md
+    artifact_type: PLAN
+    status: VALIDATED
+    commit: abcdef0123456789abcdef0123456789abcdef02
+    source_revision: SKILL-FIRST-PRD@4.0.1
+  pull_requests:
+  - number: 35
+    state: open
+    title: Skill-first consumer integration
+    url: https://github.com/loudon84/smc-copilot/pull/35
+    labels:
+    - gov:wp:WP-SKILL-FIRST-SMC-COPILOT
+    - gov:managed
+  commits:
+  - abcdef0123456789abcdef0123456789abcdef03
+  verification_reports: []
+acceptance:
+  manifest: .agents/governance/acceptance/WP-SKILL-FIRST-SMC-COPILOT.yaml
+  report: .agents/governance/acceptance/WP-SKILL-FIRST-SMC-COPILOT.report.json
+  status: PENDING
+evidence:
+  consumer_lock:
+    version: 1.2.1
+    tag: skill-run-contract-v1.2.1
+    commit: 10d38f2c97739c4a55df893d1dc954fc8896f1a7

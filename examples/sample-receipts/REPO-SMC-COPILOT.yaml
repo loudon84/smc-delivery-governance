@@ -3,7 +3,7 @@ feature_id: FEAT-SKILL-FIRST-001
 work_package_id: WP-SKILL-FIRST-SMC-COPILOT
 repository_id: REPO-SMC-COPILOT
 source_revision: SKILL-FIRST-PRD@4.0.1
-status: VERIFIED
+status: IMPLEMENTING
 sync:
   governance_kit_version: 1.2.0
   central_commit: null
@@ -36,13 +36,22 @@ delivery:
       status: VALIDATED
       commit: abcdef0123456789abcdef0123456789abcdef02
       source_revision: SKILL-FIRST-PRD@4.0.1
-  pull_requests: []
+  pull_requests:
+    - number: 35
+      state: open
+      title: Skill-first consumer integration
+      url: https://github.com/loudon84/smc-copilot/pull/35
+      labels: [gov:wp:WP-SKILL-FIRST-SMC-COPILOT, gov:managed]
   commits:
     - abcdef0123456789abcdef0123456789abcdef03
   verification_reports: []
 acceptance:
   manifest: .agents/governance/acceptance/WP-SKILL-FIRST-SMC-COPILOT.yaml
   report: .agents/governance/acceptance/WP-SKILL-FIRST-SMC-COPILOT.report.json
-  status: PASS
-evidence: {}
+  status: PENDING
+evidence:
+  consumer_lock:
+    version: 1.2.1
+    tag: skill-run-contract-v1.2.1
+    commit: 10d38f2c97739c4a55df893d1dc954fc8896f1a7
 reported_at: '2026-09-01T12:00:00+00:00'

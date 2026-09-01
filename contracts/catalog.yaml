@@ -3,5 +3,5 @@ contracts:
     definition: registry/contracts/skill-run-contract.yaml
     provider_repository: REPO-NODESKCLAW
     current_version: 1.2.1
-    current_state: CONSUMED
+    current_state: CONFORMANCE_PASS
     consumers: [REPO-SMC-COPILOT]

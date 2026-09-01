@@ -13,74 +13,43 @@
   ],
   "properties": {
     "receipt_version": {
-      "const": "1"
+      "enum": ["1", "2"]
     },
-    "feature_id": {
-      "type": "string"
-    },
-    "work_package_id": {
-      "type": "string"
-    },
-    "repository_id": {
-      "type": "string"
-    },
-    "source_revision": {
-      "type": "string",
-      "minLength": 1
-    },
+    "feature_id": {"type": "string"},
+    "work_package_id": {"type": "string"},
+    "repository_id": {"type": "string"},
+    "source_revision": {"type": "string", "minLength": 1},
     "status": {
       "enum": [
-        "BACKLOG",
-        "READY",
-        "IN_PRD",
-        "PLANNED",
-        "IMPLEMENTING",
-        "REVIEW",
-        "VERIFIED",
-        "DONE",
-        "BLOCKED",
-        "SUPERSEDED"
+        "BACKLOG", "READY", "IN_PRD", "PLANNED", "IMPLEMENTING", "REVIEW",
+        "VERIFIED", "DONE", "BLOCKED", "SUPERSEDED"
       ]
     },
     "sync": {
       "type": "object",
       "properties": {
-        "governance_kit_version": {
-          "type": "string"
-        },
-        "central_commit": {
-          "type": [
-            "string",
-            "null"
-          ]
+        "governance_kit_version": {"type": "string"},
+        "central_commit": {"type": ["string", "null"]},
+        "kit": {
+          "type": "object",
+          "properties": {
+            "version": {"type": "string"},
+            "tag": {"type": ["string", "null"]},
+            "commit": {"type": ["string", "null"]},
+            "manifest_sha256": {"type": ["string", "null"]}
+          },
+          "additionalProperties": false
         },
         "contract_pins": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "contract_id",
-              "version"
-            ],
+            "required": ["contract_id", "version"],
             "properties": {
-              "contract_id": {
-                "type": "string"
-              },
-              "version": {
-                "type": "string"
-              },
-              "tag": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "commit": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              }
+              "contract_id": {"type": "string"},
+              "version": {"type": "string"},
+              "tag": {"type": ["string", "null"]},
+              "commit": {"type": ["string", "null"]}
             },
             "additionalProperties": false
           }
@@ -90,160 +59,63 @@
     },
     "delivery": {
       "type": "object",
-      "required": [
-        "stage_prds",
-        "issues",
-        "bugs",
-        "plans",
-        "commits"
-      ],
+      "required": ["stage_prds", "issues", "bugs", "plans", "commits"],
       "properties": {
-        "stage_prds": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/artifactRef"
-          }
-        },
-        "issues": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/githubRef"
-          }
-        },
-        "bugs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/githubRef"
-          }
-        },
-        "plans": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/artifactRef"
-          }
-        },
-        "pull_requests": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/githubRef"
-          }
-        },
+        "stage_prds": {"type": "array", "items": {"$ref": "#/$defs/artifactRef"}},
+        "issues": {"type": "array", "items": {"$ref": "#/$defs/githubRef"}},
+        "bugs": {"type": "array", "items": {"$ref": "#/$defs/githubRef"}},
+        "plans": {"type": "array", "items": {"$ref": "#/$defs/artifactRef"}},
+        "pull_requests": {"type": "array", "items": {"$ref": "#/$defs/githubRef"}},
         "commits": {
           "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^[0-9a-fA-F]{7,40}$"
-          }
+          "items": {"type": "string", "pattern": "^[0-9a-fA-F]{40}$"}
         },
-        "verification_reports": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/artifactRef"
-          }
-        }
+        "verification_reports": {"type": "array", "items": {"$ref": "#/$defs/artifactRef"}}
       },
       "additionalProperties": false
     },
     "acceptance": {
       "type": "object",
       "properties": {
-        "manifest": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "report": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "status": {
-          "enum": [
-            "NOT_DEFINED",
-            "PENDING",
-            "PASS",
-            "FAIL",
-            "PARTIAL"
-          ]
-        }
+        "manifest": {"type": ["string", "null"]},
+        "report": {"type": ["string", "null"]},
+        "status": {"enum": ["NOT_DEFINED", "PENDING", "PASS", "FAIL", "PARTIAL"]}
       },
       "additionalProperties": false
     },
-    "evidence": {
-      "type": "object"
-    },
-    "blocked_by": {
-      "type": "object"
-    },
-    "reported_at": {
-      "type": "string"
-    }
+    "evidence": {"type": "object"},
+    "blocked_by": {"type": "object"},
+    "reported_at": {"type": "string"}
   },
   "$defs": {
     "artifactRef": {
       "type": "object",
-      "required": [
-        "id",
-        "path",
-        "status"
-      ],
+      "required": ["path", "status"],
       "properties": {
-        "id": {
-          "type": "string"
+        "id": {"type": "string"},
+        "artifact_id": {"type": "string"},
+        "repository_id": {"type": "string"},
+        "path": {"type": "string"},
+        "status": {"type": "string"},
+        "artifact_type": {
+          "enum": ["SOURCE_PRD", "STAGE_PRD", "PLAN", "VERIFICATION", "BUILD", "RELEASE"]
         },
-        "path": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string"
-        },
-        "commit": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "source_revision": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
+        "commit": {"type": "string", "pattern": "^[0-9a-fA-F]{40}$"},
+        "blob_sha": {"type": "string", "pattern": "^[0-9a-fA-F]{40}$"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+        "source_revision": {"type": "string"}
       },
       "additionalProperties": false
     },
     "githubRef": {
       "type": "object",
-      "required": [
-        "number",
-        "state"
-      ],
+      "required": ["number", "state"],
       "properties": {
-        "number": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "state": {
-          "enum": [
-            "open",
-            "closed",
-            "merged"
-          ]
-        },
-        "title": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
-        },
-        "labels": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
+        "number": {"type": "integer", "minimum": 1},
+        "state": {"enum": ["open", "closed", "merged"]},
+        "title": {"type": "string"},
+        "url": {"type": "string"},
+        "labels": {"type": "array", "items": {"type": "string"}}
       },
       "additionalProperties": false
     }

@@ -1,19 +1,28 @@
 {
-  "report_version": "1",
+  "report_version": "2",
   "feature_id": "FEAT-SKILL-FIRST-001",
   "work_package_id": "WP-SKILL-FIRST-SMC-COPILOT",
   "source_revision": "SKILL-FIRST-PRD@4.0.1",
-  "repository_commit": "abcdef1234567",
+  "repository_commit": "abcdef0123456789abcdef0123456789abcdef03",
   "status": "PASS",
+  "generated_at": "2026-09-01T12:00:00+00:00",
+  "provenance": {
+    "provider": "github-actions",
+    "repository": "loudon84/smc-copilot",
+    "commit": "abcdef0123456789abcdef0123456789abcdef03",
+    "workflow": "SMC Governance",
+    "workflow_sha": "0000000000000000000000000000000000000000",
+    "run_id": "123456789",
+    "job_id": "governance",
+    "actor": "smc-bot",
+    "artifact_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  },
   "results": [
     {
       "verification_id": "V-01",
       "status": "PASS",
       "exit_code": 0,
-      "duration_ms": 12,
-      "stdout_sha256": null,
-      "stderr_sha256": null
+      "duration_ms": 100
     }
-  ],
-  "generated_at": "2026-09-01T12:00:00+00:00"
+  ]
 }

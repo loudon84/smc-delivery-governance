@@ -4,6 +4,9 @@ scope: internal-southbound
 provider_repository: REPO-NODESKCLAW
 primary_consumers:
   - REPO-NODESKCLAW
+releases:
+  - version: 0.0.0
+    state: DRAFT
 current_release:
   version: 0.0.0
   state: DRAFT

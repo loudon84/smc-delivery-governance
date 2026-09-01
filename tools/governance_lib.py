@@ -11,6 +11,15 @@ from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[1]
 
+EXIT_OK = 0
+EXIT_SYSTEM_ERROR = 1
+EXIT_EXPECTED_NON_READY = 2
+
+EXPECTED_SYNC_STATES = {
+    "MISSING_RECEIPT", "OUT_OF_SYNC", "STALE_FEATURE", "STALE_CONTRACT",
+    "DIVERGED", "NOT_READY",
+}
+
 CONTRACT_ORDER = {
     "DRAFT": 0, "CANDIDATE": 1, "APPROVED": 2, "RELEASED": 3,
     "CONSUMED": 4, "CONFORMANCE_PASS": 5, "DEPRECATED": 6, "RETIRED": 7,
@@ -122,11 +131,51 @@ def find_work_package(work_package_id: str) -> tuple[Path, dict] | tuple[None, N
     return None, None
 
 
-def contract_state(contract_id: str) -> str | None:
+def contract_releases(contract: dict) -> list[dict]:
+    if contract.get("releases"):
+        return contract["releases"]
+    rel = contract.get("current_release")
+    return [rel] if rel else []
+
+
+def contract_release(contract_id: str, version: str | None = None) -> dict | None:
     c = contract_catalog().get(contract_id)
     if not c:
         return None
-    return (c.get("current_release") or {}).get("state")
+    releases = contract_releases(c)
+    if version:
+        for rel in releases:
+            if rel.get("version") == version:
+                return rel
+        return None
+    current = c.get("current_release") or {}
+    if current.get("version"):
+        for rel in releases:
+            if rel.get("version") == current["version"]:
+                return rel
+        return current
+    return releases[0] if releases else None
+
+
+def resolve_contract(
+    contract_id: str,
+    required_version: str | None = None,
+    consumer_repository: str | None = None,
+) -> str | None:
+    c = contract_catalog().get(contract_id)
+    if not c:
+        return None
+    version = required_version
+    if not version and consumer_repository:
+        version = (c.get("consumers") or {}).get(consumer_repository, {}).get("pinned_version")
+    if not version:
+        version = (c.get("current_release") or {}).get("version")
+    rel = contract_release(contract_id, version)
+    return rel.get("state") if rel else None
+
+
+def contract_state(contract_id: str) -> str | None:
+    return resolve_contract(contract_id)
 
 
 def state_at_least(current: str | None, required: str, order: dict[str, int]) -> bool:
@@ -152,6 +201,41 @@ def github_api(path: str, *, token: str | None = None, accept: str = "applicatio
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"GitHub API {e.code}: {url}: {detail[:500]}") from e
+
+
+def github_blob_sha(repo_full_name: str, path: str, ref: str, token: str | None = None) -> str | None:
+    qpath = urllib.parse.quote(path.strip("/"), safe="/")
+    qref = urllib.parse.quote(ref, safe="")
+    try:
+        data = github_api(f"/repos/{repo_full_name}/git/blobs/{qpath}?ref={qref}", token=token)
+    except RuntimeError:
+        pass
+    try:
+        data = github_api(
+            f"/repos/{repo_full_name}/contents/{qpath}?ref={qref}",
+            token=token,
+        )
+    except RuntimeError as e:
+        if "GitHub API 404" in str(e):
+            return None
+        raise
+    if isinstance(data, dict):
+        return data.get("sha")
+    return None
+
+
+def github_commit_exists(repo_full_name: str, commit: str, token: str | None = None) -> bool:
+    try:
+        github_api(f"/repos/{repo_full_name}/commits/{commit}", token=token)
+        return True
+    except RuntimeError as e:
+        if "GitHub API 404" in str(e):
+            return False
+        raise
+
+
+def github_actions_run(repo_full_name: str, run_id: int | str, token: str | None = None) -> dict:
+    return github_api(f"/repos/{repo_full_name}/actions/runs/{run_id}", token=token)
 
 
 def github_file(repo_full_name: str, path: str, ref: str, token: str | None = None) -> str | None:

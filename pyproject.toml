@@ -1,6 +1,6 @@
 [project]
 name = "smc-delivery-governance"
-version = "1.1.0"
+version = "1.2.0"
 description = "SMC cross-repository engineering delivery control plane"
 requires-python = ">=3.11"
 dependencies = [

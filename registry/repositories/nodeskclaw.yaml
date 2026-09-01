@@ -11,7 +11,7 @@ governance:
   local_plans: .cursor/plans
   delivery_receipts: .agents/governance/receipts
   acceptance_manifests: .agents/governance/acceptance
-governance_state: OUT_OF_SYNC
+governance_state: SYNCED
 governance_policy: REPOSITORY-GOVERNANCE-V1
 github:
   issue_tracking: true

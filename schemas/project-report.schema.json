@@ -10,36 +10,25 @@
     "enforcement"
   ],
   "properties": {
-    "report_version": {
-      "const": "1"
+    "report_version": {"enum": ["1", "2"]},
+    "project_id": {"type": "string"},
+    "repository_id": {"type": "string"},
+    "kit_version": {"type": "string"},
+    "kit": {
+      "type": "object",
+      "properties": {
+        "name": {"type": "string"},
+        "version": {"type": "string"},
+        "tag": {"type": ["string", "null"]},
+        "commit": {"type": ["string", "null"]},
+        "manifest_sha256": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
     },
-    "project_id": {
-      "type": "string"
-    },
-    "repository_id": {
-      "type": "string"
-    },
-    "kit_version": {
-      "type": "string"
-    },
-    "governance_policy": {
-      "type": "string"
-    },
-    "central_commit": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "enforcement": {
-      "type": "boolean"
-    },
-    "reported_at": {
-      "type": [
-        "string",
-        "null"
-      ]
-    }
+    "governance_policy": {"type": "string"},
+    "central_commit": {"type": ["string", "null"]},
+    "enforcement": {"type": "boolean"},
+    "reported_at": {"type": ["string", "null"]}
   },
   "additionalProperties": false
 }

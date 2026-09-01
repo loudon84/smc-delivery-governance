@@ -1,0 +1,34 @@
+receipt_version: '2'
+feature_id: FEAT-SKILL-FIRST-001
+work_package_id: WP-SKILL-FIRST-NODESKCLAW
+repository_id: REPO-NODESKCLAW
+source_revision: SKILL-FIRST-PRD@4.0.1
+status: VERIFIED
+sync:
+  governance_kit_version: 1.2.0
+  central_commit: null
+  kit:
+    version: 1.2.0
+    tag: governance-kit-v1.2.0
+    commit: null
+    manifest_sha256: null
+  contract_pins: []
+delivery:
+  stage_prds: []
+  issues: []
+  bugs: []
+  plans: []
+  pull_requests: []
+  commits:
+    - 10d38f2c97739c4a55df893d1dc954fc8896f1a7
+  verification_reports: []
+acceptance:
+  manifest: null
+  report: null
+  status: NOT_DEFINED
+evidence:
+  release:
+    tag: skill-run-contract-v1.2.1
+    commit: 10d38f2c97739c4a55df893d1dc954fc8896f1a7
+  contract_conformance: provider-conformance-pass
+reported_at: '2026-09-01T12:00:00+00:00'

@@ -16,18 +16,18 @@ def test_delivery_receipt_schema():
     assert r.returncode==0, r.stdout+r.stderr
 
 def test_acceptance_gate_pass():
-    r=run('tools/acceptance_gate.py','--manifest','tests/fixtures/acceptance.yaml','--report','tests/fixtures/acceptance.report.json','--work-package','WP-SKILL-FIRST-SMC-COPILOT')
+    r=run('tools/acceptance_gate.py','--manifest','tests/fixtures/acceptance.yaml','--report','tests/fixtures/acceptance.report.json','--work-package','WP-SKILL-FIRST-SMC-COPILOT','--offline')
     assert r.returncode==0, r.stdout+r.stderr
     assert 'ACCEPTANCE GATE PASS' in r.stdout
 
 def test_governance_sync_bootstrap_and_check():
     with tempfile.TemporaryDirectory() as td:
-        r=run('tools/governance_sync.py','--repo',td,'--project','PROJECT-SMC-COPILOT','--feature','FEAT-SKILL-FIRST-001','--with-ci','--apply')
+        r=run('tools/governance_sync.py','--repo',td,'--project','PROJECT-SMC-COPILOT','--feature','FEAT-SKILL-FIRST-001','--with-ci','--allow-unsigned-head','--apply')
         assert r.returncode==0, r.stdout+r.stderr
         assert (Path(td)/'.agents/governance/binding.yaml').exists()
         assert (Path(td)/'.agents/governance/receipts/WP-SKILL-FIRST-SMC-COPILOT.yaml').exists()
         assert (Path(td)/'.github/workflows/smc-governance.yml').exists()
-        r=run('tools/governance_sync.py','--repo',td,'--project','PROJECT-SMC-COPILOT','--feature','FEAT-SKILL-FIRST-001','--with-ci','--check')
+        r=run('tools/governance_sync.py','--repo',td,'--project','PROJECT-SMC-COPILOT','--feature','FEAT-SKILL-FIRST-001','--with-ci','--allow-unsigned-head','--check')
         assert r.returncode==0, r.stdout+r.stderr
 
 def test_project_onboarding_dry_run():
@@ -36,7 +36,7 @@ def test_project_onboarding_dry_run():
     assert 'DRY RUN' in r.stdout
 
 
-def test_central_state_machine_blocks_without_synced_evidence():
-    r=run('tools/transition_state.py','--entity','work_package','--id','WP-SKILL-FIRST-SMC-COPILOT','--to','REVIEW')
+def test_central_state_machine_blocks_without_acceptance_pass():
+    r=run('tools/transition_state.py','--entity','work_package','--id','WP-SKILL-FIRST-SMC-COPILOT','--to','VERIFIED')
     assert r.returncode==2
     assert 'TRANSITION BLOCKED' in r.stdout

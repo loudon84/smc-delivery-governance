@@ -44,6 +44,9 @@ evidence:
   implementation_commit: null
   verification_evidence: null
 source_revision: SKILL-FIRST-PRD@4.0.1
-sync_state: MISSING_RECEIPT
-delivery_receipt: null
-observed: {}
+sync_state: SYNCED
+delivery_receipt: repo://loudon84/smc-copilot/.agents/governance/receipts/WP-SKILL-FIRST-SMC-COPILOT.yaml@work/prd-v4.0
+observed:
+  reported_status: IMPLEMENTING
+  reported_at: '2026-09-01T12:00:00+00:00'
+  receipt_path: examples\sample-receipts\REPO-SMC-COPILOT.yaml

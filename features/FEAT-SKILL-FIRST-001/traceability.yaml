@@ -5,19 +5,35 @@ source_prd:
   path: docs/work/PRD-WORK-v4.0.1-skill-first-layout-run-integration.md
   revision: SKILL-FIRST-PRD@4.0.1
 work_packages:
-  - work_package_id: WP-SKILL-FIRST-NODESKCLAW
-    repository_id: REPO-NODESKCLAW
-    stage_prds: []
-    issues: []
-    bugs: []
-    plans: []
-    commits: []
-    verification: []
-  - work_package_id: WP-SKILL-FIRST-SMC-COPILOT
+- work_package_id: WP-SKILL-FIRST-NODESKCLAW
+  repository_id: REPO-NODESKCLAW
+  stage_prds: []
+  issues: []
+  bugs: []
+  plans: []
+  commits:
+  - 10d38f2c97739c4a55df893d1dc954fc8896f1a7
+  verification: []
+- work_package_id: WP-SKILL-FIRST-SMC-COPILOT
+  repository_id: REPO-SMC-COPILOT
+  stage_prds:
+  - artifact_id: PRD-WORK-v4.0.1
     repository_id: REPO-SMC-COPILOT
-    stage_prds: []
-    issues: []
-    bugs: []
-    plans: []
-    commits: []
-    verification: []
+    path: docs/work/PRD-WORK-v4.0.1-skill-first-layout-run-integration.md
+    artifact_type: STAGE_PRD
+    status: APPROVED
+    commit: abcdef0123456789abcdef0123456789abcdef01
+    source_revision: SKILL-FIRST-PRD@4.0.1
+  issues: []
+  bugs: []
+  plans:
+  - artifact_id: PLAN-WORK-v4.0.1
+    repository_id: REPO-SMC-COPILOT
+    path: .cursor/plans/work-v4.0.1.plan.md
+    artifact_type: PLAN
+    status: VALIDATED
+    commit: abcdef0123456789abcdef0123456789abcdef02
+    source_revision: SKILL-FIRST-PRD@4.0.1
+  commits:
+  - abcdef0123456789abcdef0123456789abcdef03
+  verification: []

@@ -29,7 +29,7 @@ contracts:
   required_version: 1.2.1
   required_state_for_dark_implementation: CANDIDATE
   required_state_for_production_start: RELEASED
-  current_state: CONSUMED
+  current_state: CONFORMANCE_PASS
 work_packages:
 - WP-SKILL-FIRST-NODESKCLAW
 - WP-SKILL-FIRST-SMC-COPILOT

@@ -1,34 +1,47 @@
 feature_id: FEAT-SKILL-FIRST-001
 items:
-  - id: GRM-01
-    title: Public Contract Candidate
-    status: DONE
-    depends_on: []
-    exit: [contract:SKILL-RUN-CONTRACT>=CANDIDATE]
-  - id: GRM-02
-    title: Provider Public Contract Release
-    status: DONE
-    depends_on: [GRM-01]
-    exit: [contract:SKILL-RUN-CONTRACT>=RELEASED]
-  - id: GRM-03
-    title: Provider Work Package
-    status: DONE
-    depends_on: [GRM-01]
-    work_packages: [WP-SKILL-FIRST-NODESKCLAW]
-    exit: [work_package:WP-SKILL-FIRST-NODESKCLAW>=VERIFIED]
-  - id: GRM-04
-    title: Consumer Work Package
-    status: ACTIVE
-    depends_on: [GRM-01]
-    work_packages: [WP-SKILL-FIRST-SMC-COPILOT]
-    exit: [work_package:WP-SKILL-FIRST-SMC-COPILOT>=VERIFIED]
-  - id: GRM-05
-    title: Cross-Repo Integration Acceptance
-    status: BLOCKED
-    depends_on: [GRM-02, GRM-03, GRM-04]
-    blocked_by:
-      type: roadmap_item
-      id: GRM-04
-      required_state: DONE
-      current_state: ACTIVE
-    exit: [integration:INT-SKILL-FIRST-001=PASS]
+- id: GRM-01
+  title: Public Contract Candidate
+  status: DONE
+  depends_on: []
+  exit:
+  - contract:SKILL-RUN-CONTRACT>=CANDIDATE
+- id: GRM-02
+  title: Provider Public Contract Release
+  status: DONE
+  depends_on:
+  - GRM-01
+  exit:
+  - contract:SKILL-RUN-CONTRACT>=RELEASED
+- id: GRM-03
+  title: Provider Work Package
+  status: DONE
+  depends_on:
+  - GRM-01
+  work_packages:
+  - WP-SKILL-FIRST-NODESKCLAW
+  exit:
+  - work_package:WP-SKILL-FIRST-NODESKCLAW>=VERIFIED
+- id: GRM-04
+  title: Consumer Work Package
+  status: ACTIVE
+  depends_on:
+  - GRM-01
+  work_packages:
+  - WP-SKILL-FIRST-SMC-COPILOT
+  exit:
+  - work_package:WP-SKILL-FIRST-SMC-COPILOT>=VERIFIED
+- id: GRM-05
+  title: Cross-Repo Integration Acceptance
+  status: BLOCKED
+  depends_on:
+  - GRM-02
+  - GRM-03
+  - GRM-04
+  blocked_by:
+    type: roadmap_item
+    id: GRM-04
+    required_state: DONE
+    current_state: ACTIVE
+  exit:
+  - integration:INT-SKILL-FIRST-001=PASS

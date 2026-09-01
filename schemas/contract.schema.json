@@ -1,13 +1,39 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["contract_id", "name", "scope", "provider_repository", "current_release"],
+  "required": ["contract_id", "name", "scope", "provider_repository", "releases", "current_release"],
   "properties": {
     "contract_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9-]+$"},
     "name": {"type": "string"},
     "scope": {"enum": ["public-northbound", "internal-southbound", "shared", "data"]},
     "provider_repository": {"type": "string"},
     "primary_consumers": {"type": "array", "items": {"type": "string"}},
+    "releases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["version", "state"],
+        "properties": {
+          "version": {"type": "string"},
+          "state": {"enum": ["DRAFT", "CANDIDATE", "APPROVED", "RELEASED", "CONSUMED", "CONFORMANCE_PASS", "DEPRECATED", "RETIRED"]},
+          "tag": {"type": "string"},
+          "peeled_commit": {"type": "string", "pattern": "^[0-9a-fA-F]{40}$"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "consumers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["pinned_version"],
+        "properties": {
+          "pinned_version": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
     "current_release": {
       "type": "object",
       "required": ["version", "state"],
