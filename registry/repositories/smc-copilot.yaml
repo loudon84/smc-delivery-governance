@@ -7,3 +7,12 @@ governance:
   local_lat: apps/work/lat.md/lat.md
   local_skills: .agents/skills
   local_roadmaps: docs/work
+  local_prds: docs/work
+  local_plans: .cursor/plans
+  delivery_receipts: .agents/governance/receipts
+  acceptance_manifests: .agents/governance/acceptance
+governance_state: OUT_OF_SYNC
+governance_policy: REPOSITORY-GOVERNANCE-V1
+github:
+  issue_tracking: true
+  pull_requests: true

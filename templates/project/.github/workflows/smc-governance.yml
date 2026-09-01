@@ -1,0 +1,30 @@
+name: SMC Governance
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install PyYAML jsonschema
+      - name: Validate governance receipts and acceptance evidence
+        run: python .agents/governance/tools/validate_local_governance.py
+      - name: Require governed commit trailers for implementation commits
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=50 || true
+          commits=$(git rev-list "origin/${{ github.base_ref }}..HEAD" || true)
+          for c in $commits; do
+            body=$(git show -s --format=%B "$c")
+            if echo "$body" | grep -q '^SMC-Work-Package:'; then
+              echo "$body" | grep -q '^SMC-Feature:' || { echo "missing SMC-Feature trailer in $c"; exit 1; }
+            fi
+          done

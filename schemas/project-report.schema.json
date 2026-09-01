@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "report_version",
+    "project_id",
+    "repository_id",
+    "kit_version",
+    "governance_policy",
+    "enforcement"
+  ],
+  "properties": {
+    "report_version": {
+      "const": "1"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "repository_id": {
+      "type": "string"
+    },
+    "kit_version": {
+      "type": "string"
+    },
+    "governance_policy": {
+      "type": "string"
+    },
+    "central_commit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "enforcement": {
+      "type": "boolean"
+    },
+    "reported_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

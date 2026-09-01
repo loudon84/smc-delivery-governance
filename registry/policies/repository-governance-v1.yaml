@@ -1,0 +1,27 @@
+policy_id: REPOSITORY-GOVERNANCE-V1
+version: 1.0.0
+status: ACTIVE
+required:
+  governance_binding: .agents/governance/binding.yaml
+  governance_lock: .agents/governance.lock
+  receipt_directory: .agents/governance/receipts
+  acceptance_directory: .agents/governance/acceptance
+  feature_and_work_package_frontmatter: true
+  commit_trailers:
+    - SMC-Feature
+    - SMC-Work-Package
+recommended:
+  issue_labels:
+    - gov:feature:<FEATURE_ID>
+    - gov:wp:<WORK_PACKAGE_ID>
+    - gov:type:feature|bug|task
+  pull_request_body_links: true
+  ci_receipt_validation: true
+adoption_states:
+  - REGISTERED
+  - BOOTSTRAPPED
+  - SYNCED
+  - ENFORCED
+  - OUT_OF_SYNC
+  - PAUSED
+  - RETIRED

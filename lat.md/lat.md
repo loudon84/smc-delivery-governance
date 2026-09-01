@@ -10,6 +10,12 @@
 - [[decisions/ADR-003-contract-first]] — Contract Candidate 前置
 - [[decisions/ADR-004-repo-work-package]] — Repo Work Package 是中央与项目之间的连接器
 
+- [[architecture/project-onboarding]] — 新项目注册、Bootstrap、Sync/Enforce 状态
+- [[architecture/delivery-traceability]] — Source PRD → Stage PRD → Issue/Bug → Plan → Commit → Evidence
+- [[architecture/acceptance-evidence]] — Stage PRD AC/DOD 的本地测试与中央验收 Gate
+- [[decisions/ADR-005-delivery-receipt]] — 项目通过 Receipt 回报本地交付事实
+- [[decisions/ADR-006-prd-acceptance]] — Acceptance Manifest/Report 作为验收证据合同
+
 ## Product Mission
 
 ```text

@@ -1,0 +1,13 @@
+contract_id: SKILL-AGENT-CONTRACT
+name: Skill Agent Internal Execution Contract
+scope: internal-southbound
+provider_repository: REPO-NODESKCLAW
+primary_consumers:
+  - REPO-NODESKCLAW
+current_release:
+  version: 0.0.0
+  state: DRAFT
+compatibility:
+  semver: true
+  immutable_releases: true
+  consumer_lock_required: false

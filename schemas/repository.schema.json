@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "repository_id",
+    "project_id",
+    "name",
+    "provider",
+    "default_branch",
+    "governance"
+  ],
+  "properties": {
+    "repository_id": {
+      "type": "string",
+      "pattern": "^REPO-[A-Z0-9-]+$"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[^/]+/[^/]+$"
+    },
+    "provider": {
+      "enum": [
+        "github"
+      ]
+    },
+    "default_branch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "governance_state": {
+      "enum": [
+        "REGISTERED",
+        "BOOTSTRAPPED",
+        "SYNCED",
+        "ENFORCED",
+        "OUT_OF_SYNC",
+        "PAUSED",
+        "RETIRED"
+      ]
+    },
+    "governance_policy": {
+      "type": "string"
+    },
+    "governance": {
+      "type": "object",
+      "required": [
+        "local_lat",
+        "local_skills",
+        "local_roadmaps",
+        "local_prds",
+        "local_plans",
+        "delivery_receipts"
+      ],
+      "properties": {
+        "local_lat": {
+          "type": "string"
+        },
+        "local_skills": {
+          "type": "string"
+        },
+        "local_roadmaps": {
+          "type": "string"
+        },
+        "local_prds": {
+          "type": "string"
+        },
+        "local_plans": {
+          "type": "string"
+        },
+        "delivery_receipts": {
+          "type": "string"
+        },
+        "acceptance_manifests": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "github": {
+      "type": "object",
+      "properties": {
+        "issue_tracking": {
+          "type": "boolean"
+        },
+        "pull_requests": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

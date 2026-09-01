@@ -6,27 +6,33 @@ architecture_revision: SKILL-PLATFORM@1.0
 feature_owner: TEAM-AGENT-PLATFORM
 integration_owner: TEAM-WORK-PLATFORM
 participants:
-  - repository_id: REPO-NODESKCLAW
-    role: provider
-  - repository_id: REPO-SMC-COPILOT
-    role: consumer
+- repository_id: REPO-NODESKCLAW
+  role: provider
+- repository_id: REPO-SMC-COPILOT
+  role: consumer
 global_changes:
-  - {id: XR-C01, title: Public Skill Catalog Contract}
-  - {id: XR-C02, title: Skill Run Accepted and Recovery Contract}
-  - {id: XR-C03, title: Semantic Run Event Contract}
-  - {id: XR-C04, title: Artifact Contract}
-  - {id: XR-C05, title: Work Skill-first UX Integration}
+- id: XR-C01
+  title: Public Skill Catalog Contract
+- id: XR-C02
+  title: Skill Run Accepted and Recovery Contract
+- id: XR-C03
+  title: Semantic Run Event Contract
+- id: XR-C04
+  title: Artifact Contract
+- id: XR-C05
+  title: Work Skill-first UX Integration
 contracts:
-  - contract_id: SKILL-RUN-CONTRACT
-    provider_repository: REPO-NODESKCLAW
-    consumer_repositories: [REPO-SMC-COPILOT]
-    required_version: "1.2.1"
-    required_state_for_dark_implementation: CANDIDATE
-    required_state_for_production_start: RELEASED
-    current_state: CONSUMED
+- contract_id: SKILL-RUN-CONTRACT
+  provider_repository: REPO-NODESKCLAW
+  consumer_repositories:
+  - REPO-SMC-COPILOT
+  required_version: 1.2.1
+  required_state_for_dark_implementation: CANDIDATE
+  required_state_for_production_start: RELEASED
+  current_state: CONSUMED
 work_packages:
-  - WP-SKILL-FIRST-NODESKCLAW
-  - WP-SKILL-FIRST-SMC-COPILOT
+- WP-SKILL-FIRST-NODESKCLAW
+- WP-SKILL-FIRST-SMC-COPILOT
 integration:
   scenario_id: INT-SKILL-FIRST-001
   state: WAITING_CONSUMER
@@ -35,3 +41,10 @@ integration:
     WP-SKILL-FIRST-SMC-COPILOT: VERIFIED
   required_contract_states:
     SKILL-RUN-CONTRACT: CONSUMED
+source_revision: SKILL-FIRST-PRD@4.0.1
+source_prd:
+  id: PRD-WORK-v4.0.1
+  repository_id: REPO-SMC-COPILOT
+  path: docs/work/PRD-WORK-v4.0.1-skill-first-layout-run-integration.md
+  revision: work/prd-v4.0
+  status: APPROVED

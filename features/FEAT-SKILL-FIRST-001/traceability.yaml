@@ -1,0 +1,23 @@
+feature_id: FEAT-SKILL-FIRST-001
+source_prd:
+  id: PRD-WORK-v4.0.1
+  repository_id: REPO-SMC-COPILOT
+  path: docs/work/PRD-WORK-v4.0.1-skill-first-layout-run-integration.md
+  revision: SKILL-FIRST-PRD@4.0.1
+work_packages:
+  - work_package_id: WP-SKILL-FIRST-NODESKCLAW
+    repository_id: REPO-NODESKCLAW
+    stage_prds: []
+    issues: []
+    bugs: []
+    plans: []
+    commits: []
+    verification: []
+  - work_package_id: WP-SKILL-FIRST-SMC-COPILOT
+    repository_id: REPO-SMC-COPILOT
+    stage_prds: []
+    issues: []
+    bugs: []
+    plans: []
+    commits: []
+    verification: []

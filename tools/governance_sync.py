@@ -1,100 +1,147 @@
 from __future__ import annotations
-import argparse, hashlib, json, shutil
+import argparse, hashlib, json, shutil, subprocess
 from pathlib import Path
-import yaml
+from governance_lib import ROOT, project_catalog, repository_catalog, load_yaml
 
-ROOT = Path(__file__).resolve().parents[1]
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
-def load_yaml(path: Path):
-    return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+def current_commit() -> str | None:
+    r=subprocess.run(['git','rev-parse','HEAD'],cwd=ROOT,capture_output=True,text=True)
+    return r.stdout.strip() if r.returncode==0 else None
+
+
+def copy_file(src:Path,dst:Path):
+    dst.parent.mkdir(parents=True,exist_ok=True); shutil.copy2(src,dst)
+
+
+def copy_tree(src:Path,dst:Path):
+    if dst.exists(): shutil.rmtree(dst)
+    dst.parent.mkdir(parents=True,exist_ok=True); shutil.copytree(src,dst)
+
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--repo", required=True)
-    ap.add_argument("--project", required=True)
-    ap.add_argument("--feature")
-    mode = ap.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--apply", action="store_true")
-    mode.add_argument("--check", action="store_true")
-    args = ap.parse_args()
+    ap=argparse.ArgumentParser()
+    ap.add_argument('--repo',required=True)
+    ap.add_argument('--project',required=True)
+    ap.add_argument('--repository-id')
+    ap.add_argument('--feature',action='append',default=[])
+    ap.add_argument('--with-ci',action='store_true')
+    mode=ap.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--apply',action='store_true'); mode.add_argument('--check',action='store_true')
+    args=ap.parse_args()
 
-    repo = Path(args.repo).resolve()
-    if not repo.exists():
-        raise SystemExit(f"repo not found: {repo}")
+    repo=Path(args.repo).resolve()
+    if not repo.exists(): raise SystemExit(f'repo not found: {repo}')
+    projects=project_catalog(); repos=repository_catalog()
+    project=projects.get(args.project)
+    if not project: raise SystemExit(f'unknown project: {args.project}')
+    repo_ids=project.get('repositories',[])
+    rid=args.repository_id or (repo_ids[0] if len(repo_ids)==1 else None)
+    if not rid or rid not in repos: raise SystemExit('repository-id required or invalid')
+    repo_def=repos[rid]
 
-    project = None
-    for path in (ROOT / "registry/projects").glob("*.yaml"):
-        item = load_yaml(path)
-        if item.get("project_id") == args.project:
-            project = item
-            break
-    if not project:
-        raise SystemExit(f"unknown project: {args.project}")
+    manifest=load_yaml(ROOT/'skills/manifest.yaml')
+    dest=repo/manifest['sync']['destination']; lock_file=repo/manifest['sync']['lock_file']
+    central_commit=current_commit()
+    feature_bindings=[]
+    matching_wps=[]
+    contract_ids=set()
+    for feature_id in args.feature:
+        fdir=ROOT/'features'/feature_id
+        if not fdir.exists(): raise SystemExit(f'feature not found: {feature_id}')
+        feature_doc=load_yaml(fdir/'feature.yaml')
+        matched=None
+        for p in (fdir/'work-packages').glob('*.yaml'):
+            wp=load_yaml(p)
+            if wp.get('repository_id')==rid: matched=(p,wp); break
+        if not matched: raise SystemExit(f'no work package for {rid} in {feature_id}')
+        p,wp=matched; matching_wps.append((feature_id,p,wp))
+        for c in feature_doc.get('contracts',[]): contract_ids.add(c['contract_id'])
+        feature_bindings.append({'feature_id':feature_id,'work_package_id':wp['work_package_id'],'source_revision':wp['source_revision']})
 
-    manifest = load_yaml(ROOT / "skills/manifest.yaml")
-    destination = repo / manifest["sync"]["destination"]
-    lock_file = repo / manifest["sync"]["lock_file"]
+    binding={
+      'binding_version':'1','central_repository':'loudon84/smc-delivery-governance',
+      'kit':{'name':manifest['kit']['name'],'version':manifest['kit']['version']},
+      'project_id':args.project,'repository_id':rid,'governance_policy':repo_def.get('governance_policy','REPOSITORY-GOVERNANCE-V1'),
+      'features':feature_bindings
+    }
 
-    expected = {}
-    for skill_name in manifest.get("universal", []):
-        src = ROOT / "skills/universal" / skill_name / "SKILL.md"
-        expected[f"skills/{skill_name}/SKILL.md"] = sha256(src)
+    # Build expected digest set from canonical source, including binding generated content.
+    import yaml
+    generated_binding=(yaml.safe_dump(binding,sort_keys=False,allow_unicode=True)).encode('utf-8')
+    project_status={'report_version':'1','project_id':args.project,'repository_id':rid,'kit_version':manifest['kit']['version'],'governance_policy':repo_def.get('governance_policy','REPOSITORY-GOVERNANCE-V1'),'central_commit':None,'enforcement':bool(args.with_ci),'reported_at':None}
+    generated_project_status=(yaml.safe_dump(project_status,sort_keys=False,allow_unicode=True)).encode('utf-8')
+    expected={'binding.yaml':hashlib.sha256(generated_binding).hexdigest(),'project-status.yaml':hashlib.sha256(generated_project_status).hexdigest()}
+    for skill_name in manifest.get('universal',[]):
+        for src in sorted((ROOT/'skills/universal'/skill_name).rglob('*')):
+            if src.is_file(): expected[f"skills/{skill_name}/{src.relative_to(ROOT/'skills/universal'/skill_name).as_posix()}"]=sha256(src)
+    for schema_name in ['delivery-receipt.schema.json','acceptance-manifest.schema.json','acceptance-report.schema.json','project-report.schema.json']:
+        src=ROOT/'schemas'/schema_name; expected[f'schemas/{schema_name}']=sha256(src)
+    expected['tools/validate_local_governance.py']=sha256(ROOT/'templates/project/tools/validate_local_governance.py')
+    for feature_id,p,wp in matching_wps:
+        expected[f'work-packages/{feature_id}.yaml']=sha256(p)
+    for cid in sorted(contract_ids):
+        for p in (ROOT/'registry/contracts').glob('*.yaml'):
+            c=load_yaml(p)
+            if c.get('contract_id')==cid: expected[f'contracts/{cid}.yaml']=sha256(p)
+    if args.with_ci:
+        expected['github/workflows/smc-governance.yml']=sha256(ROOT/'templates/project/.github/workflows/smc-governance.yml')
+        expected['github/ISSUE_TEMPLATE/governed-bug.yml']=sha256(ROOT/'templates/project/.github/ISSUE_TEMPLATE/governed-bug.yml')
+        expected['github/ISSUE_TEMPLATE/governed-work.yml']=sha256(ROOT/'templates/project/.github/ISSUE_TEMPLATE/governed-work.yml')
+        expected['github/workflows/smc-governance-labels.yml']=sha256(ROOT/'templates/project/.github/workflows/smc-governance-labels.yml')
+        expected['github/pull_request_template.md']=sha256(ROOT/'templates/project/.github/pull_request_template.md')
 
-    matching_wp = None
-    if args.feature:
-        for path in (ROOT / "features" / args.feature / "work-packages").glob("*.yaml"):
-            wp = load_yaml(path)
-            if wp.get("repository_id") in project.get("repositories", []):
-                matching_wp = path
-                expected[f"work-packages/{args.feature}.yaml"] = sha256(path)
-                break
-
-    lock = {"kit": manifest["kit"]["name"], "version": manifest["kit"]["version"], "project_id": args.project, "feature_id": args.feature, "files": expected}
+    lock={'kit':manifest['kit']['name'],'version':manifest['kit']['version'],'project_id':args.project,'repository_id':rid,'features':[x['feature_id'] for x in feature_bindings],'files':expected}
 
     if args.check:
-        if not lock_file.exists():
-            print("OUT_OF_SYNC: governance.lock missing")
-            raise SystemExit(2)
-        current = json.loads(lock_file.read_text(encoding="utf-8"))
-        if current != lock:
-            print("OUT_OF_SYNC: governance.lock differs")
-            raise SystemExit(2)
-        for rel, digest in expected.items():
-            target = destination / rel
-            if not target.exists() or sha256(target) != digest:
-                print(f"OUT_OF_SYNC: {rel}")
-                raise SystemExit(2)
-        print("GOVERNANCE SYNC OK")
-        return
+        if not lock_file.exists(): print('OUT_OF_SYNC: governance.lock missing'); raise SystemExit(2)
+        current=json.loads(lock_file.read_text(encoding='utf-8'))
+        if current!=lock: print('OUT_OF_SYNC: governance.lock differs'); raise SystemExit(2)
+        for rel,digest in expected.items():
+            if rel.startswith('github/'):
+                target=repo/'.github'/rel[len('github/'):]
+            else: target=dest/rel
+            if not target.exists() or sha256(target)!=digest:
+                print(f'OUT_OF_SYNC: {rel}'); raise SystemExit(2)
+        print('GOVERNANCE SYNC OK'); return
 
-    for skill_name in manifest.get("universal", []):
-        src = ROOT / "skills/universal" / skill_name
-        dst = destination / "skills" / skill_name
-        if dst.exists(): shutil.rmtree(dst)
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src, dst)
+    dest.mkdir(parents=True,exist_ok=True)
+    (dest/'binding.yaml').write_bytes(generated_binding)
+    (dest/'project-status.yaml').write_bytes(generated_project_status)
+    for skill_name in manifest.get('universal',[]): copy_tree(ROOT/'skills/universal'/skill_name,dest/'skills'/skill_name)
+    for schema_name in ['delivery-receipt.schema.json','acceptance-manifest.schema.json','acceptance-report.schema.json','project-report.schema.json']:
+        copy_file(ROOT/'schemas'/schema_name,dest/'schemas'/schema_name)
+    copy_file(ROOT/'templates/project/tools/validate_local_governance.py',dest/'tools/validate_local_governance.py')
+    for feature_id,p,wp in matching_wps:
+        copy_file(p,dest/'work-packages'/f'{feature_id}.yaml')
+        # Create receipt skeleton only when absent; project owns subsequent updates.
+        receipt=dest/'receipts'/f"{wp['work_package_id']}.yaml"
+        if not receipt.exists():
+            receipt.parent.mkdir(parents=True,exist_ok=True)
+            skeleton={
+              'receipt_version':'1','feature_id':feature_id,'work_package_id':wp['work_package_id'],'repository_id':rid,
+              'source_revision':wp['source_revision'],'status':'BACKLOG',
+              'sync':{'governance_kit_version':manifest['kit']['version'],'central_commit':None,'contract_pins':[{'contract_id':x['contract_id'],'version':x.get('version') or x.get('required_version',''),'tag':None,'commit':None} for x in wp.get('contract_inputs',[])]},
+              'delivery':{'stage_prds':[],'issues':[],'bugs':[],'plans':[],'pull_requests':[],'commits':[],'verification_reports':[]},
+              'acceptance':{'manifest':None,'report':None,'status':'NOT_DEFINED'},'evidence':{},'reported_at':'1970-01-01T00:00:00+00:00'
+            }
+            receipt.write_text(yaml.safe_dump(skeleton,sort_keys=False,allow_unicode=True),encoding='utf-8',newline='\n')
+    for cid in sorted(contract_ids):
+        for p in (ROOT/'registry/contracts').glob('*.yaml'):
+            c=load_yaml(p)
+            if c.get('contract_id')==cid: copy_file(p,dest/'contracts'/f'{cid}.yaml')
+    if args.with_ci:
+        copy_file(ROOT/'templates/project/.github/workflows/smc-governance.yml',repo/'.github/workflows/smc-governance.yml')
+        copy_file(ROOT/'templates/project/.github/ISSUE_TEMPLATE/governed-bug.yml',repo/'.github/ISSUE_TEMPLATE/governed-bug.yml')
+        copy_file(ROOT/'templates/project/.github/ISSUE_TEMPLATE/governed-work.yml',repo/'.github/ISSUE_TEMPLATE/governed-work.yml')
+        copy_file(ROOT/'templates/project/.github/workflows/smc-governance-labels.yml',repo/'.github/workflows/smc-governance-labels.yml')
+        copy_file(ROOT/'templates/project/.github/pull_request_template.md',repo/'.github/pull_request_template.md')
+    lock_file.parent.mkdir(parents=True,exist_ok=True)
+    lock_file.write_text(json.dumps(lock,indent=2)+'\n',encoding='utf-8',newline='\n')
+    print(f'SYNCED {args.project}/{rid} -> {dest}')
+    print(f'LOCK {lock_file}')
 
-    if matching_wp:
-        dst = destination / "work-packages" / f"{args.feature}.yaml"
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(matching_wp, dst)
-        feature_doc = load_yaml(ROOT / "features" / args.feature / "feature.yaml")
-        cdir = destination / "contracts"
-        cdir.mkdir(parents=True, exist_ok=True)
-        for cref in feature_doc.get("contracts", []):
-            cid = cref["contract_id"]
-            for rp in (ROOT / "registry/contracts").glob("*.yaml"):
-                c = load_yaml(rp)
-                if c.get("contract_id") == cid:
-                    shutil.copy2(rp, cdir / f"{cid}.yaml")
-
-    lock_file.parent.mkdir(parents=True, exist_ok=True)
-    lock_file.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8", newline="\n")
-    print(f"SYNCED {args.project} -> {destination}")
-    print(f"LOCK {lock_file}")
-
-if __name__ == "__main__":
-    main()
+if __name__=='__main__': main()

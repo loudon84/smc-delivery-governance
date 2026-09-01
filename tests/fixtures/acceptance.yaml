@@ -1,0 +1,19 @@
+manifest_version: '1'
+feature_id: FEAT-SKILL-FIRST-001
+work_package_id: WP-SKILL-FIRST-SMC-COPILOT
+prd:
+  id: PRD-WORK-v4.0.1
+  path: docs/work/PRD-WORK-v4.0.1-skill-first-layout-run-integration.md
+  source_revision: SKILL-FIRST-PRD@4.0.1
+  commit: abcdef1
+requirements:
+  - id: AC-01
+    text: Skill Run must use the published contract.
+    verification_ids: [V-01]
+verifications:
+  - id: V-01
+    type: unit
+    command: python -c "print('ok')"
+    cwd: .
+    timeout_seconds: 30
+    blocking: true

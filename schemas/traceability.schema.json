@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "feature_id",
+    "source_prd",
+    "work_packages"
+  ],
+  "properties": {
+    "feature_id": {
+      "type": "string"
+    },
+    "source_prd": {
+      "type": "object",
+      "required": [
+        "id",
+        "revision"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "repository_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "work_packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "work_package_id",
+          "repository_id"
+        ],
+        "properties": {
+          "work_package_id": {
+            "type": "string"
+          },
+          "repository_id": {
+            "type": "string"
+          },
+          "stage_prds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "bugs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "plans": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "commits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verification": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

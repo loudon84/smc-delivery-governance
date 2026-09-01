@@ -1,0 +1,19 @@
+{
+  "report_version": "1",
+  "feature_id": "FEAT-SKILL-FIRST-001",
+  "work_package_id": "WP-SKILL-FIRST-SMC-COPILOT",
+  "source_revision": "SKILL-FIRST-PRD@4.0.1",
+  "repository_commit": "abcdef1234567",
+  "status": "PASS",
+  "results": [
+    {
+      "verification_id": "V-01",
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_ms": 12,
+      "stdout_sha256": null,
+      "stderr_sha256": null
+    }
+  ],
+  "generated_at": "2026-09-01T12:00:00+00:00"
+}

@@ -1,0 +1,22 @@
+feature_id: FEAT-SKILL-FIRST-001
+source_revision: SKILL-FIRST-PRD@4.0.1
+requirements:
+  - id: XAC-01
+    text: Provider and Consumer use the same released SKILL-RUN-CONTRACT identity.
+    owners:
+      - WP-SKILL-FIRST-NODESKCLAW
+      - WP-SKILL-FIRST-SMC-COPILOT
+    evidence:
+      - contract_conformance
+  - id: XAC-02
+    text: One user submission creates at most one Provider run across retry/restart.
+    owners:
+      - WP-SKILL-FIRST-SMC-COPILOT
+    evidence:
+      - cross_end_e2e
+  - id: XAC-03
+    text: Work never connects directly to nodeskclaw-agent.
+    owners:
+      - WP-SKILL-FIRST-SMC-COPILOT
+    evidence:
+      - static_boundary_test

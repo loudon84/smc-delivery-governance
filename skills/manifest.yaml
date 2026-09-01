@@ -1,6 +1,6 @@
 kit:
   name: smc-delivery-governance-kit
-  version: 1.0.0
+  version: 1.1.0
 sync:
   mode: overlay
   destination: .agents/governance
@@ -19,9 +19,14 @@ universal:
 - smc-external-dependency-check
 - smc-repo-work-package
 - smc-evidence-sync
+- smc-project-binding
+- smc-delivery-receipt
+- smc-prd-acceptance
 cross_repo:
 - smc-cross-repo-feature
 - smc-program-roadmap
 - smc-contract-lifecycle
 - smc-integration-gate
 - smc-program-status
+- smc-project-onboarding
+- smc-delivery-trace
