@@ -1,15 +1,22 @@
 from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
+import base64
+import hashlib
+import io
 import json
 import os
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
+
 import yaml
 from jsonschema import Draft202012Validator
 
-ROOT = Path(__file__).resolve().parents[1]
+_DEFAULT_ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(os.getenv("SMC_GOVERNANCE_ROOT", str(_DEFAULT_ROOT))).resolve()
 
 EXIT_OK = 0
 EXIT_SYSTEM_ERROR = 1
@@ -35,21 +42,27 @@ FEATURE_ORDER = {
     "BLOCKED": -1, "CANCELLED": -2,
 }
 
-
 def load_yaml(path: Path) -> Any:
     with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
-
 def dump_yaml(path: Path, data: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8", newline="\n")
-
+    path.write_text(
+        yaml.safe_dump(data, sort_keys=False, allow_unicode=True),
+        encoding="utf-8",
+        newline="\n",
+    )
 
 def load_json(path: Path) -> Any:
     with path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+def sha256_file(path: Path) -> str:
+    return sha256_bytes(path.read_bytes())
 
 def validate_jsonschema(data: Any, schema_path: Path) -> list[str]:
     schema = load_json(schema_path)
@@ -61,10 +74,8 @@ def validate_jsonschema(data: Any, schema_path: Path) -> list[str]:
         result.append(f"{loc}: {err.message}")
     return result
 
-
 def all_yaml_files(path: Path):
     return sorted(list(path.glob("*.yaml")) + list(path.glob("*.yml")))
-
 
 def index_registry(subdir: str, id_field: str) -> dict[str, dict]:
     base = ROOT / "registry" / subdir
@@ -78,22 +89,17 @@ def index_registry(subdir: str, id_field: str) -> dict[str, dict]:
             out[item[id_field]] = item
     return out
 
-
 def project_catalog() -> dict[str, dict]:
     return index_registry("projects", "project_id")
-
 
 def repository_catalog() -> dict[str, dict]:
     return index_registry("repositories", "repository_id")
 
-
 def team_catalog() -> dict[str, dict]:
     return index_registry("teams", "team_id")
 
-
 def contract_catalog() -> dict[str, dict]:
     return index_registry("contracts", "contract_id")
-
 
 def feature_dir(feature: str | Path) -> Path:
     path = Path(feature)
@@ -102,23 +108,26 @@ def feature_dir(feature: str | Path) -> Path:
     candidate = ROOT / "features" / str(feature)
     if candidate.exists():
         return candidate
+    if str(feature).startswith("features/"):
+        candidate = ROOT / str(feature)
+        if candidate.exists():
+            return candidate
     raise FileNotFoundError(f"feature not found: {feature}")
-
 
 def load_feature(feature: str | Path) -> tuple[Path, dict]:
     d = feature_dir(feature)
     return d, load_yaml(d / "feature.yaml")
 
-
 def load_work_packages(feature_dir_path: Path) -> dict[str, dict]:
     out = {}
     base = feature_dir_path / "work-packages"
+    if not base.exists():
+        return out
     for path in all_yaml_files(base):
         item = load_yaml(path)
         item["_path"] = str(path.relative_to(ROOT))
         out[item["work_package_id"]] = item
     return out
-
 
 def find_work_package(work_package_id: str) -> tuple[Path, dict] | tuple[None, None]:
     for fdir in (ROOT / "features").glob("FEAT-*"):
@@ -130,13 +139,11 @@ def find_work_package(work_package_id: str) -> tuple[Path, dict] | tuple[None, N
                 return path, doc
     return None, None
 
-
 def contract_releases(contract: dict) -> list[dict]:
     if contract.get("releases"):
         return contract["releases"]
     rel = contract.get("current_release")
     return [rel] if rel else []
-
 
 def contract_release(contract_id: str, version: str | None = None) -> dict | None:
     c = contract_catalog().get(contract_id)
@@ -144,24 +151,17 @@ def contract_release(contract_id: str, version: str | None = None) -> dict | Non
         return None
     releases = contract_releases(c)
     if version:
-        for rel in releases:
-            if rel.get("version") == version:
-                return rel
-        return None
+        return next((r for r in releases if r.get("version") == version), None)
     current = c.get("current_release") or {}
     if current.get("version"):
-        for rel in releases:
-            if rel.get("version") == current["version"]:
-                return rel
-        return current
+        return next((r for r in releases if r.get("version") == current["version"]), current)
     return releases[0] if releases else None
 
-
-def resolve_contract(
+def resolve_contract_release(
     contract_id: str,
     required_version: str | None = None,
     consumer_repository: str | None = None,
-) -> str | None:
+) -> dict | None:
     c = contract_catalog().get(contract_id)
     if not c:
         return None
@@ -170,13 +170,18 @@ def resolve_contract(
         version = (c.get("consumers") or {}).get(consumer_repository, {}).get("pinned_version")
     if not version:
         version = (c.get("current_release") or {}).get("version")
-    rel = contract_release(contract_id, version)
-    return rel.get("state") if rel else None
+    return contract_release(contract_id, version)
 
+def resolve_contract(
+    contract_id: str,
+    required_version: str | None = None,
+    consumer_repository: str | None = None,
+) -> str | None:
+    rel = resolve_contract_release(contract_id, required_version, consumer_repository)
+    return rel.get("state") if rel else None
 
 def contract_state(contract_id: str) -> str | None:
     return resolve_contract(contract_id)
-
 
 def state_at_least(current: str | None, required: str, order: dict[str, int]) -> bool:
     if current is None or current not in order or required not in order:
@@ -185,61 +190,56 @@ def state_at_least(current: str | None, required: str, order: dict[str, int]) ->
         return current == required
     return order[current] >= order[required]
 
+def _github_token(token: str | None = None) -> str | None:
+    return token or os.getenv("SMC_GOVERNANCE_GITHUB_TOKEN") or os.getenv("GITHUB_TOKEN")
 
-def github_api(path: str, *, token: str | None = None, accept: str = "application/vnd.github+json") -> Any:
+def github_request(
+    path: str,
+    *,
+    token: str | None = None,
+    accept: str = "application/vnd.github+json",
+    method: str = "GET",
+    body: bytes | None = None,
+    raw: bool = False,
+) -> Any:
     url = path if path.startswith("http") else f"https://api.github.com{path}"
-    req = urllib.request.Request(url)
+    req = urllib.request.Request(url, data=body, method=method)
     req.add_header("Accept", accept)
     req.add_header("X-GitHub-Api-Version", "2022-11-28")
-    token = token or os.getenv("SMC_GOVERNANCE_GITHUB_TOKEN") or os.getenv("GITHUB_TOKEN")
-    if token:
-        req.add_header("Authorization", f"Bearer {token}")
+    tok = _github_token(token)
+    if tok:
+        req.add_header("Authorization", f"Bearer {tok}")
+    if body is not None:
+        req.add_header("Content-Type", "application/json")
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            body = resp.read().decode("utf-8")
-            return json.loads(body)
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = resp.read()
+            if raw:
+                return data
+            if not data:
+                return None
+            return json.loads(data.decode("utf-8"))
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"GitHub API {e.code}: {url}: {detail[:500]}") from e
+        raise RuntimeError(f"GitHub API {e.code}: {url}: {detail[:700]}") from e
 
+def github_api(path: str, *, token: str | None = None, accept: str = "application/vnd.github+json") -> Any:
+    return github_request(path, token=token, accept=accept)
 
-def github_blob_sha(repo_full_name: str, path: str, ref: str, token: str | None = None) -> str | None:
-    qpath = urllib.parse.quote(path.strip("/"), safe="/")
+def github_resolve_ref(repo_full_name: str, ref: str, token: str | None = None) -> str:
     qref = urllib.parse.quote(ref, safe="")
-    try:
-        data = github_api(f"/repos/{repo_full_name}/git/blobs/{qpath}?ref={qref}", token=token)
-    except RuntimeError:
-        pass
-    try:
-        data = github_api(
-            f"/repos/{repo_full_name}/contents/{qpath}?ref={qref}",
-            token=token,
-        )
-    except RuntimeError as e:
-        if "GitHub API 404" in str(e):
-            return None
-        raise
-    if isinstance(data, dict):
-        return data.get("sha")
-    return None
+    data = github_api(f"/repos/{repo_full_name}/commits/{qref}", token=token)
+    sha = data.get("sha") if isinstance(data, dict) else None
+    if not sha:
+        raise RuntimeError(f"cannot resolve ref {repo_full_name}@{ref}")
+    return sha
 
-
-def github_commit_exists(repo_full_name: str, commit: str, token: str | None = None) -> bool:
-    try:
-        github_api(f"/repos/{repo_full_name}/commits/{commit}", token=token)
-        return True
-    except RuntimeError as e:
-        if "GitHub API 404" in str(e):
-            return False
-        raise
-
-
-def github_actions_run(repo_full_name: str, run_id: int | str, token: str | None = None) -> dict:
-    return github_api(f"/repos/{repo_full_name}/actions/runs/{run_id}", token=token)
-
-
-def github_file(repo_full_name: str, path: str, ref: str, token: str | None = None) -> str | None:
-    import base64
+def github_content_metadata(
+    repo_full_name: str,
+    path: str,
+    ref: str,
+    token: str | None = None,
+) -> dict | None:
     qpath = urllib.parse.quote(path.strip("/"), safe="/")
     qref = urllib.parse.quote(ref, safe="")
     try:
@@ -250,7 +250,80 @@ def github_file(repo_full_name: str, path: str, ref: str, token: str | None = No
         raise
     if not isinstance(data, dict) or data.get("type") != "file":
         return None
-    content = data.get("content") or ""
+    raw = b""
     if data.get("encoding") == "base64":
-        return base64.b64decode(content).decode("utf-8")
-    return content
+        raw = base64.b64decode((data.get("content") or "").encode("ascii"))
+    elif data.get("download_url"):
+        raw = github_request(data["download_url"], token=token, raw=True)
+    return {
+        "sha": data.get("sha"),
+        "size": data.get("size"),
+        "bytes": raw,
+        "sha256": sha256_bytes(raw),
+    }
+
+def github_blob_sha(repo_full_name: str, path: str, ref: str, token: str | None = None) -> str | None:
+    meta = github_content_metadata(repo_full_name, path, ref, token)
+    return meta.get("sha") if meta else None
+
+def github_file(repo_full_name: str, path: str, ref: str, token: str | None = None) -> str | None:
+    meta = github_content_metadata(repo_full_name, path, ref, token)
+    if not meta:
+        return None
+    return meta["bytes"].decode("utf-8")
+
+def github_file_bytes(repo_full_name: str, path: str, ref: str, token: str | None = None) -> bytes | None:
+    meta = github_content_metadata(repo_full_name, path, ref, token)
+    return meta["bytes"] if meta else None
+
+def github_commit_exists(repo_full_name: str, commit: str, token: str | None = None) -> bool:
+    try:
+        github_api(f"/repos/{repo_full_name}/commits/{commit}", token=token)
+        return True
+    except RuntimeError as e:
+        if "GitHub API 404" in str(e):
+            return False
+        raise
+
+def github_actions_run(repo_full_name: str, run_id: int | str, token: str | None = None) -> dict:
+    return github_api(f"/repos/{repo_full_name}/actions/runs/{run_id}", token=token)
+
+def github_actions_jobs(repo_full_name: str, run_id: int | str, token: str | None = None) -> list[dict]:
+    data = github_api(f"/repos/{repo_full_name}/actions/runs/{run_id}/jobs?per_page=100", token=token)
+    return data.get("jobs", []) if isinstance(data, dict) else []
+
+def github_actions_artifact(
+    repo_full_name: str,
+    run_id: int | str,
+    artifact_name: str,
+    token: str | None = None,
+) -> dict:
+    data = github_api(f"/repos/{repo_full_name}/actions/runs/{run_id}/artifacts?per_page=100", token=token)
+    matches = [a for a in (data.get("artifacts", []) if isinstance(data, dict) else []) if a.get("name") == artifact_name]
+    if len(matches) != 1:
+        raise RuntimeError(f"expected exactly one artifact {artifact_name}, found {len(matches)}")
+    return matches[0]
+
+def github_download_artifact_zip(
+    repo_full_name: str,
+    artifact_id: int | str,
+    token: str | None = None,
+) -> bytes:
+    return github_request(
+        f"/repos/{repo_full_name}/actions/artifacts/{artifact_id}/zip",
+        token=token,
+        accept="application/octet-stream",
+        raw=True,
+    )
+
+def read_zip_text_files(blob: bytes) -> dict[str, bytes]:
+    out: dict[str, bytes] = {}
+    with zipfile.ZipFile(io.BytesIO(blob)) as zf:
+        for info in zf.infolist():
+            if info.is_dir():
+                continue
+            name = info.filename.replace("\\", "/")
+            if name.startswith("/") or ".." in Path(name).parts:
+                raise RuntimeError(f"unsafe artifact entry: {name}")
+            out[name] = zf.read(info)
+    return out

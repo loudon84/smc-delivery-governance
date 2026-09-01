@@ -1,20 +1,28 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smc.local/schemas/artifact-ref-v2.json",
+  "title": "ArtifactRef v2",
   "type": "object",
   "required": [
     "repository_id",
     "path",
     "commit",
+    "blob_sha",
+    "sha256",
     "artifact_type",
     "artifact_id",
-    "status"
+    "status",
+    "source_revision"
   ],
   "properties": {
     "repository_id": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "path": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*\\.\\./).+"
     },
     "commit": {
       "type": "string",
@@ -39,13 +47,16 @@
       ]
     },
     "artifact_id": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "status": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "source_revision": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     }
   },
   "additionalProperties": false

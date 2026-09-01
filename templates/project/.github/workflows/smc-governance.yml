@@ -2,7 +2,7 @@ name: SMC Governance
 on:
   pull_request:
   push:
-    branches: [main, master, work/*]
+    branches: [main, master, 'work/**']
   workflow_dispatch:
 
 jobs:
@@ -10,58 +10,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: python -m pip install PyYAML jsonschema
-      - name: Validate governance receipts and acceptance evidence
+      - name: Validate local governance and ArtifactRef v2
         run: python .agents/governance/tools/validate_local_governance.py
-      - name: Require governed PR metadata for managed changes
+      - name: Require governed PR metadata
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           body="${{ github.event.pull_request.body }}"
           labels='${{ toJson(github.event.pull_request.labels.*.name) }}'
           if echo "$labels" | grep -q 'gov:managed'; then
-            echo "$body" | grep -q 'SMC-Feature:' || { echo "missing SMC-Feature in PR body"; exit 1; }
-            echo "$body" | grep -q 'SMC-Work-Package:' || { echo "missing SMC-Work-Package in PR body"; exit 1; }
+            echo "$body" | grep -q 'SMC-Feature:' || { echo "missing SMC-Feature"; exit 1; }
+            echo "$body" | grep -q 'SMC-Work-Package:' || { echo "missing SMC-Work-Package"; exit 1; }
+            echo "$body" | grep -q 'SMC-PRD:' || { echo "missing SMC-PRD"; exit 1; }
+            echo "$body" | grep -q 'SMC-Plan:' || { echo "missing SMC-Plan"; exit 1; }
           fi
-      - name: Require governed commit trailers for implementation commits
-        if: github.event_name == 'pull_request'
-        shell: bash
-        run: |
-          git fetch origin "${{ github.base_ref }}" --depth=50 || true
-          commits=$(git rev-list "origin/${{ github.base_ref }}..HEAD" || true)
-          for c in $commits; do
-            body=$(git show -s --format=%B "$c")
-            if echo "$body" | grep -q '^SMC-Work-Package:'; then
-              echo "$body" | grep -q '^SMC-Feature:' || { echo "missing SMC-Feature trailer in $c"; exit 1; }
-            fi
-          done
-      - name: Attach acceptance provenance metadata
-        if: github.event_name == 'push'
-        shell: bash
-        run: |
-          for report in .agents/governance/acceptance/*.report.json; do
-            [ -f "$report" ] || continue
-            python - <<'PY' "$report"
-          import json, sys, hashlib, os
-          path=sys.argv[1]
-          data=json.load(open(path, encoding='utf-8'))
-          if data.get('provenance'):
-              raise SystemExit(0)
-          data['report_version']='2'
-          data['provenance']={
-            'provider':'github-actions',
-            'repository': os.environ['GITHUB_REPOSITORY'],
-            'commit': os.environ.get('GITHUB_SHA',''),
-            'workflow': os.environ.get('GITHUB_WORKFLOW',''),
-            'workflow_sha': os.environ.get('GITHUB_WORKFLOW_SHA',''),
-            'run_id': os.environ.get('GITHUB_RUN_ID',''),
-            'job_id': os.environ.get('GITHUB_JOB',''),
-            'actor': os.environ.get('GITHUB_ACTOR',''),
-            'artifact_sha256': hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest(),
-          }
-          json.dump(data, open(path,'w',encoding='utf-8'), indent=2)
-          PY
-          done

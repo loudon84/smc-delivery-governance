@@ -5,36 +5,63 @@
     "integration_run_id",
     "scenario_id",
     "feature_id",
+    "created_at",
     "inputs",
     "execution",
     "result"
   ],
   "properties": {
-    "integration_run_id": {"type": "string"},
-    "scenario_id": {"type": "string"},
-    "feature_id": {"type": "string"},
+    "integration_run_id": {
+      "type": "string",
+      "pattern": "^IR-[A-Z0-9-]+-[0-9A-Fa-f-]+$"
+    },
+    "scenario_id": {
+      "type": "string"
+    },
+    "feature_id": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "completed_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "inputs": {
       "type": "object",
-      "required": ["provider", "consumer"],
+      "required": [
+        "provider",
+        "consumer",
+        "contracts"
+      ],
       "properties": {
         "provider": {
-          "type": "object",
-          "required": ["repository_id", "commit", "release"],
-          "properties": {
-            "repository_id": {"type": "string"},
-            "commit": {"type": "string"},
-            "release": {"type": "string"}
-          },
-          "additionalProperties": false
+          "$ref": "#/$defs/repoInput"
         },
         "consumer": {
-          "type": "object",
-          "required": ["repository_id", "commit"],
-          "properties": {
-            "repository_id": {"type": "string"},
-            "commit": {"type": "string"}
-          },
-          "additionalProperties": false
+          "$ref": "#/$defs/repoInput"
+        },
+        "contracts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "contract_id",
+              "version"
+            ],
+            "properties": {
+              "contract_id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
         }
       },
       "additionalProperties": false
@@ -42,28 +69,105 @@
     "environment": {
       "type": "object",
       "properties": {
-        "id": {"type": "string"},
-        "endpoint_ref": {"type": "string"}
+        "id": {
+          "type": "string"
+        },
+        "endpoint_ref": {
+          "type": "string"
+        }
       },
       "additionalProperties": false
     },
     "execution": {
       "type": "object",
-      "required": ["workflow_run_id"],
+      "required": [
+        "repository",
+        "workflow",
+        "workflow_run_id",
+        "runner"
+      ],
       "properties": {
-        "workflow_run_id": {"type": ["string", "integer"]},
-        "repository": {"type": "string"},
-        "workflow": {"type": "string"},
-        "provenance": {"type": "object"}
+        "repository": {
+          "type": "string"
+        },
+        "workflow": {
+          "type": "string"
+        },
+        "workflow_run_id": {
+          "type": [
+            "string",
+            "integer"
+          ]
+        },
+        "runner": {
+          "type": "string"
+        }
       },
       "additionalProperties": false
     },
     "result": {
       "type": "object",
-      "required": ["status"],
+      "required": [
+        "status",
+        "evidence"
+      ],
       "properties": {
-        "status": {"enum": ["RUNNING", "PASS", "FAIL"]},
-        "evidence": {"type": "array", "items": {"type": "string"}}
+        "status": {
+          "enum": [
+            "RUNNING",
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exit_code": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "stdout_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stderr_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "repoInput": {
+      "type": "object",
+      "required": [
+        "repository_id",
+        "commit"
+      ],
+      "properties": {
+        "repository_id": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{40}$"
+        },
+        "release": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       },
       "additionalProperties": false
     }

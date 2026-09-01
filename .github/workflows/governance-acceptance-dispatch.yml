@@ -1,7 +1,7 @@
-name: Governance Sync Dispatch
+name: Governance Acceptance Dispatch
 on:
   repository_dispatch:
-    types: [smc-governance-sync]
+    types: [smc-governance-acceptance]
 
 concurrency:
   group: governance-reconcile
@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  sync:
+  verify:
     runs-on: ubuntu-latest
     env:
       SMC_GOVERNANCE_GITHUB_TOKEN: ${{ secrets.SMC_GOVERNANCE_GITHUB_TOKEN }}
@@ -23,7 +23,14 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install -e .
-      - name: Sync affected repository
+      - name: Verify acceptance artifact and attestation
+        run: |
+          python tools/sync_acceptance_attestation.py \
+            --repository-id '${{ github.event.client_payload.repository_id }}' \
+            --run-id '${{ github.event.client_payload.run_id }}' \
+            --artifact-name '${{ github.event.client_payload.artifact_name }}' \
+            --apply
+      - name: Reconcile affected repository
         shell: bash
         run: |
           set +e
@@ -36,12 +43,12 @@ jobs:
             0|2) ;;
             *) exit "$code" ;;
           esac
-      - name: Commit materialized state and audit
+      - name: Commit trusted acceptance and state
         shell: bash
         run: |
           if git diff --quiet; then exit 0; fi
           git config user.name "smc-governance-bot"
           git config user.email "smc-governance-bot@users.noreply.github.com"
           git add features registry audit integration
-          git commit -m "chore(governance): event sync ${{ github.event.client_payload.repository_id }}"
+          git commit -m "chore(governance): verify acceptance ${{ github.event.client_payload.repository_id }}"
           git push

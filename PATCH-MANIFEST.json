@@ -1,0 +1,490 @@
+{
+  "patch_id": "SMC-DELIVERY-GOVERNANCE-v1.2.1-CLOSED-LOOP-v1",
+  "base_repository": "loudon84/smc-delivery-governance",
+  "base_branch": "master",
+  "base_commit": "66e9345681822527ad7611f3c46a66e5d445ea92",
+  "target_version": "1.2.1",
+  "scope": "closure patch only; not a full repository snapshot",
+  "files": [
+    {
+      "path": ".github/workflows/governance-acceptance-dispatch.yml",
+      "action": "add",
+      "sha256": "8422ecc1d669de62ecfebba49a10890b96c23ffbcb340c48770617f5b1fc1439",
+      "p0": [
+        "P0-06"
+      ]
+    },
+    {
+      "path": ".github/workflows/governance-ci.yml",
+      "action": "replace",
+      "sha256": "e745cb0d3f0e8f326b830bc402005e05387660447ff0dee721e2493f82cae424",
+      "p0": [
+        "P0-01"
+      ]
+    },
+    {
+      "path": ".github/workflows/governance-sync-dispatch.yml",
+      "action": "replace",
+      "sha256": "7727c9f3dd85934f2e491fc65bbb7efdafad4b30b2f30715603c6fadf873b790",
+      "p0": [
+        "P0-07"
+      ]
+    },
+    {
+      "path": ".github/workflows/integration-run.yml",
+      "action": "add",
+      "sha256": "ef7fd313998cbaa2ebc0f61e344f62b9d422c606147ec75398604a95a576b693",
+      "p0": [
+        "P0-09"
+      ]
+    },
+    {
+      "path": ".github/workflows/release-governance-kit.yml",
+      "action": "add",
+      "sha256": "d7d372198fa910a3ddb841f4ecf7712cda0d585cdaec03604eef4eea3afe84d2",
+      "p0": [
+        "P0-03"
+      ]
+    },
+    {
+      "path": ".github/workflows/sync-project-status.yml",
+      "action": "replace",
+      "sha256": "821ac7fe010072ae9a8123481febb5221abb083258cbda9cbd0aa913b9022380",
+      "p0": [
+        "P0-07"
+      ]
+    },
+    {
+      "path": ".gitignore",
+      "action": "replace",
+      "sha256": "2218f34875cec1f554244176b6788afa1e7c036e4c977d6cf94b5faa0daa2734",
+      "p0": [
+        "P0-03"
+      ]
+    },
+    {
+      "path": "CHANGES-v1.2.1.md",
+      "action": "add",
+      "sha256": "1e8e077ef26dd599faeac7b3bd1312d4ca3780353051a35cac40e7e8a2726a1a",
+      "p0": []
+    },
+    {
+      "path": "contracts/lifecycle/states.yaml",
+      "action": "replace",
+      "sha256": "268b73bcc10fef711e4b110280905da8ce9136efb470347bb9fd617e2282deb5",
+      "p0": [
+        "P0-08",
+        "P0-10"
+      ]
+    },
+    {
+      "path": "docs/MIGRATION-v1.2-to-v1.2.1.md",
+      "action": "add",
+      "sha256": "bc5d601ec427da16a8ec9c5a48b500cc001330b9885d9bee663a50e5ef9c12f8",
+      "p0": []
+    },
+    {
+      "path": "integration/runners/skill_first_http.py",
+      "action": "add",
+      "sha256": "bbe170f68d9f2bf8231ea08bdce3c92cc2a331935ff1764760397b877d53c286",
+      "p0": [
+        "P0-09"
+      ]
+    },
+    {
+      "path": "integration/scenarios/FEAT-SKILL-FIRST-001.yaml",
+      "action": "replace",
+      "sha256": "642b5b43654f0d68d25ca8fc27cc7732daaf36c95961539a57a8b326e10b779b",
+      "p0": [
+        "P0-09"
+      ]
+    },
+    {
+      "path": "registry/policies/repository-governance-v1.yaml",
+      "action": "replace",
+      "sha256": "9c3de42d1af7890aada602a0a8bd21e39a465e9a99de86f83b196a56534be973",
+      "p0": []
+    },
+    {
+      "path": "schemas/acceptance-attestation.schema.json",
+      "action": "add",
+      "sha256": "c4269b221e5b68f355803e5d8e82a6d6c01107c06e3c461003d13e8f156c4517",
+      "p0": [
+        "P0-06"
+      ]
+    },
+    {
+      "path": "schemas/acceptance-report.schema.json",
+      "action": "replace",
+      "sha256": "33f4473b0136bdf1f5b4b790d45f0c6f75d9bac726cb9263ad5d2533735c19df",
+      "p0": [
+        "P0-06"
+      ]
+    },
+    {
+      "path": "schemas/artifact-ref.schema.json",
+      "action": "replace",
+      "sha256": "4bb7b62f62c5f5631a3e470a4b1cfe38f5c582c6d1559e16384985376806519c",
+      "p0": [
+        "P0-04"
+      ]
+    },
+    {
+      "path": "schemas/delivery-receipt.schema.json",
+      "action": "replace",
+      "sha256": "bef832c57030b278996712058c49d4eb00613a1e19a5ee1677b1232ef2327e8f",
+      "p0": [
+        "P0-04"
+      ]
+    },
+    {
+      "path": "schemas/feature.schema.json",
+      "action": "replace",
+      "sha256": "25fc4b12c2b2b918df88eb2321dc8141346bdb94fce2665e3cfc88f7a4d5d3d9",
+      "p0": [
+        "P0-05"
+      ]
+    },
+    {
+      "path": "schemas/integration-report.schema.json",
+      "action": "add",
+      "sha256": "cdd6b72c406651d579a63209c8ad4188493d261ffc99f478dbce3edec7662dd9",
+      "p0": [
+        "P0-09"
+      ]
+    },
+    {
+      "path": "schemas/integration-run.schema.json",
+      "action": "replace",
+      "sha256": "1d6ea917c55520c76150bf961d79469f3c3f79e0dbeb763a50e44301b516c594",
+      "p0": [
+        "P0-09"
+      ]
+    },
+    {
+      "path": "skills/manifest.yaml",
+      "action": "replace",
+      "sha256": "db9c94c943840384c6080c2bce9324ddd2546cd15f5bff3bdd034bebd0e18fb9",
+      "p0": [
+        "P0-03"
+      ]
+    },
+    {
+      "path": "skills/universal/smc-prd-acceptance/scripts/run_acceptance.py",
+      "action": "replace",
+      "sha256": "b2e2aaaa3c3c8163dd7c3b0c20cdecb24e733066abcb3f60f31b47b0a20b45bd",
+      "p0": [
+        "P0-06"
+      ]
+    },
+    {
+      "path": "templates/project/.github/workflows/smc-governance-acceptance.yml",
+      "action": "add",
+      "sha256": "95d1fe8ecbbf5cacc091b96a6b49e8df37cb581d737ffd484d368a171351aa80",
+      "p0": [
+        "P0-06"
+      ]
+    },
+    {
+      "path": "templates/project/.github/workflows/smc-governance-dispatch.yml",
+      "action": "replace",
+      "sha256": "80d79968e99cd760461cb9366cd4c325801ec6e6f4835ea5059545a749d6eb66",
+      "p0": [
+        "P0-02"
+      ]
+    },
+    {
+      "path": "templates/project/.github/workflows/smc-governance.yml",
+      "action": "replace",
+      "sha256": "21dec4945e8e07c384e04f4c276eefb5738699478d94cabc252426618d2a43ff",
+      "p0": [
+        "P0-02"
+      ]
+    },
+    {
+      "path": "templates/project/tools/validate_local_governance.py",
+      "action": "replace",
+      "sha256": "e7f243d7f7e0e35be406c9c795a64f3a7fb9d86c2c7575e06922902341cd3e27",
+      "p0": [
+        "P0-04"
+      ]
+    },
+    {
+      "path": "tests/conftest.py",
+      "action": "add",
+      "sha256": "a3168c1868c612098246cc50bdf18461462793830de33fd74a537a26aae27f36",
+      "p0": [
+        "P0-01"
+      ]
+    },
+    {
+      "path": "tests/fixtures/acceptance.report.json",
+      "action": "replace",
+      "sha256": "c67801aab7ddd14d089371147401abe59c4a830cceb848f186ca6b89f22c2f62",
+      "p0": []
+    },
+    {
+      "path": "tests/test_governance_v120.py",
+      "action": "replace",
+      "sha256": "d46357c4da91b6d0193acee87b6ec2c0a4bba1361cc3f6966f35694fbc30b0f7",
+      "p0": [
+        "P0-01"
+      ]
+    },
+    {
+      "path": "tests/test_governance_v121.py",
+      "action": "add",
+      "sha256": "7df9a87207e5c428938c95abae69b1c802348d5bd96600580ecce046382ee0db",
+      "p0": []
+    },
+    {
+      "path": "tools/acceptance_gate.py",
+      "action": "replace",
+      "sha256": "ee6b545cbe44aefc520e4fae452975442c05fdbc25d2fea0b945919960c7bc27",
+      "p0": [
+        "P0-06"
+      ]
+    },
+    {
+      "path": "tools/artifact_verify.py",
+      "action": "replace",
+      "sha256": "3722b8ca7fce32c824175a0b1f63a6f1e00039c1bad254a41883ed038897c208",
+      "p0": [
+        "P0-04"
+      ]
+    },
+    {
+      "path": "tools/audit_events.py",
+      "action": "replace",
+      "sha256": "66c825e7c22b47fd4ba99eee147af5d11aec97c450f2bd454dd39d5ff693c06a",
+      "p0": [
+        "P0-10"
+      ]
+    },
+    {
+      "path": "tools/cleanup_sample_sot.py",
+      "action": "add",
+      "sha256": "b8d7f5942db87c0de375381572330e9b98568a087ffa007df8687ef0ea298611",
+      "p0": [
+        "P0-01"
+      ]
+    },
+    {
+      "path": "tools/fetch_governance_kit.py",
+      "action": "add",
+      "sha256": "fdbb81a2460896db35ee64d26431d500c38fb145675d96b7b14f6269ff155dd1",
+      "p0": [
+        "P0-03"
+      ]
+    },
+    {
+      "path": "tools/governance_kit.py",
+      "action": "add",
+      "sha256": "18f3d68a600882195d3a27a1ed0a70db919982ea08d57fe8b289c1a9258267e5",
+      "p0": [
+        "P0-03"
+      ]
+    },
+    {
+      "path": "tools/governance_lib.py",
+      "action": "replace",
+      "sha256": "a8e215fb0f6feb942e48978a32b395b87cec2a732723550d2fda171c238926d7",
+      "p0": []
+    },
+    {
+      "path": "tools/governance_sync.py",
+      "action": "replace",
+      "sha256": "ce2863a01ff379dbcca09f74b5f6cc0e0520466bcaba01b77cf42f807c8ab931",
+      "p0": [
+        "P0-02",
+        "P0-03"
+      ]
+    },
+    {
+      "path": "tools/integration_run.py",
+      "action": "replace",
+      "sha256": "838b32a8dc298dbc98a5b9de27d5ef4d3f88b4e1b84ec2eded199b821be9d541",
+      "p0": [
+        "P0-09"
+      ]
+    },
+    {
+      "path": "tools/reconcile_project_status.py",
+      "action": "replace",
+      "sha256": "66dd568c3c0362602af4440f8dc9755649ce89dfd32c6c3e120241b4cd635f25",
+      "p0": [
+        "P0-08",
+        "P0-10"
+      ]
+    },
+    {
+      "path": "tools/reconcile_states.py",
+      "action": "replace",
+      "sha256": "86b68793bcd2fdff89ecb3c1acca94abe2d164112b3b37896d0bd996292a82cf",
+      "p0": [
+        "P0-08",
+        "P0-10"
+      ]
+    },
+    {
+      "path": "tools/release_governance_kit.py",
+      "action": "replace",
+      "sha256": "237a2a3ea663bef4a0b863555de0f1e98b377e722a6c7da2685475f068bdc389",
+      "p0": [
+        "P0-03"
+      ]
+    },
+    {
+      "path": "tools/run_scheduled_sync.py",
+      "action": "replace",
+      "sha256": "7c5774e562cc65f4467f07501f32b7af77183308fa9f49d3a397b8824e86c62f",
+      "p0": [
+        "P0-07"
+      ]
+    },
+    {
+      "path": "tools/state_machine.py",
+      "action": "replace",
+      "sha256": "7092373fd95fcf26c664576b0ca1406309690766f468c05350a3cd0b8061db55",
+      "p0": [
+        "P0-08"
+      ]
+    },
+    {
+      "path": "tools/state_transaction.py",
+      "action": "add",
+      "sha256": "bd8ee036a2465bd0523c312f36e230bc8fce14e0f857274f4dc32a2d1945b104",
+      "p0": [
+        "P0-10"
+      ]
+    },
+    {
+      "path": "tools/sync_acceptance_attestation.py",
+      "action": "add",
+      "sha256": "e4db7541e88bd8be4f04ad75a482a82cb55cfba728d3a2fe61fcefc56723ed3a",
+      "p0": [
+        "P0-06"
+      ]
+    },
+    {
+      "path": "tools/sync_repo_state.py",
+      "action": "replace",
+      "sha256": "712ae48f777e7193a2d582732d2d9483937b0445befda498d871cfca41a6622d",
+      "p0": [
+        "P0-04"
+      ]
+    },
+    {
+      "path": "tools/transition_state.py",
+      "action": "replace",
+      "sha256": "000b03283e05934c08a9eb48b479a118da1eed72281e29dd662c6ce35a6520d6",
+      "p0": [
+        "P0-10"
+      ]
+    },
+    {
+      "path": "tools/upgrade_source_prd_artifact.py",
+      "action": "add",
+      "sha256": "86f988092928b3d3810545bca42911e8be7e151eecc34121e52d238fa38100eb",
+      "p0": [
+        "P0-05"
+      ]
+    },
+    {
+      "path": "tools/validate_feature.py",
+      "action": "replace",
+      "sha256": "9fe704ffbd2a93ba68c7f6667cfda2b407d0ab126bde54aa206cdb69a697fca1",
+      "p0": [
+        "P0-05"
+      ]
+    },
+    {
+      "path": "tools/verify_remote_bootstrap.py",
+      "action": "add",
+      "sha256": "ea658bf15204037dc6998b6711cc48a3e7f9daeb703a0ee634ac9f1c71431e85",
+      "p0": [
+        "P0-02"
+      ]
+    },
+    {
+      "path": "tools/verify_state_invariants.py",
+      "action": "add",
+      "sha256": "1b5a283a7bab03f488f7020a16ef60700720641b092d2be9440e1058075505b3",
+      "p0": [
+        "P0-10"
+      ]
+    }
+  ],
+  "closure_items": {
+    "P0-01": [
+      "tests/conftest.py",
+      "tests/test_governance_v120.py",
+      "tools/cleanup_sample_sot.py",
+      ".github/workflows/governance-ci.yml"
+    ],
+    "P0-02": [
+      "tools/governance_sync.py",
+      "tools/verify_remote_bootstrap.py",
+      "templates/project/.github/workflows/smc-governance.yml",
+      "templates/project/.github/workflows/smc-governance-dispatch.yml"
+    ],
+    "P0-03": [
+      "skills/manifest.yaml",
+      "tools/governance_kit.py",
+      "tools/release_governance_kit.py",
+      "tools/fetch_governance_kit.py",
+      "tools/governance_sync.py",
+      ".github/workflows/release-governance-kit.yml",
+      ".gitignore"
+    ],
+    "P0-04": [
+      "schemas/artifact-ref.schema.json",
+      "schemas/delivery-receipt.schema.json",
+      "tools/artifact_verify.py",
+      "tools/sync_repo_state.py",
+      "templates/project/tools/validate_local_governance.py"
+    ],
+    "P0-05": [
+      "schemas/feature.schema.json",
+      "tools/upgrade_source_prd_artifact.py",
+      "tools/validate_feature.py"
+    ],
+    "P0-06": [
+      "schemas/acceptance-report.schema.json",
+      "schemas/acceptance-attestation.schema.json",
+      "skills/universal/smc-prd-acceptance/scripts/run_acceptance.py",
+      "tools/acceptance_gate.py",
+      "tools/sync_acceptance_attestation.py",
+      "templates/project/.github/workflows/smc-governance-acceptance.yml",
+      ".github/workflows/governance-acceptance-dispatch.yml"
+    ],
+    "P0-07": [
+      "tools/run_scheduled_sync.py",
+      ".github/workflows/sync-project-status.yml",
+      ".github/workflows/governance-sync-dispatch.yml"
+    ],
+    "P0-08": [
+      "tools/state_machine.py",
+      "tools/reconcile_states.py",
+      "tools/reconcile_project_status.py",
+      "contracts/lifecycle/states.yaml"
+    ],
+    "P0-09": [
+      "schemas/integration-run.schema.json",
+      "schemas/integration-report.schema.json",
+      "tools/integration_run.py",
+      "integration/runners/skill_first_http.py",
+      "integration/scenarios/FEAT-SKILL-FIRST-001.yaml",
+      ".github/workflows/integration-run.yml"
+    ],
+    "P0-10": [
+      "tools/audit_events.py",
+      "tools/state_transaction.py",
+      "tools/transition_state.py",
+      "tools/reconcile_states.py",
+      "tools/reconcile_project_status.py",
+      "tools/verify_state_invariants.py",
+      "contracts/lifecycle/states.yaml"
+    ]
+  }
+}

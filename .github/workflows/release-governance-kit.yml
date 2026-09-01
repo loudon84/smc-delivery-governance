@@ -1,0 +1,48 @@
+name: Release Governance Kit
+on:
+  push:
+    tags:
+      - 'governance-kit-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e .
+      - name: Build canonical bundle
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#governance-kit-v}"
+          python tools/release_governance_kit.py --version "$version" --apply
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0,'tools')
+          from governance_kit import verify_kit
+          import os
+          tag=os.environ['GITHUB_REF_NAME']
+          version=tag.removeprefix('governance-kit-v')
+          print(verify_kit(Path('dist')/tag, expected_version=version, expected_tag=tag))
+          PY
+      - name: Publish immutable release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          asset="dist/${GITHUB_REF_NAME}.tar.gz"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "Immutable release already exists: $GITHUB_REF_NAME"
+            exit 1
+          fi
+          gh release create "$GITHUB_REF_NAME" "$asset" \
+            --title "$GITHUB_REF_NAME" \
+            --notes "Canonical immutable SMC Governance Kit ${GITHUB_REF_NAME}"

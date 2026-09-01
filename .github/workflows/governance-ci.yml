@@ -7,8 +7,12 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    env:
+      SMC_GOVERNANCE_GITHUB_TOKEN: ${{ secrets.SMC_GOVERNANCE_GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -21,4 +25,7 @@ jobs:
             [ -d "$d" ] || continue
             python tools/validate_feature.py "$d"
           done
+      - run: python tools/verify_state_invariants.py
       - run: pytest -q
+      - name: Tests must not mutate central SOT
+        run: git diff --exit-code

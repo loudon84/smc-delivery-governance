@@ -1,11 +1,14 @@
 policy_id: REPOSITORY-GOVERNANCE-V1
-version: 1.0.0
+version: 1.2.1
 status: ACTIVE
 required:
   governance_binding: .agents/governance/binding.yaml
   governance_lock: .agents/governance.lock
+  canonical_governance_kit: true
+  artifact_ref_v2: true
   receipt_directory: .agents/governance/receipts
   acceptance_directory: .agents/governance/acceptance
+  acceptance_attestation: true
   feature_and_work_package_frontmatter: true
   commit_trailers:
     - SMC-Feature
@@ -17,6 +20,7 @@ recommended:
     - gov:type:feature|bug|task
   pull_request_body_links: true
   ci_receipt_validation: true
+  event_driven_dispatch: true
 adoption_states:
   - REGISTERED
   - BOOTSTRAPPED

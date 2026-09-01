@@ -9,7 +9,8 @@
     "participants",
     "global_changes",
     "work_packages",
-    "source_revision"
+    "source_revision",
+    "source_prd"
   ],
   "properties": {
     "feature_id": {
@@ -98,8 +99,7 @@
           "contract_id",
           "provider_repository",
           "consumer_repositories",
-          "required_version",
-          "current_state"
+          "required_version"
         ],
         "properties": {
           "contract_id": {
@@ -122,9 +122,6 @@
           },
           "required_state_for_production_start": {
             "type": "string"
-          },
-          "current_state": {
-            "type": "string"
           }
         },
         "additionalProperties": false
@@ -146,34 +143,51 @@
     "source_prd": {
       "type": "object",
       "required": [
-        "id",
-        "revision"
+        "repository_id",
+        "path",
+        "commit",
+        "blob_sha",
+        "sha256",
+        "artifact_type",
+        "artifact_id",
+        "status",
+        "source_revision"
       ],
       "properties": {
-        "id": {
-          "type": "string"
-        },
         "repository_id": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string",
+          "minLength": 1
         },
         "path": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*\\.\\./).+"
         },
-        "revision": {
-          "type": "string"
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{40}$"
+        },
+        "blob_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{40}$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "artifact_type": {
+          "const": "SOURCE_PRD"
+        },
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
         },
         "status": {
-          "enum": [
-            "DRAFT",
-            "REVIEW_REQUIRED",
-            "APPROVED"
-          ]
+          "const": "APPROVED"
+        },
+        "source_revision": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "additionalProperties": false

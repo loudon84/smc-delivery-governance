@@ -1,0 +1,70 @@
+name: Cross-Repo Integration Run
+on:
+  workflow_dispatch:
+    inputs:
+      feature_id:
+        description: Central Feature ID
+        required: true
+        type: string
+
+concurrency:
+  group: integration-${{ inputs.feature_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    environment: integration
+    env:
+      SMC_GOVERNANCE_GITHUB_TOKEN: ${{ secrets.SMC_GOVERNANCE_GITHUB_TOKEN }}
+      SMC_SKILL_RUN_BASE_URL: ${{ secrets.SMC_SKILL_RUN_BASE_URL }}
+      SMC_SKILL_RUN_TOKEN: ${{ secrets.SMC_SKILL_RUN_TOKEN }}
+      SMC_SKILL_NAME: ${{ secrets.SMC_SKILL_NAME }}
+      SMC_ALLOW_INTEGRATION_RUN: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e .
+      - name: Execute reviewed Integration Scenario
+        id: integration
+        shell: bash
+        run: |
+          set +e
+          python tools/integration_run.py \
+            --feature '${{ inputs.feature_id }}' \
+            --workflow-run-id "$GITHUB_RUN_ID" \
+            --repository "$GITHUB_REPOSITORY" \
+            --apply
+          code=$?
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+      - name: Reconcile Integration and Feature state
+        shell: bash
+        run: |
+          set +e
+          python tools/reconcile_states.py '${{ inputs.feature_id }}' --apply
+          rec=$?
+          set -e
+          case "$rec" in 0|2) ;; *) exit "$rec";; esac
+      - name: Persist immutable IntegrationRun history
+        shell: bash
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "smc-governance-bot"
+            git config user.email "smc-governance-bot@users.noreply.github.com"
+            git add integration features audit registry
+            git commit -m "test(integration): ${{ inputs.feature_id }} run $GITHUB_RUN_ID"
+            git push
+          fi
+      - name: Fail workflow when integration failed
+        shell: bash
+        run: |
+          code='${{ steps.integration.outputs.code }}'
+          [ "$code" = "0" ] || exit "$code"
