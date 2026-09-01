@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["contract_id", "name", "scope", "provider_repository", "current_release"],
+  "properties": {
+    "contract_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9-]+$"},
+    "name": {"type": "string"},
+    "scope": {"enum": ["public-northbound", "internal-southbound", "shared", "data"]},
+    "provider_repository": {"type": "string"},
+    "primary_consumers": {"type": "array", "items": {"type": "string"}},
+    "current_release": {
+      "type": "object",
+      "required": ["version", "state"],
+      "properties": {
+        "version": {"type": "string"},
+        "state": {"enum": ["DRAFT", "CANDIDATE", "APPROVED", "RELEASED", "CONSUMED", "CONFORMANCE_PASS", "DEPRECATED", "RETIRED"]},
+        "tag": {"type": "string"},
+        "peeled_commit": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "compatibility": {"type": "object"}
+  },
+  "additionalProperties": false
+}

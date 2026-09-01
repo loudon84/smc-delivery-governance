@@ -1,0 +1,3 @@
+team_id: TEAM-AGENT-PLATFORM
+name: Agent Platform Team
+capabilities: [skill-platform, agent-runtime, connector]

@@ -1,0 +1,7 @@
+project_id: PROJECT-NODESKCLAW
+name: NoDeskClaw
+status: ACTIVE
+repositories: [REPO-NODESKCLAW]
+domains: [skill-platform, agent-runtime, connector]
+interfaces_provided: [SKILL-RUN-CONTRACT, SKILL-AGENT-CONTRACT]
+team: TEAM-AGENT-PLATFORM

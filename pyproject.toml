@@ -1,0 +1,12 @@
+[project]
+name = "smc-delivery-governance"
+version = "1.0.0"
+description = "SMC cross-repository engineering delivery control plane"
+requires-python = ">=3.11"
+dependencies = [
+  "PyYAML>=6.0.2,<7",
+  "jsonschema>=4.23,<5"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

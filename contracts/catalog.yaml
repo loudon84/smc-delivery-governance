@@ -1,0 +1,7 @@
+contracts:
+  - contract_id: SKILL-RUN-CONTRACT
+    definition: registry/contracts/skill-run-contract.yaml
+    provider_repository: REPO-NODESKCLAW
+    current_version: 1.2.1
+    current_state: CONSUMED
+    consumers: [REPO-SMC-COPILOT]

@@ -1,0 +1,8 @@
+program_id: PROGRAM-AGENT-PLATFORM
+items:
+  - id: PGM-01
+    title: Skill First Employee Execution
+    feature_id: FEAT-SKILL-FIRST-001
+    status: ACTIVE
+    depends_on: []
+    exit: [feature_state:DONE]

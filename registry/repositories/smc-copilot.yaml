@@ -1,0 +1,9 @@
+repository_id: REPO-SMC-COPILOT
+project_id: PROJECT-SMC-COPILOT
+name: loudon84/smc-copilot
+provider: github
+default_branch: work/prd-v4.0
+governance:
+  local_lat: apps/work/lat.md/lat.md
+  local_skills: .agents/skills
+  local_roadmaps: docs/work

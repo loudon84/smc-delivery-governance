@@ -1,0 +1,18 @@
+scenario_id: INT-SKILL-FIRST-001
+feature_id: FEAT-SKILL-FIRST-001
+title: Skill First Catalog → Run → Event → Result → Artifact
+state: WAITING_CONSUMER
+requires:
+  contracts:
+    - {contract_id: SKILL-RUN-CONTRACT, minimum_state: CONSUMED}
+  work_packages:
+    - {work_package_id: WP-SKILL-FIRST-NODESKCLAW, minimum_state: VERIFIED}
+    - {work_package_id: WP-SKILL-FIRST-SMC-COPILOT, minimum_state: VERIFIED}
+steps:
+  - {id: S01, actor: consumer, action: tools/list, expect: Published Skill is returned with stable discriminator}
+  - {id: S02, actor: consumer, action: tools/call, expect: exactly one Provider run_id is accepted}
+  - {id: S03, actor: provider, action: stream events, expect: replay-safe ordered event identities}
+  - {id: S04, actor: consumer, action: materialize result, expect: terminal result maps to existing Chat projection}
+  - {id: S05, actor: consumer, action: discover artifact, expect: Artifact flows through existing File Platform owner}
+negative_cases: [unauthorized, unpublished_skill, duplicate_submission, sse_reconnect, cancel, artifact_discovery_failure]
+evidence_required: [provider_conformance, consumer_conformance, cross_end_run_identity, integration_report]

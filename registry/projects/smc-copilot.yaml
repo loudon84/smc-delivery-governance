@@ -1,0 +1,7 @@
+project_id: PROJECT-SMC-COPILOT
+name: SMC Copilot
+status: ACTIVE
+repositories: [REPO-SMC-COPILOT]
+domains: [work-client, desktop, user-experience]
+interfaces_consumed: [SKILL-RUN-CONTRACT]
+team: TEAM-WORK-PLATFORM

@@ -1,0 +1,9 @@
+repository_id: REPO-NODESKCLAW
+project_id: PROJECT-NODESKCLAW
+name: loudon84/nodeskclaw
+provider: github
+default_branch: main
+governance:
+  local_lat: lat.md/lat.md
+  local_skills: .agents/skills
+  local_roadmaps: docs_agent/roadmaps

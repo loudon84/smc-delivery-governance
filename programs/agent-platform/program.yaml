@@ -1,0 +1,7 @@
+program_id: PROGRAM-AGENT-PLATFORM
+name: SMC Agent Application Platform
+status: ACTIVE
+owners:
+  architecture: TEAM-AGENT-PLATFORM
+  delivery: TEAM-AGENT-PLATFORM
+features: [FEAT-SKILL-FIRST-001]

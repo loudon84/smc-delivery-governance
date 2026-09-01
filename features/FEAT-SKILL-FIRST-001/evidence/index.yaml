@@ -1,0 +1,6 @@
+feature_id: FEAT-SKILL-FIRST-001
+evidence:
+  provider: {state: PASS, refs: [contract-release-and-provider-conformance]}
+  consumer: {state: PARTIAL, refs: []}
+  contract: {state: PASS, refs: [contract:SKILL-RUN-CONTRACT@1.2.1]}
+  integration: {state: PENDING, refs: []}

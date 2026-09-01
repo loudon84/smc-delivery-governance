@@ -1,0 +1,20 @@
+feature_id: FEAT-SKILL-FIRST-001
+dependencies:
+  - id: DEP-001
+    from: WP-SKILL-FIRST-SMC-COPILOT
+    to: {type: contract, id: SKILL-RUN-CONTRACT}
+    required_state: CANDIDATE
+    applies_to: [parser, dto, fixture-tests]
+  - id: DEP-002
+    from: WP-SKILL-FIRST-SMC-COPILOT
+    to: {type: contract, id: SKILL-RUN-CONTRACT}
+    required_state: RELEASED
+    applies_to: [production-tools-call, live-e2e]
+  - id: DEP-003
+    from: INT-SKILL-FIRST-001
+    to: {type: work_package, id: WP-SKILL-FIRST-NODESKCLAW}
+    required_state: VERIFIED
+  - id: DEP-004
+    from: INT-SKILL-FIRST-001
+    to: {type: work_package, id: WP-SKILL-FIRST-SMC-COPILOT}
+    required_state: VERIFIED

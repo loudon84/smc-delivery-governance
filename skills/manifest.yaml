@@ -1,0 +1,27 @@
+kit:
+  name: smc-delivery-governance-kit
+  version: 1.0.0
+sync:
+  mode: overlay
+  destination: .agents/governance
+  lock_file: .agents/governance.lock
+universal:
+- smc-architecture-decision
+- smc-architecture-review
+- smc-roadmap
+- smc-prd-grounding
+- smc-prd-review
+- smc-prd-converge
+- smc-plan-from-approved-prd-ponytail
+- smc-execute
+- smc-review
+- smc-verification
+- smc-external-dependency-check
+- smc-repo-work-package
+- smc-evidence-sync
+cross_repo:
+- smc-cross-repo-feature
+- smc-program-roadmap
+- smc-contract-lifecycle
+- smc-integration-gate
+- smc-program-status
