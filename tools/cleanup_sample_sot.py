@@ -42,6 +42,9 @@ def main():
                 wp["sync_state"] = "MISSING_RECEIPT"
                 wp.pop("delivery_receipt", None)
                 wp.pop("observed", None)
+                # Sample-backed VERIFIED/DONE is not evidence. Demote before a real receipt exists.
+                if wp.get("status") in {"VERIFIED", "DONE"}:
+                    wp["status"] = "IMPLEMENTING"
                 dump_yaml(fdir / "work-packages" / Path(wp0["_path"]).name, wp)
 
     if args.apply and affected:

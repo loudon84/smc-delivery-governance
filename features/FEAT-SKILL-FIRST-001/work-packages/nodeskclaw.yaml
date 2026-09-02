@@ -2,7 +2,7 @@ work_package_id: WP-SKILL-FIRST-NODESKCLAW
 feature_id: FEAT-SKILL-FIRST-001
 repository_id: REPO-NODESKCLAW
 role: provider
-status: VERIFIED
+status: IMPLEMENTING
 owner: TEAM-AGENT-PLATFORM
 outcome: '提供稳定、不可变、可离线验证的 Public Skill Run Contract，并由 Backend/Agent 实现 Catalog、Run、Event、Result、Artifact
   行为。
@@ -39,9 +39,4 @@ evidence:
   implementation_commit: 10d38f2c97739c4a55df893d1dc954fc8896f1a7
   verification_evidence: contract-release-and-provider-conformance
 source_revision: SKILL-FIRST-PRD@4.0.1
-sync_state: SYNCED
-delivery_receipt: repo://loudon84/nodeskclaw/.agents/governance/receipts/WP-SKILL-FIRST-NODESKCLAW.yaml@main
-observed:
-  reported_status: VERIFIED
-  reported_at: '2026-09-01T12:00:00+00:00'
-  receipt_path: examples\sample-receipts\REPO-NODESKCLAW.yaml
+sync_state: MISSING_RECEIPT

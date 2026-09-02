@@ -1,4 +1,4 @@
-# SMC Delivery Governance v1.2
+# SMC Delivery Governance v1.2.1
 
 `smc-delivery-governance` 是 SMC 内部多仓库、多团队研发的 **Engineering Delivery Control Plane**。
 
@@ -89,6 +89,9 @@ python tools/create_feature.py \
   --title "Example Cross Repo Feature" \
   --program-id PROGRAM-AGENT-PLATFORM \
   --source-prd-id PRD-EXAMPLE-v1.0 \
+  --source-prd-repo REPO-SMC-COPILOT \
+  --source-prd-path docs/example/PRD.md \
+  --source-prd-ref main \
   --source-revision PRD-EXAMPLE@1.0 \
   --feature-owner TEAM-AGENT-PLATFORM \
   --integration-owner TEAM-WORK-PLATFORM \
@@ -291,11 +294,14 @@ project bootstrap sync
 → bot commit observed state
 ```
 
-访问私有内部仓库时配置：
+访问私有内部仓库时，复制 `.env.example` 为 `.env` 并填写：
 
 ```text
 SMC_GOVERNANCE_GITHUB_TOKEN
+SMC_GOVERNANCE_DISPATCH_TOKEN
 ```
+
+`tools/governance_lib.py` 会在启动时读取仓库根目录 `.env`。已存在的进程环境变量优先，GitHub Actions secrets 仍然是 CI 的权威来源。`.env` 不得提交。
 
 长期建议改用 SMC GitHub App，给中央治理仓库只读业务仓库元数据/Contents 权限，避免共享 PAT。
 

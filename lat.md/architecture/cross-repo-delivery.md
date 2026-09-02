@@ -15,9 +15,9 @@ Contract Candidate
         ↓
 ┌─────────────────────┬─────────────────────┐
 │ Provider Repository │ Consumer Repository │
-│ local PRD           │ local PRD           │
-│ Plan                │ Plan                │
-│ Execute             │ Dark Execute        │
+│ contract release    │ local PRD           │
+│ conformance         │ Plan                │
+│                     │ Dark Execute        │
 └─────────────────────┴─────────────────────┘
         ↓
 Provider Conformance
@@ -26,7 +26,9 @@ Immutable Contract Release
         ↓
 Consumer Lock
         ↓
-Cross-Repo Live E2E
+Central Acceptance Attestation
+        ↓
+Immutable IntegrationRun
         ↓
 Feature DONE
 ```
@@ -52,7 +54,7 @@ CONFORMANCE_PASS
 | UI shell / local state | UNDEFINED |
 | Parser / DTO / fixture tests | CANDIDATE |
 | production tools/call | RELEASED |
-| production promotion | CONSUMED + CONFORMANCE_PASS + Integration PASS |
+| production promotion | CONSUMED + CONFORMANCE_PASS + IntegrationRun PASS |
 
 ## Local Repository Flow
 

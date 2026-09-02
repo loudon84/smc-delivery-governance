@@ -1,42 +1,118 @@
 from pathlib import Path
-import subprocess, sys, tempfile
+import os
+import subprocess
+import sys
+import tempfile
 
-ROOT=Path(__file__).resolve().parents[1]
+SOURCE_ROOT = Path(__file__).resolve().parents[1]
 
-def run(*args):
-    return subprocess.run([sys.executable,*args],cwd=ROOT,capture_output=True,text=True)
 
-def test_registry_valid_v110():
-    r=run('tools/validate_registry.py')
-    assert r.returncode==0, r.stdout+r.stderr
-    assert 'repositories=2' in r.stdout
+def run(env, *args):
+    return subprocess.run([sys.executable, *args], cwd=SOURCE_ROOT, env=env, capture_output=True, text=True)
 
-def test_delivery_receipt_schema():
-    r=run('tools/validate_receipt.py','tests/fixtures/receipt.yaml')
-    assert r.returncode==0, r.stdout+r.stderr
 
-def test_acceptance_gate_pass():
-    r=run('tools/acceptance_gate.py','--manifest','tests/fixtures/acceptance.yaml','--report','tests/fixtures/acceptance.report.json','--work-package','WP-SKILL-FIRST-SMC-COPILOT','--offline')
-    assert r.returncode==0, r.stdout+r.stderr
-    assert 'ACCEPTANCE GATE PASS' in r.stdout
+def test_registry_valid_v110(governance_sandbox):
+    root, env = governance_sandbox
+    r = run(env, "tools/validate_registry.py")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "repositories=2" in r.stdout
 
-def test_governance_sync_bootstrap_and_check():
+
+def test_delivery_receipt_schema(governance_sandbox):
+    root, env = governance_sandbox
+    r = run(env, "tools/validate_receipt.py", str(SOURCE_ROOT / "tests/fixtures/receipt.yaml"))
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_acceptance_gate_pass(governance_sandbox):
+    root, env = governance_sandbox
+    r = run(
+        env,
+        "tools/acceptance_gate.py",
+        "--manifest", str(SOURCE_ROOT / "tests/fixtures/acceptance.yaml"),
+        "--report", str(SOURCE_ROOT / "tests/fixtures/acceptance.report.json"),
+        "--work-package", "WP-SKILL-FIRST-SMC-COPILOT",
+        "--offline",
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "ACCEPTANCE GATE PASS" in r.stdout
+
+
+def test_governance_sync_bootstrap_and_check(governance_sandbox):
+    root, env = governance_sandbox
     with tempfile.TemporaryDirectory() as td:
-        r=run('tools/governance_sync.py','--repo',td,'--project','PROJECT-SMC-COPILOT','--feature','FEAT-SKILL-FIRST-001','--with-ci','--allow-unsigned-head','--apply')
-        assert r.returncode==0, r.stdout+r.stderr
-        assert (Path(td)/'.agents/governance/binding.yaml').exists()
-        assert (Path(td)/'.agents/governance/receipts/WP-SKILL-FIRST-SMC-COPILOT.yaml').exists()
-        assert (Path(td)/'.github/workflows/smc-governance.yml').exists()
-        r=run('tools/governance_sync.py','--repo',td,'--project','PROJECT-SMC-COPILOT','--feature','FEAT-SKILL-FIRST-001','--with-ci','--allow-unsigned-head','--check')
-        assert r.returncode==0, r.stdout+r.stderr
+        r = run(
+            env,
+            "tools/governance_sync.py",
+            "--repo", td,
+            "--project", "PROJECT-SMC-COPILOT",
+            "--feature", "FEAT-SKILL-FIRST-001",
+            "--with-ci",
+            "--allow-source-tree",
+            "--offline",
+            "--apply",
+        )
+        assert r.returncode == 0, r.stdout + r.stderr
+        assert (Path(td) / ".agents/governance/binding.yaml").exists()
+        assert (Path(td) / ".agents/governance/receipts/WP-SKILL-FIRST-SMC-COPILOT.yaml").exists()
+        assert (Path(td) / ".github/workflows/smc-governance.yml").exists()
+        r = run(
+            env,
+            "tools/governance_sync.py",
+            "--repo", td,
+            "--project", "PROJECT-SMC-COPILOT",
+            "--feature", "FEAT-SKILL-FIRST-001",
+            "--with-ci",
+            "--allow-source-tree",
+            "--offline",
+            "--check",
+        )
+        assert r.returncode == 0, r.stdout + r.stderr
 
-def test_project_onboarding_dry_run():
-    r=run('tools/project_onboard.py','--project-id','PROJECT-DEMO','--project-name','Demo Project','--repository-id','REPO-DEMO','--repo','loudon84/demo','--branch','main','--team','TEAM-WORK-PLATFORM')
-    assert r.returncode==0, r.stdout+r.stderr
-    assert 'DRY RUN' in r.stdout
+
+def test_project_onboarding_dry_run(governance_sandbox):
+    root, env = governance_sandbox
+    r = run(
+        env,
+        "tools/project_onboard.py",
+        "--project-id", "PROJECT-DEMO",
+        "--project-name", "Demo Project",
+        "--repository-id", "REPO-DEMO",
+        "--repo", "loudon84/demo",
+        "--branch", "main",
+        "--team", "TEAM-WORK-PLATFORM",
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "DRY RUN" in r.stdout
 
 
-def test_central_state_machine_blocks_without_acceptance_pass():
-    r=run('tools/transition_state.py','--entity','work_package','--id','WP-SKILL-FIRST-SMC-COPILOT','--to','VERIFIED')
-    assert r.returncode==2
-    assert 'TRANSITION BLOCKED' in r.stdout
+def test_central_state_machine_blocks_without_acceptance_pass(governance_sandbox):
+    root, env = governance_sandbox
+    r = run(
+        env,
+        "tools/transition_state.py",
+        "--entity", "work_package",
+        "--id", "WP-SKILL-FIRST-SMC-COPILOT",
+        "--to", "VERIFIED",
+        "--actor", "tester",
+        "--reason", "unit test",
+    )
+    assert r.returncode == 2, r.stdout + r.stderr
+    assert "TRANSITION BLOCKED" in r.stdout
+
+
+def test_old_v110_tests_do_not_mutate_source_sot(governance_sandbox):
+    root, env = governance_sandbox
+    before = (SOURCE_ROOT / "features/FEAT-SKILL-FIRST-001/work-packages/smc-copilot.yaml").read_bytes()
+    run(
+        env,
+        "tools/transition_state.py",
+        "--entity", "work_package",
+        "--id", "WP-SKILL-FIRST-SMC-COPILOT",
+        "--to", "VERIFIED",
+        "--actor", "tester",
+        "--reason", "unit test",
+        "--apply",
+    )
+    after = (SOURCE_ROOT / "features/FEAT-SKILL-FIRST-001/work-packages/smc-copilot.yaml").read_bytes()
+    assert before == after

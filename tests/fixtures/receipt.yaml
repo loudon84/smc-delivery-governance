@@ -5,18 +5,18 @@ repository_id: REPO-SMC-COPILOT
 source_revision: SKILL-FIRST-PRD@4.0.1
 status: VERIFIED
 sync:
-  governance_kit_version: 1.2.0
-  central_commit: null
+  governance_kit_version: '1.2.1'
+  central_commit: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
   kit:
-    version: 1.2.0
-    tag: governance-kit-v1.2.0
-    commit: null
-    manifest_sha256: null
+    version: '1.2.1'
+    tag: governance-kit-v1.2.1
+    commit: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    manifest_sha256: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
   contract_pins:
     - contract_id: SKILL-RUN-CONTRACT
-      version: 1.2.1
+      version: '1.2.1'
       tag: skill-run-contract-v1.2.1
-      commit: 10d38f2c97739c4a55df893d1dc954fc8896f1a7
+      commit: '10d38f2c97739c4a55df893d1dc954fc8896f1a7'
 delivery:
   stage_prds:
     - artifact_id: PRD-WORK-v4.0.1
@@ -24,7 +24,9 @@ delivery:
       path: docs/work/PRD-WORK-v4.0.1-skill-first-layout-run-integration.md
       artifact_type: STAGE_PRD
       status: APPROVED
-      commit: abcdef0123456789abcdef0123456789abcdef01
+      commit: 'abcdef0123456789abcdef0123456789abcdef01'
+      blob_sha: 'abcdef0123456789abcdef0123456789abcdef01'
+      sha256: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
       source_revision: SKILL-FIRST-PRD@4.0.1
   issues: []
   bugs: []
@@ -34,11 +36,13 @@ delivery:
       path: .cursor/plans/work-v4.0.1.plan.md
       artifact_type: PLAN
       status: VALIDATED
-      commit: abcdef0123456789abcdef0123456789abcdef02
+      commit: 'abcdef0123456789abcdef0123456789abcdef02'
+      blob_sha: 'abcdef0123456789abcdef0123456789abcdef02'
+      sha256: 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd'
       source_revision: SKILL-FIRST-PRD@4.0.1
   pull_requests: []
   commits:
-    - abcdef0123456789abcdef0123456789abcdef03
+    - 'abcdef0123456789abcdef0123456789abcdef03'
   verification_reports: []
 acceptance:
   manifest: .agents/governance/acceptance/WP-SKILL-FIRST-SMC-COPILOT.yaml

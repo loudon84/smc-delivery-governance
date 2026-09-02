@@ -1,0 +1,15 @@
+history_version: '1'
+scenario_id: INT-SKILL-FIRST-001
+feature_id: FEAT-SKILL-FIRST-001
+state: WAITING_CONSUMER
+blocked_by:
+  type: work_package
+  id: WP-SKILL-FIRST-SMC-COPILOT
+  required_state: VERIFIED
+  current_state: IMPLEMENTING
+latest_run_id: null
+runs: []
+updated_at: '2026-09-02T00:00:00+00:00'
+notes: Empty IntegrationRun history is authoritative. No synthetic PASS. Consumer
+  Work Package remains IMPLEMENTING until centrally verified acceptance exists;
+  the scenario remains WAITING_CONSUMER until the gate is READY.

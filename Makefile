@@ -1,5 +1,7 @@
 .PHONY: validate registry status next gate reconcile project-status program-status test
 
+# Tokens: copy .env.example to .env. Python tools load it via tools/governance_lib.py.
+
 validate:
 	python tools/validate_feature.py features/FEAT-SKILL-FIRST-001
 

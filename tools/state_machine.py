@@ -31,10 +31,20 @@ def latest_verified_acceptance(feature_dir: Path, work_package_id: str) -> dict 
 
 def latest_integration_run(scenario_id: str) -> dict | None:
     pointer = ROOT / "integration" / "runs" / scenario_id / "latest.yaml"
-    if not pointer.exists():
+    if pointer.exists():
+        latest = load_yaml(pointer)
+        run_path = ROOT / latest.get("path", "")
+        if run_path.exists():
+            return load_yaml(run_path)
+    history_path = ROOT / "integration" / "runs" / scenario_id / "history.yaml"
+    if not history_path.exists():
         return None
-    latest = load_yaml(pointer)
-    run_path = ROOT / latest.get("path", "")
+    history = load_yaml(history_path)
+    runs = history.get("runs") or []
+    if not runs:
+        return None
+    last = runs[-1]
+    run_path = ROOT / last.get("path", "")
     if not run_path.exists():
         return None
     return load_yaml(run_path)

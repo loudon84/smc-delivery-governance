@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smc.local/schemas/integration-run-history.json",
+  "title": "IntegrationRun History",
+  "type": "object",
+  "required": [
+    "history_version",
+    "scenario_id",
+    "feature_id",
+    "state",
+    "latest_run_id",
+    "runs"
+  ],
+  "properties": {
+    "history_version": {
+      "const": "1"
+    },
+    "scenario_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "feature_id": {
+      "type": "string",
+      "pattern": "^FEAT-[A-Z0-9-]+$"
+    },
+    "state": {
+      "enum": [
+        "WAITING_PROVIDER",
+        "WAITING_CONSUMER",
+        "READY",
+        "RUNNING",
+        "PASS",
+        "FAIL",
+        "BLOCKED"
+      ]
+    },
+    "blocked_by": {
+      "type": "object",
+      "required": [
+        "type",
+        "id",
+        "required_state",
+        "current_state"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "contract",
+            "work_package",
+            "roadmap_item",
+            "integration",
+            "manual"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "required_state": {
+          "type": "string"
+        },
+        "current_state": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "latest_run_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "integration_run_id",
+          "path",
+          "status"
+        ],
+        "properties": {
+          "integration_run_id": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "RUNNING",
+              "PASS",
+              "FAIL"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "updated_at": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

@@ -5,7 +5,8 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-from governance_lib import ROOT, contract_catalog, load_feature, load_work_packages, load_yaml
+from governance_lib import ROOT, contract_catalog, load_feature, load_work_packages, load_yaml, validate_jsonschema
+from state_machine import latest_integration_run
 
 def materialized_states():
     out={}
@@ -55,6 +56,34 @@ def main():
         feature=load_yaml(fdir/"feature.yaml")
         for c in feature.get("contracts",[]) or []:
             if "current_state" in c:errors.append(f"{feature['feature_id']}: contract current_state cache forbidden")
+        scenario_id=(feature.get("integration") or {}).get("scenario_id")
+        if scenario_id:
+            history_path=ROOT/"integration"/"runs"/scenario_id/"history.yaml"
+            if not history_path.exists():
+                errors.append(f"{scenario_id}: IntegrationRun history.yaml required")
+            else:
+                history=load_yaml(history_path)
+                errors += [f"{scenario_id} history {e}" for e in validate_jsonschema(history,ROOT/"schemas/integration-run-history.schema.json")]
+                run_files=sorted(p for p in (ROOT/"integration"/"runs"/scenario_id).glob("IR-*.yaml"))
+                if history.get("runs")==[] and run_files:
+                    errors.append(f"{scenario_id}: empty history must not have IntegrationRun attempt files")
+                if history.get("latest_run_id") and not latest_integration_run(scenario_id):
+                    errors.append(f"{scenario_id}: latest_run_id does not resolve to an immutable run")
+                scenario=load_yaml(ROOT/"integration"/"scenarios"/f"{feature['feature_id']}.yaml")
+                if scenario.get("state")!=history.get("state") and not history.get("runs"):
+                    errors.append(f"{scenario_id}: empty history state {history.get('state')} != scenario {scenario.get('state')}")
+                if (history.get("runs") or [])==[] and scenario.get("state")=="PASS":
+                    errors.append(f"{scenario_id}: empty history cannot claim PASS")
+                blocker=history.get("blocked_by") or {}
+                if not history.get("runs") and blocker.get("type")=="work_package":
+                    wps=load_work_packages(fdir)
+                    current=(wps.get(blocker.get("id")) or {}).get("status")
+                    if current and current!=blocker.get("current_state"):
+                        errors.append(f"{scenario_id}: history blocked_by.current_state {blocker.get('current_state')} != WP {current}")
+                if feature.get("status")=="DONE":
+                    run=latest_integration_run(scenario_id)
+                    if not run or run.get("result",{}).get("status")!="PASS":
+                        errors.append(f"{feature['feature_id']}: DONE requires IntegrationRun PASS")
     if errors:
         print("STATE INVARIANTS FAIL")
         for e in errors:print("-",e)

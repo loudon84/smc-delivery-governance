@@ -13,7 +13,7 @@ description: 将本地 Stage PRD、issue/bug、Plan、PR、commit 与 verificati
 
 Receipt 是本地交付事实的机器摘要，不替代本地 PRD/Plan/Evidence。
 
-必须记录：
+`receipt_version: "2"` 必须记录：
 
 ```text
 feature_id
@@ -21,15 +21,15 @@ work_package_id
 repository_id
 source_revision
 status
-stage_prds
-issues
-bugs
-plans
-pull_requests
-commits
+sync.kit (version/tag/commit/manifest_sha256)
+sync.contract_pins (tag + full commit)
+stage_prds / plans / verification as ArtifactRef v2
+commits (full 40-char SHA)
 acceptance
 reported_at
 ```
+
+Receipt 自称 PASS 不能让中央 Consumer Work Package 进入 VERIFIED。
 
 Git commit 推荐加入 trailers：
 

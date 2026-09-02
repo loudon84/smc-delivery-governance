@@ -29,7 +29,6 @@ contracts:
   required_version: 1.2.1
   required_state_for_dark_implementation: CANDIDATE
   required_state_for_production_start: RELEASED
-  current_state: CONFORMANCE_PASS
 work_packages:
 - WP-SKILL-FIRST-NODESKCLAW
 - WP-SKILL-FIRST-SMC-COPILOT
@@ -43,8 +42,12 @@ integration:
     SKILL-RUN-CONTRACT: CONSUMED
 source_revision: SKILL-FIRST-PRD@4.0.1
 source_prd:
-  id: PRD-WORK-v4.0.1
   repository_id: REPO-SMC-COPILOT
   path: docs/work/PRD-WORK-v4.0.1-skill-first-layout-run-integration.md
-  revision: work/prd-v4.0
+  commit: 457ab499c2fb76217dee40980ada401fd026d844
+  blob_sha: 86861b4b4462fbb3109502eb5c2b0d94a839c8be
+  sha256: 4954ec499fc90b6707ea4d2427a5a6451a5547115f7b676b00cca8cbbf3ac612
+  artifact_type: SOURCE_PRD
+  artifact_id: PRD-WORK-v4.0.1
   status: APPROVED
+  source_revision: SKILL-FIRST-PRD@4.0.1

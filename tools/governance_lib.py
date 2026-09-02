@@ -16,7 +16,35 @@ import yaml
 from jsonschema import Draft202012Validator
 
 _DEFAULT_ROOT = Path(__file__).resolve().parents[1]
+
+
+def load_env_file(path: Path, *, override: bool = False) -> None:
+    """Load KEY=VALUE pairs from a .env file. Existing process env wins unless override."""
+    if not path.is_file():
+        return
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[7:].strip()
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        if not key:
+            continue
+        if override or key not in os.environ:
+            os.environ[key] = value
+
+
+load_env_file(_DEFAULT_ROOT / ".env")
 ROOT = Path(os.getenv("SMC_GOVERNANCE_ROOT", str(_DEFAULT_ROOT))).resolve()
+if ROOT != _DEFAULT_ROOT.resolve():
+    load_env_file(ROOT / ".env")
 
 EXIT_OK = 0
 EXIT_SYSTEM_ERROR = 1
@@ -103,15 +131,17 @@ def contract_catalog() -> dict[str, dict]:
 
 def feature_dir(feature: str | Path) -> Path:
     path = Path(feature)
-    if path.exists():
+    if path.is_absolute() and path.exists():
         return path.resolve()
-    candidate = ROOT / "features" / str(feature)
-    if candidate.exists():
-        return candidate
     if str(feature).startswith("features/"):
         candidate = ROOT / str(feature)
         if candidate.exists():
-            return candidate
+            return candidate.resolve()
+    candidate = ROOT / "features" / str(feature)
+    if candidate.exists():
+        return candidate.resolve()
+    if path.exists():
+        return path.resolve()
     raise FileNotFoundError(f"feature not found: {feature}")
 
 def load_feature(feature: str | Path) -> tuple[Path, dict]:

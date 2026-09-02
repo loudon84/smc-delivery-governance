@@ -134,6 +134,19 @@ def main():
     errors=[]
     errors += [f"run {e}" for e in validate_jsonschema(run_doc,ROOT/"schemas/integration-run.schema.json")]
     errors += [f"report {e}" for e in validate_jsonschema(report,ROOT/"schemas/integration-report.schema.json")]
+    history_path=run_dir/"history.yaml"
+    history=load_yaml(history_path) if history_path.exists() else {
+        "history_version":"1","scenario_id":scenario_id,"feature_id":feature["feature_id"],
+        "state":status,"latest_run_id":None,"runs":[],
+    }
+    history["runs"]=list(history.get("runs") or [])
+    history["runs"].append({"integration_run_id":ir,"path":latest["path"],"status":status})
+    history["latest_run_id"]=ir
+    history["state"]=status
+    history["updated_at"]=report["generated_at"]
+    history.pop("blocked_by",None)
+    history.pop("notes",None)
+    errors += [f"history {e}" for e in validate_jsonschema(history,ROOT/"schemas/integration-run-history.schema.json")]
     if errors:
         for e in errors: print("INTEGRATION EVIDENCE INVALID:",e)
         raise SystemExit(2)
@@ -141,6 +154,7 @@ def main():
         report_path.write_text(json.dumps(report,indent=2)+"\n",encoding="utf-8",newline="\n")
         dump_yaml(run_path,run_doc)
         dump_yaml(run_dir/"latest.yaml",latest)
+        dump_yaml(history_path,history)
     print(f"IntegrationRun {ir}: {status}")
     print(f"runner={command}")
     raise SystemExit(0 if status=="PASS" else 2)

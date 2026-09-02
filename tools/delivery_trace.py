@@ -18,7 +18,7 @@ def main():
     fdir,feature=load_feature(args.feature); wps=load_work_packages(fdir)
     print(f"Feature {feature['feature_id']}: {feature['title']}")
     src=feature.get('source_prd') or {}
-    print(f"Source PRD: {src.get('id')} revision={feature.get('source_revision')} path={src.get('path')}")
+    print(f"Source PRD: {src.get('artifact_id') or src.get('id')} revision={feature.get('source_revision')} path={src.get('path')} commit={src.get('commit')}")
     print()
     for wid,wp in wps.items():
         ledger=fdir/'delivery-ledger'/f"{wp['repository_id']}.yaml"

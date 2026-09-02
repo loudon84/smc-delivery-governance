@@ -1,9 +1,14 @@
 feature_id: FEAT-SKILL-FIRST-001
 source_prd:
-  id: PRD-WORK-v4.0.1
   repository_id: REPO-SMC-COPILOT
   path: docs/work/PRD-WORK-v4.0.1-skill-first-layout-run-integration.md
-  revision: SKILL-FIRST-PRD@4.0.1
+  commit: 457ab499c2fb76217dee40980ada401fd026d844
+  blob_sha: 86861b4b4462fbb3109502eb5c2b0d94a839c8be
+  sha256: 4954ec499fc90b6707ea4d2427a5a6451a5547115f7b676b00cca8cbbf3ac612
+  artifact_type: SOURCE_PRD
+  artifact_id: PRD-WORK-v4.0.1
+  status: APPROVED
+  source_revision: SKILL-FIRST-PRD@4.0.1
 work_packages:
 - work_package_id: WP-SKILL-FIRST-NODESKCLAW
   repository_id: REPO-NODESKCLAW
@@ -11,29 +16,13 @@ work_packages:
   issues: []
   bugs: []
   plans: []
-  commits:
-  - 10d38f2c97739c4a55df893d1dc954fc8896f1a7
+  commits: []
   verification: []
 - work_package_id: WP-SKILL-FIRST-SMC-COPILOT
   repository_id: REPO-SMC-COPILOT
-  stage_prds:
-  - artifact_id: PRD-WORK-v4.0.1
-    repository_id: REPO-SMC-COPILOT
-    path: docs/work/PRD-WORK-v4.0.1-skill-first-layout-run-integration.md
-    artifact_type: STAGE_PRD
-    status: APPROVED
-    commit: abcdef0123456789abcdef0123456789abcdef01
-    source_revision: SKILL-FIRST-PRD@4.0.1
+  stage_prds: []
   issues: []
   bugs: []
-  plans:
-  - artifact_id: PLAN-WORK-v4.0.1
-    repository_id: REPO-SMC-COPILOT
-    path: .cursor/plans/work-v4.0.1.plan.md
-    artifact_type: PLAN
-    status: VALIDATED
-    commit: abcdef0123456789abcdef0123456789abcdef02
-    source_revision: SKILL-FIRST-PRD@4.0.1
-  commits:
-  - abcdef0123456789abcdef0123456789abcdef03
+  plans: []
+  commits: []
   verification: []

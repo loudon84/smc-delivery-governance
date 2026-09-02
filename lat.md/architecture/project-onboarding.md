@@ -19,10 +19,14 @@ OUT_OF_SYNC
 ```
 
 - `REGISTERED`：中央 Registry 已有 Project/Repository。
-- `BOOTSTRAPPED`：项目已安装 Governance Kit/Binding。
-- `SYNCED`：所有活动 Work Package Receipt 与中央 source_revision/contract pin 一致。
+- `BOOTSTRAPPED`：项目已安装 canonical Governance Kit 与 Binding pin。
+- `SYNCED`：所有活动 Work Package Receipt 与中央 source_revision/contract/kit pin 一致。
 - `ENFORCED`：项目 CI 已把治理校验设为合并门禁。
-- `OUT_OF_SYNC`：缺 Receipt、Feature revision 漂移、Contract pin 漂移或 Receipt 无法验证。
+- `OUT_OF_SYNC`：缺 Receipt、Feature revision 漂移、Contract/Kit pin 漂移、Sample 污染或 Receipt 无法验证。
+
+## Kit Install
+
+生产安装必须来自已验证的 canonical Kit Bundle。source-tree / unsigned HEAD 仅用于开发，且必须显式允许。Binding 与 lock 必须 pin `version / tag / commit / manifest_sha256`。
 
 ## Required Local Interface
 
@@ -35,4 +39,4 @@ OUT_OF_SYNC
 .agents/governance/acceptance/
 ```
 
-中央不读取项目私有实现源码来推断状态；项目通过标准 Receipt 汇报事实。
+中央不读取项目私有实现源码来推断状态；项目通过标准 Receipt 汇报事实，通过 CI artifact 提供可验证 Acceptance。

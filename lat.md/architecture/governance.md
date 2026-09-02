@@ -15,8 +15,10 @@ Contract
 ContractRelease
 Dependency
 IntegrationScenario
-IntegrationGate
+IntegrationRun
 Evidence
+AuditEvent
+GovernanceKitRelease
 ```
 
 关系：
@@ -24,11 +26,13 @@ Evidence
 ```text
 Program
   └─ Feature
+      ├─ Source PRD ArtifactRef
       ├─ Cross-Repo Architecture
       ├─ Global Roadmap
-      ├─ Contract Dependencies
+      ├─ Contract Releases + Consumer Pins
       ├─ Repo Work Packages
-      └─ Integration Gate
+      ├─ Verified Acceptance Attestation
+      └─ IntegrationRun
 ```
 
 ## Production Ownership
@@ -41,11 +45,15 @@ Program
 | Cross-repo dependency graph | Central Governance |
 | Contract lifecycle metadata | Central Governance |
 | Repo Work Package | Central Governance |
-| Integration Gate | Central Governance |
+| Integration Gate / IntegrationRun | Central Governance |
+| Governance Kit Release identity | Central Governance |
+| Lifecycle audit facts | Central Governance |
 | Local architecture / implementation | Project Repository |
 | Stage PRD / Plan / code / tests | Project Repository |
 | Provider Contract artifact bytes | Provider Repository |
 | Consumer Lock | Consumer Repository |
+| Acceptance execution | Project CI |
+| Acceptance attestation verification | Central Governance |
 
 ## Team Collaboration Roles
 
@@ -69,4 +77,8 @@ Evidence Verifier
 5. Contract RELEASED 前禁止 Consumer 启用真实 production call。
 6. Contract CANDIDATE 后允许 Dark Implementation。
 7. BLOCKED 必须声明机器可解析 blocker。
-8. Feature DONE 必须满足 Repo Evidence 与 Integration Gate。
+8. Feature DONE 必须满足 Repo Evidence 与 immutable IntegrationRun PASS。
+9. Git YAML 是 materialized state；`audit/transitions/` 才是生命周期事实。
+10. Consumer `VERIFIED` 只认中央 Attestation，不认 Receipt 自称 PASS。
+11. 生产 Kit 安装只接受 canonical release。
+12. 测试不得写入中央 SOT。
