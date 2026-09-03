@@ -8,6 +8,7 @@ import pytest
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 
+# @lat: [[ADR-011-test-isolation#ADR-011 — Tests Must Not Mutate Central SOT]]
 @pytest.fixture
 def governance_sandbox(tmp_path):
     root = tmp_path / "governance"

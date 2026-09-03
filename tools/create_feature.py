@@ -10,6 +10,7 @@ def pair(value:str):
     return value.split(':',1)
 
 
+# @lat: [[entities#Feature]]
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--feature-id',required=True)

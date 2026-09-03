@@ -202,6 +202,7 @@ def resolve_contract_release(
         version = (c.get("current_release") or {}).get("version")
     return contract_release(contract_id, version)
 
+# @lat: [[contract-lifecycle#Contract Lifecycle]]
 def resolve_contract(
     contract_id: str,
     required_version: str | None = None,

@@ -2,7 +2,11 @@
 
 v1.2.1 把控制面从「Git YAML 自动化」收成 **Closed Loop v1**。中央仍然不执行项目测试、不拥有业务代码；它只验证身份、证据和状态推进。
 
+分层定义见 [[domain/facts-and-evidence]]；事务写入见 [[ADR-010-audit-materialized-state]]。
+
 ## Fact Layers
+
+控制面把「看见」「证明」「裁决」分成五层，禁止用下层自称覆盖上层。
 
 ```text
 Lifecycle Audit Facts     audit/transitions/*.ndjson     append-only
@@ -16,6 +20,8 @@ Remote Receipt 只能更新 Observed Facts。`VERIFIED` / `DONE` / Integration `
 
 ## Control Loop
 
+每次跨仓交付按同一循环推进：先钉住 Kit 与身份，再同步观察事实，最后由 Gate 与 IntegrationRun 关门。
+
 ```text
 Canonical Kit Release
   → Project Bootstrap / Binding pin
@@ -28,7 +34,11 @@ Canonical Kit Release
   → Feature DONE
 ```
 
+Reconciler 顺序见 [[ADR-002-state-machines]]。
+
 ## Closed Loop v1 Enforcement
+
+以下条款把循环收成可执行门禁，而不是文档约定。空 Integration 历史不得被读成 PASS。
 
 1. 生产 Kit 安装只接受 canonical immutable release；source-tree 必须显式 `--allow-source-tree`。
 2. `receipt_version: "2"` 的受源码控制 ArtifactRef 必须具备 commit / blob SHA / content SHA-256。

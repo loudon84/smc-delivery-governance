@@ -12,6 +12,7 @@ from audit_events import append_transition_event
 def _yaml_bytes(doc: dict) -> bytes:
     return yaml.safe_dump(doc, sort_keys=False, allow_unicode=True).encode("utf-8")
 
+# @lat: [[ADR-010-audit-materialized-state#ADR-010 — Audit Facts vs Materialized State]]
 def commit_yaml_transition(
     *,
     path: Path,

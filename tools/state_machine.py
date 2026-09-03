@@ -22,6 +22,7 @@ def transitions(kind: str) -> dict[str, list[str]]:
 def allowed(kind: str, current: str, target: str) -> bool:
     return target in transitions(kind).get(current, [])
 
+# @lat: [[acceptance-evidence#VERIFIED Gate]]
 def latest_verified_acceptance(feature_dir: Path, work_package_id: str) -> dict | None:
     latest = feature_dir / "evidence" / "acceptance" / work_package_id / "latest.json"
     if not latest.exists():
@@ -29,6 +30,7 @@ def latest_verified_acceptance(feature_dir: Path, work_package_id: str) -> dict 
     doc = json.loads(latest.read_text(encoding="utf-8"))
     return doc if doc.get("status") == "PASS" and doc.get("verified_by") == "central-acceptance-gate" else None
 
+# @lat: [[facts-and-evidence#IntegrationRun]]
 def latest_integration_run(scenario_id: str) -> dict | None:
     pointer = ROOT / "integration" / "runs" / scenario_id / "latest.yaml"
     if pointer.exists():
@@ -61,6 +63,7 @@ def _provider_contract_evidence(observed: dict, wp: dict) -> bool:
             return False
     return bool(commits)
 
+# @lat: [[state-machines#Work Package]]
 def work_package_gate(feature_dir: Path, wp: dict, target: str) -> list[str]:
     errors = []
     ledger = feature_dir / "delivery-ledger" / f"{wp['repository_id']}.yaml"
@@ -96,6 +99,7 @@ def work_package_gate(feature_dir: Path, wp: dict, target: str) -> list[str]:
 
     return errors
 
+# @lat: [[state-machines#Feature]]
 def feature_gate(feature_dir: Path, feature: dict, target: str) -> list[str]:
     errors = []
     wps = load_work_packages(feature_dir)
@@ -119,6 +123,7 @@ def feature_gate(feature_dir: Path, feature: dict, target: str) -> list[str]:
                 errors.append(f"immutable integration run {scenario_id} not PASS")
     return errors
 
+# @lat: [[state-machines#Contract]]
 def contract_gate(contract: dict, target: str, version: str | None = None) -> list[str]:
     errors=[]
     rel=contract_release(contract["contract_id"],version) if version else contract.get("current_release") or {}

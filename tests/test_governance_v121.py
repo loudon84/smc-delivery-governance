@@ -10,32 +10,38 @@ SOURCE_ROOT=Path(__file__).resolve().parents[1]
 def run(env,*args):
     return subprocess.run([sys.executable,*args],cwd=SOURCE_ROOT,env=env,capture_output=True,text=True)
 
+# @lat: [[tests#Isolation and audit#State invariant tool does not write]]
 def test_state_invariant_tool_does_not_write(governance_sandbox):
     root,env=governance_sandbox
     r=run(env,"tools/verify_state_invariants.py")
     assert r.returncode==0, r.stdout+r.stderr
     assert not list(root.rglob("*.tmp"))
 
+# @lat: [[tests#Receipts and artifacts#ArtifactRef schema requires hashes]]
 def test_strong_artifact_schema_requires_hashes():
     schema=json.loads((SOURCE_ROOT/"schemas/artifact-ref.schema.json").read_text(encoding="utf-8"))
     required=set(schema["required"])
     assert {"commit","blob_sha","sha256","source_revision"} <= required
 
+# @lat: [[tests#Receipts and artifacts#Traceability schema requires strong Source PRD]]
 def test_traceability_schema_requires_strong_source_prd():
     schema=json.loads((SOURCE_ROOT/"schemas/traceability.schema.json").read_text(encoding="utf-8"))
     required=set(schema["$defs"]["artifactRef"]["required"])
     assert {"commit","blob_sha","sha256"} <= required
 
+# @lat: [[tests#Receipts and artifacts#Acceptance attestation schema exists]]
 def test_acceptance_attestation_schema_exists():
     schema=json.loads((SOURCE_ROOT/"schemas/acceptance-attestation.schema.json").read_text(encoding="utf-8"))
     assert "report_sha256" in schema["required"]
     assert "manifest_sha256" in schema["required"]
 
+# @lat: [[tests#Receipts and artifacts#Integration run schema requires real commits]]
 def test_integration_run_history_schema_requires_real_commits():
     schema=json.loads((SOURCE_ROOT/"schemas/integration-run.schema.json").read_text(encoding="utf-8"))
     repo_input=schema["$defs"]["repoInput"]
     assert repo_input["properties"]["commit"]["pattern"]=="^[0-9a-fA-F]{40}$"
 
+# @lat: [[tests#Feature and registry#Create feature writes strong Source PRD]]
 def test_create_feature_writes_strong_source_prd(governance_sandbox):
     root,env=governance_sandbox
     r=run(env,"tools/create_feature.py",
@@ -65,6 +71,7 @@ def test_create_feature_writes_strong_source_prd(governance_sandbox):
     r=run(env,"tools/validate_feature.py","features/FEAT-GENERATOR-001","--offline")
     assert r.returncode==0, r.stdout+r.stderr
 
+# @lat: [[tests#Receipts and artifacts#Build receipt emits v2 strong identity]]
 def test_build_receipt_emits_v2_strong_identity(tmp_path):
     repo=tmp_path/"project"
     repo.mkdir()
@@ -107,6 +114,7 @@ def test_build_receipt_emits_v2_strong_identity(tmp_path):
     r=run(env,"tools/validate_receipt.py",str(out))
     assert r.returncode==0, r.stdout+r.stderr
 
+# @lat: [[tests#Isolation and audit#Process env wins over dotenv]]
 def test_load_env_file_does_not_override_process_env(tmp_path,monkeypatch):
     tools=str(SOURCE_ROOT/"tools")
     if tools not in sys.path:
@@ -121,6 +129,7 @@ def test_load_env_file_does_not_override_process_env(tmp_path,monkeypatch):
     assert os.environ["SMC_DOTENV_TEST_ONLY"]=="from-file"
     os.environ.pop("SMC_DOTENV_TEST_ONLY",None)
 
+# @lat: [[tests#Acceptance and gates#Empty integration history is not PASS]]
 def test_empty_integration_history_is_not_pass(governance_sandbox):
     root,env=governance_sandbox
     history=yaml.safe_load((root/"integration/runs/INT-SKILL-FIRST-001/history.yaml").read_text(encoding="utf-8"))

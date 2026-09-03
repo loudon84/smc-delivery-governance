@@ -47,6 +47,7 @@ def contract_consumer_pin_ok(fdir,wp,contract_id,version,release):
     pin=(c.get("consumers") or {}).get(wp["repository_id"],{}).get("pinned_version")
     return pin==version and bool(release.get("tag") and release.get("peeled_commit"))
 
+# @lat: [[state-machines#Reconcile Order]]
 def reconcile_contracts(fdir,feature,apply,actor):
     blocked=False;wps=load_work_packages(fdir);catalog=contract_catalog()
     for cref in feature.get("contracts",[]) or []:

@@ -1,6 +1,12 @@
 # Governance Architecture
 
+中央治理仓库的领域模型、职责边界与冻结不变量。它定义 Program 到 Evidence 的对象图，以及中央与项目仓库的能力归属。
+
+详见 [[domain/entities]]、[[ADR-001-central-local-boundary]]。
+
 ## 中央领域模型
+
+控制面对象按 Program → Feature → Work Package / Contract / Integration 组织，而不是按代码仓库目录组织。
 
 ```text
 Program
@@ -37,6 +43,8 @@ Program
 
 ## Production Ownership
 
+中央拥有身份、合同生命周期、Work Package 和证据裁决；项目仓库拥有实现与本地测试执行。
+
 | Capability | Owner |
 |---|---|
 | Project/Repository Registry | Central Governance |
@@ -57,6 +65,8 @@ Program
 
 ## Team Collaboration Roles
 
+角色描述协作职责，不替代 Production Owner。一人可兼多角，但每个 Capability 只能有一个生产归属。
+
 ```text
 Feature Owner
 Architecture Owner
@@ -66,9 +76,9 @@ Integration Owner
 Evidence Verifier
 ```
 
-一个人可承担多个角色，但一个 Capability 必须只有一个 Production Owner。
-
 ## Frozen Invariants
+
+下列规则是 Closed Loop v1 的硬约束。违反任一条款时，中央不得把实体推进到 VERIFIED / DONE / PASS。
 
 1. 一个 Feature 可包含多个 Repo Work Package。
 2. 一个 Repo Work Package 只属于一个 Repository。

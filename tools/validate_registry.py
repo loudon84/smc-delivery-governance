@@ -2,6 +2,7 @@ from __future__ import annotations
 from governance_lib import ROOT, project_catalog, repository_catalog, team_catalog, contract_catalog, validate_jsonschema
 
 
+# @lat: [[registry#Registry]]
 def main():
     errors=[]
     projects=project_catalog(); repos=repository_catalog(); teams=team_catalog(); contracts=contract_catalog()

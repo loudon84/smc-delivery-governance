@@ -16,6 +16,7 @@ from governance_lib import (
 
 STRONG_TYPES = {"SOURCE_PRD", "STAGE_PRD", "PLAN", "VERIFICATION"}
 
+# @lat: [[facts-and-evidence#ArtifactRef]]
 def verify_artifact_ref(ref: dict, token: str | None = None) -> list[str]:
     errors = validate_jsonschema(ref, ROOT / "schemas/artifact-ref.schema.json")
     if errors:

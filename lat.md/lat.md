@@ -4,27 +4,14 @@
 
 当前意图版本：**Closed Loop v1 / Governance Kit v1.2.1**。
 
-- [[architecture/governance]] — 中央治理领域模型与职责边界
-- [[architecture/trusted-delivery-loop]] — 可信交付闭环与事实分层
-- [[architecture/cross-repo-delivery]] — Cross-Repo Feature → Work Package → Local Delivery
-- [[architecture/contract-lifecycle]] — Contract Release Registry / Consume / Conformance
-- [[decisions/ADR-001-central-local-boundary]] — 中央/本地职责边界
-- [[decisions/ADR-002-state-machines]] — 状态机由中央统一管理
-- [[decisions/ADR-003-contract-first]] — Contract Candidate 前置
-- [[decisions/ADR-004-repo-work-package]] — Repo Work Package 是中央与项目之间的连接器
-
-- [[architecture/project-onboarding]] — 新项目注册、Bootstrap、Sync/Enforce 状态
-- [[architecture/delivery-traceability]] — Source PRD ArtifactRef → Stage PRD → Plan → Commit → Evidence
-- [[architecture/acceptance-evidence]] — Stage PRD AC/DOD 的本地测试与中央 Attestation Gate
-- [[decisions/ADR-005-delivery-receipt]] — 项目通过 Receipt 回报本地交付事实
-- [[decisions/ADR-006-prd-acceptance]] — Acceptance Manifest/Report/Attestation 作为验收证据合同
-- [[decisions/ADR-007-artifact-ref-v2]] — ArtifactRef 强身份
-- [[decisions/ADR-008-canonical-governance-kit]] — 不可变 Governance Kit Release
-- [[decisions/ADR-009-integration-run]] — IntegrationRun 才是跨仓 PASS 证明
-- [[decisions/ADR-010-audit-materialized-state]] — Audit Facts 与 Materialized State
-- [[decisions/ADR-011-test-isolation]] — 测试不得污染中央 SOT
+- [[architecture]] — 中央控制面领域模型、交付闭环、合同生命周期与证据链
+- [[decisions]] — 已批准的架构决策（中央/本地边界、状态机、证据合同）
+- [[domain]] — Feature、Work Package、Contract、Receipt 与状态机等核心概念
+- [[tests]] — 治理工具、证据合同与测试隔离的规格
 
 ## Product Mission
+
+中央仓库把跨仓交付收成一条可机器裁决的控制链，而不是一份文档仓库。
 
 ```text
 Feature SOT
@@ -35,4 +22,4 @@ Feature SOT
   → IntegrationRun
 ```
 
-中央治理仓库不是业务系统，不拥有 Work、Backend、Agent、Knowledge、RPA 等产品代码。
+中央治理仓库不是业务系统，不拥有 Work、Backend、Agent、Knowledge、RPA 等产品代码。边界见 [[ADR-001-central-local-boundary]]。

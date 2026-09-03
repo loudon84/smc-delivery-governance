@@ -50,6 +50,7 @@ def write_receipts(root: Path):
     (d/"REPO-SMC-COPILOT.yaml").write_text(yaml.safe_dump(consumer,sort_keys=False),encoding="utf-8")
     return d
 
+# @lat: [[tests#Sync and onboarding#Sync repo state reports all SYNCED]]
 def test_exit_codes_sync_repo_state_all_synced(governance_sandbox):
     root,env=governance_sandbox
     receipts=write_receipts(root)
@@ -60,6 +61,7 @@ def test_exit_codes_sync_repo_state_all_synced(governance_sandbox):
     # The source repository SOT must not change.
     assert "test-receipts" not in (SOURCE_ROOT/"features/FEAT-SKILL-FIRST-001/work-packages/nodeskclaw.yaml").read_text(encoding="utf-8")
 
+# @lat: [[tests#Acceptance and gates#Provider role gate allows contract release]]
 def test_provider_role_gate_allows_contract_release(governance_sandbox):
     root,env=governance_sandbox
     receipts=write_receipts(root)
@@ -70,6 +72,7 @@ def test_provider_role_gate_allows_contract_release(governance_sandbox):
     wp=(root/"features/FEAT-SKILL-FIRST-001/work-packages/nodeskclaw.yaml").read_text(encoding="utf-8")
     assert "status: VERIFIED" in wp or "status: DONE" in wp
 
+# @lat: [[tests#Acceptance and gates#Contract resolver honors consumer pin]]
 def test_contract_resolver_consumer_pin(governance_sandbox,monkeypatch):
     root,env=governance_sandbox
     monkeypatch.setenv("SMC_GOVERNANCE_ROOT",str(root))
@@ -78,6 +81,7 @@ def test_contract_resolver_consumer_pin(governance_sandbox,monkeypatch):
     importlib.reload(governance_lib)
     assert governance_lib.resolve_contract("SKILL-RUN-CONTRACT","1.2.1","REPO-SMC-COPILOT")=="CONFORMANCE_PASS"
 
+# @lat: [[tests#Isolation and audit#Audit event appends ndjson]]
 def test_audit_event_append(tmp_path,monkeypatch):
     monkeypatch.setenv("SMC_GOVERNANCE_ROOT",str(tmp_path))
     import importlib, governance_lib, audit_events
@@ -89,6 +93,7 @@ def test_audit_event_append(tmp_path,monkeypatch):
     assert event["entity_id"]=="WP-TEST"
     assert any((tmp_path/"audit/transitions").rglob("events.ndjson"))
 
+# @lat: [[tests#Sync and onboarding#Governance sync source-tree is explicit]]
 def test_governance_sync_source_tree_is_explicit_dev_mode(governance_sandbox):
     root,env=governance_sandbox
     with tempfile.TemporaryDirectory() as td:
@@ -99,6 +104,7 @@ def test_governance_sync_source_tree_is_explicit_dev_mode(governance_sandbox):
         assert binding.exists()
         assert "manifest_sha256" in binding.read_text(encoding="utf-8")
 
+# @lat: [[tests#Acceptance and gates#Acceptance gate offline mode]]
 def test_acceptance_gate_offline():
     env=os.environ.copy()
     r=run(env,"tools/acceptance_gate.py","--manifest","tests/fixtures/acceptance.yaml",
@@ -106,6 +112,7 @@ def test_acceptance_gate_offline():
           "--work-package","WP-SKILL-FIRST-SMC-COPILOT","--offline")
     assert r.returncode==0,r.stdout+r.stderr
 
+# @lat: [[tests#Isolation and audit#Kit release checksums close over manifest]]
 def test_release_governance_kit_manifest_and_checksum_closure(governance_sandbox):
     root,env=governance_sandbox
     r=run(env,"tools/release_governance_kit.py","--version","1.2.1",
@@ -115,6 +122,7 @@ def test_release_governance_kit_manifest_and_checksum_closure(governance_sandbox
     assert "  manifest.json\n" in sums
     assert "\r" not in sums
 
+# @lat: [[tests#Isolation and audit#Transition dry run is non-mutating]]
 def test_transition_state_dry_run_is_non_mutating(governance_sandbox):
     root,env=governance_sandbox
     before=(root/"features/FEAT-SKILL-FIRST-001/roadmap.yaml").read_bytes()

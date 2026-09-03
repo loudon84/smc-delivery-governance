@@ -21,6 +21,7 @@ def _find_idempotency_key(key: str) -> dict | None:
             if event.get("idempotency_key")==key:return event
     return None
 
+# @lat: [[facts-and-evidence#Audit Event]]
 def append_transition_event(
     *,
     entity_type:str,

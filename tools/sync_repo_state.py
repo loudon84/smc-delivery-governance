@@ -96,6 +96,7 @@ def _refresh_traceability(fdir: Path, wps: dict) -> None:
     trace["work_packages"] = list(by_id.values())
     dump_yaml(trace_path, trace)
 
+# @lat: [[facts-and-evidence#Delivery Ledger]]
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("feature")

@@ -1,10 +1,16 @@
 # Project Onboarding
 
+任何内部项目都可以通过统一 Registry + Governance Binding 纳入中央治理。不要求同一技术栈，但必须提供稳定仓库身份、治理路径与 Delivery Receipt。
+
+生命周期与 Kit 安装见 [[ADR-008-canonical-governance-kit]]；注册对象见 [[domain/registry]]。
+
 ## Goal
 
-任何内部项目都可以通过统一 Registry + Governance Binding 纳入中央治理，不要求使用同一技术栈，但必须提供稳定的仓库身份、治理路径与 Delivery Receipt。
+把新仓库从「知道它存在」推进到「CI 强制治理门禁」，并始终能检测 pin 漂移。
 
 ## Lifecycle
+
+项目治理状态独立于 Feature 状态机。OUT_OF_SYNC 是可修复的漂移，不是业务失败。
 
 ```text
 REGISTERED
@@ -30,6 +36,8 @@ OUT_OF_SYNC
 
 ## Required Local Interface
 
+中央不读取项目私有实现源码来推断状态。项目通过标准 Receipt 汇报事实，通过 CI artifact 提供可验证 Acceptance。
+
 ```text
 .agents/governance/binding.yaml
 .agents/governance.lock
@@ -38,5 +46,3 @@ OUT_OF_SYNC
 .agents/governance/receipts/
 .agents/governance/acceptance/
 ```
-
-中央不读取项目私有实现源码来推断状态；项目通过标准 Receipt 汇报事实，通过 CI artifact 提供可验证 Acceptance。

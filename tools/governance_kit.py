@@ -128,6 +128,7 @@ def parse_sums(path: Path) -> dict[str, str]:
         out[rel] = digest
     return out
 
+# @lat: [[ADR-008-canonical-governance-kit#ADR-008 — Canonical Governance Kit Release]]
 def verify_kit(
     kit_dir: Path,
     *,

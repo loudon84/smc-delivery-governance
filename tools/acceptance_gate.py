@@ -16,6 +16,7 @@ from governance_lib import (
 )
 import yaml
 
+# @lat: [[ADR-006-prd-acceptance#ADR-006 — PRD Acceptance Contract]]
 def verify_attestation(att: dict, manifest_bytes: bytes, report_bytes: bytes, report: dict, token=None) -> list[str]:
     errors = validate_jsonschema(att, ROOT / "schemas/acceptance-attestation.schema.json")
     if errors:
