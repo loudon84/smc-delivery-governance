@@ -1,4 +1,4 @@
-# Production Validation — SMC Governed Engineering Skills v4.1.1
+# Production Validation — SMC Governed Engineering Skills v4.1.2
 
 Release date: 2026-09-03
 
@@ -54,9 +54,10 @@ The Roadmap test suite verifies:
 3. creates `.smc/skill-upgrade-backups/<timestamp>/upgrade-manifest.json`;
 4. records original/installed SHA256 for every touched file;
 5. updates `.agents/skills` and mirrors the same files to `.cursor/skills`;
-6. runs delivery and Roadmap self-tests;
-7. runs the repository Skill validator when present;
-8. automatically restores the original files if a post-install gate fails.
+6. syncs declared full-tree mirrors from canonical `.agents` so leftover consumer drift cannot fail `SKILL-004`;
+7. runs delivery and Roadmap self-tests;
+8. runs the repository Skill validator when present;
+9. automatically restores the original files if a post-install gate fails.
 
 `rollback.py` supports a later operator-initiated rollback and refuses to overwrite files that have drifted since installation unless `--force` is explicitly supplied.
 
@@ -67,3 +68,7 @@ This release changes development-governance Skills and local developer evidence 
 ## v4.1.1 Windows path identity regression
 
 Validated the production failure class where Python sees a Windows 8.3 path (for example `C:\Users\SMC-SZ~1\...`) while Git reports the equivalent long path. The shared `repo_relative_path()` helper now uses filesystem identity (`os.path.samefile`) after the lexical fast path. Delivery self-test includes deterministic alias-root coverage.
+
+## v4.1.2 full-tree mirror repair
+
+Validated the production failure class where overlay-copied files matched on both sides, but unmanaged files in the same skill trees (especially `smc-plan-from-approved-prd-ponytail` and `smc-plan-validator`) already differed between `.agents` and `.cursor`. The installer now repairs that consumer full-tree drift inside the upgrade transaction.

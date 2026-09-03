@@ -1,4 +1,4 @@
-# SMC Governed Engineering Skills v4.1.1
+# SMC Governed Engineering Skills v4.1.2
 
 > **Canonical source:** `loudon84/smc-delivery-governance` branch `master`, directory `engineeing-skills/`. Future governed engineering Skill iterations must originate there; generated ZIP files are release artifacts, not an independent source of truth.
 
@@ -146,12 +146,13 @@ python install.py /path/to/nodeskclaw --apply
 1. 校验本发布包 `SHA256SUMS`；
 2. 验证目标是现有 SMC skills baseline；
 3. 对每个将被覆盖/新增的文件建立 transaction manifest，并备份旧文件到 `.smc/skill-upgrade-backups/<timestamp>/`；
-4. overlay copy 本包 `.agents/skills/*`，同时保持 `.cursor/skills` 镜像；
-5. 确保 `.smc/evidence/`、`.smc/reviews/`、`.smc/runs/` 被 gitignore；
-6. 执行 `smc-plan-delivery` 11 项 self-test 与 `smc-roadmap v1.1` 3 项 evidence/commit 测试；
-7. 若存在 `tools/agent-skills/validate_agent_skills.py`，执行项目级 Skill 校验；
-8. 任一 post-install gate 失败则**自动回滚到升级前文件状态**；
-9. **不会自动 git commit**。
+4. overlay copy 本包 `.agents/skills/*`，同时写入 `.cursor/skills`；
+5. 以 `.agents` 为 canonical，同步 declared full-tree mirrors（skills + references），修复 overlay 未覆盖的既有 drift；
+6. 确保 `.smc/evidence/`、`.smc/reviews/`、`.smc/runs/` 被 gitignore；
+7. 执行 `smc-plan-delivery` 13 项 self-test 与 `smc-roadmap v1.1` 3 项 evidence/commit 测试；
+8. 若存在 `tools/agent-skills/validate_agent_skills.py`，执行项目级 Skill 校验；
+9. 任一 post-install gate 失败则**自动回滚到升级前文件状态**；
+10. **不会自动 git commit**。
 
 ## 4.3 手工回滚
 

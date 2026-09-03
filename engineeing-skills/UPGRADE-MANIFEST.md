@@ -1,4 +1,4 @@
-# Upgrade Manifest — SMC Governed Engineering Skills v4.1.1
+# Upgrade Manifest — SMC Governed Engineering Skills v4.1.2
 
 ## Package Type
 

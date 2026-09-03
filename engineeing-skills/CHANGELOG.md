@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.2 — 2026-09-03
+
+### Fixed
+
+- Installer now syncs declared full-tree mirrors after overlay copy: `.agents/skills` → `.cursor/skills` and `.agents/references` → `.cursor/references`.
+- Fixes NodeSkClaw `SKILL-004 CURSOR_SKILL_MIRROR_DRIFT` when files outside the overlay payload already drifted before upgrade.
+- Canonical `.agents` remains the source of truth: missing mirror files are added, drifted mirror files are updated, and mirror-only extras are removed inside the same transaction and rolled back with it.
+
 ## v4.1.1 — 2026-09-03
 
 ### Fixed

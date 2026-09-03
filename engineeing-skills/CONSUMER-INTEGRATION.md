@@ -108,7 +108,7 @@ Core 可以定义接口，但不能硬编码业务仓库名称或目录结构。
 1. 选择/创建 consumer profile
 2. 运行 profile preflight
 3. 安装 GES managed skills
-4. 同步 declared mirrors
+4. 同步 declared mirrors（v4.1.2 NodeSkClaw installer 已对 full-tree mirrors 执行 canonical `.agents` → `.cursor` 同步）
 5. 运行 Core self-tests
 6. 运行 consumer validator
 7. 跑最小 workflow smoke
@@ -130,9 +130,11 @@ Installed source/release identity
 
 升级前比较 compatibility matrix；升级失败时事务 rollback，不能把半更新 Skill 留在项目中。
 
-## 9. Current v4.1.1 Transitional Rule
+## 9. Current v4.1.2 Transitional Rule
 
-当前 v4.1.1 `install.py` 仍是 NodeSkClaw-compatible overlay installer。它可继续用于 NodeSkClaw 类基线，但不应被当成所有公司项目的 universal installer contract。
+当前 v4.1.2 `install.py` 仍是 NodeSkClaw-compatible overlay installer。它可继续用于 NodeSkClaw 类基线，但不应被当成所有公司项目的 universal installer contract。
+
+v4.1.2 补上了 NodeSkClaw full-tree mirror 同步，避免 overlay 未覆盖的既有 `.agents` / `.cursor` drift 把生产安装卡在 `SKILL-004`。泛化 profile 选择（`none` / `managed-set` / `full-tree`）仍留待 v4.2.0。
 
 推荐 v4.2.0 实施：
 
@@ -143,4 +145,4 @@ Core package
   + consumers/<project>.yaml
 ```
 
-并保持 v4.1.1 NodeSkClaw profile 行为向后兼容。
+并保持 v4.1.x NodeSkClaw profile 行为向后兼容。

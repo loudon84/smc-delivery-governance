@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install SMC Governed Engineering Skills v4.1.1 as a transactional overlay.
+"""Install SMC Governed Engineering Skills v4.1.2 as a transactional overlay.
 
 Dry-run by default. Use --apply to write. Every touched file is recorded and
 backed up under .smc/skill-upgrade-backups/<timestamp>/. If post-install
@@ -20,7 +20,11 @@ from pathlib import Path
 PACKAGE = Path(__file__).resolve().parent
 OVERLAY = PACKAGE / ".agents" / "skills"
 INTEGRATION = PACKAGE / "project-integration"
-PACKAGE_VERSION = "4.1.1"
+PACKAGE_VERSION = "4.1.2"
+MIRROR_PAIRS = (
+    (".agents/skills", ".cursor/skills"),
+    (".agents/references", ".cursor/references"),
+)
 IGNORE_LINES = [
     ".smc/evidence/",
     ".smc/reviews/",
@@ -58,6 +62,44 @@ def rel_files(root: Path) -> list[Path]:
         for p in root.rglob("*")
         if p.is_file() and "__pycache__" not in p.parts and p.suffix != ".pyc"
     )
+
+
+def tree_files(root: Path) -> dict[str, Path]:
+    if not root.is_dir():
+        return {}
+    return {
+        p.relative_to(root).as_posix(): p
+        for p in root.rglob("*")
+        if p.is_file() and "__pycache__" not in p.parts and p.suffix != ".pyc"
+    }
+
+
+def prune_empty_dirs(root: Path) -> None:
+    if not root.exists():
+        return
+    for directory in sorted((p for p in root.rglob("*") if p.is_dir()), reverse=True):
+        try:
+            directory.rmdir()
+        except OSError:
+            pass
+
+
+def planned_mirror_repairs(project: Path) -> list[tuple[str, str]]:
+    """Return (action, dest_rel) needed to make declared mirrors match canonical trees."""
+    repairs: list[tuple[str, str]] = []
+    for canon_rel, mirror_rel in MIRROR_PAIRS:
+        canonical = tree_files(project / canon_rel)
+        mirror = tree_files(project / mirror_rel)
+        for rel, src in sorted(canonical.items()):
+            dest_rel = f"{mirror_rel}/{rel}"
+            dest = project / dest_rel
+            if rel not in mirror:
+                repairs.append(("ADD", dest_rel))
+            elif sha256(src) != sha256(dest):
+                repairs.append(("UPDATE", dest_rel))
+        for rel in sorted(set(mirror) - set(canonical)):
+            repairs.append(("REMOVE", f"{mirror_rel}/{rel}"))
+    return repairs
 
 
 def sha256(path: Path) -> str | None:
@@ -148,6 +190,44 @@ def patch_governed_skills(project: Path, backup_root: Path, records: dict[str, d
     return True
 
 
+def sync_declared_mirrors(project: Path, backup_root: Path, records: dict[str, dict]) -> int:
+    """Make declared IDE mirrors byte-identical to canonical `.agents` trees.
+
+    Overlay copy only writes package files. NodeSkClaw's project validator
+    compares the full `.agents/{skills,references}` trees with `.cursor/...`.
+    Pre-existing unmanaged-file drift in those trees is consumer acceptance
+    failure (SKILL-004), so the installer repairs it inside the same transaction.
+    Canonical `.agents` is the source of truth.
+    """
+    count = 0
+    for canon_rel, mirror_rel in MIRROR_PAIRS:
+        canonical_root = project / canon_rel
+        mirror_root = project / mirror_rel
+        if not canonical_root.is_dir():
+            continue
+        mirror_root.mkdir(parents=True, exist_ok=True)
+        canonical = tree_files(canonical_root)
+        mirror = tree_files(mirror_root)
+        for rel, src in sorted(canonical.items()):
+            dest = mirror_root / rel
+            if dest.is_file() and sha256(src) == sha256(dest):
+                continue
+            rec = record_before(project, dest, backup_root, records)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dest)
+            mark_after(dest, rec)
+            count += 1
+        for rel in sorted(set(mirror) - set(canonical)):
+            dest = mirror_root / rel
+            rec = record_before(project, dest, backup_root, records)
+            if dest.is_file() or dest.is_symlink():
+                dest.unlink()
+            rec["installed_sha256"] = None
+            count += 1
+        prune_empty_dirs(mirror_root)
+    return count
+
+
 def update_gitignore(project: Path, backup_root: Path, records: dict[str, dict]) -> bool:
     path = project / ".gitignore"
     text = path.read_text(encoding="utf-8") if path.is_file() else ""
@@ -192,14 +272,14 @@ def restore(project: Path, backup_root: Path, records: dict[str, dict]) -> None:
             if target.is_file() or target.is_symlink():
                 target.unlink()
     # Prune only newly-created empty directories under known upgrade roots.
-    for base in (project / ".agents" / "skills", project / ".cursor" / "skills", project / "tools" / "agent-skills"):
-        if not base.exists():
-            continue
-        for directory in sorted((p for p in base.rglob("*") if p.is_dir()), reverse=True):
-            try:
-                directory.rmdir()
-            except OSError:
-                pass
+    for base in (
+        project / ".agents" / "skills",
+        project / ".agents" / "references",
+        project / ".cursor" / "skills",
+        project / ".cursor" / "references",
+        project / "tools" / "agent-skills",
+    ):
+        prune_empty_dirs(base)
 
 
 
@@ -260,6 +340,18 @@ def preview(project: Path) -> None:
         print(f"  {rel}  [project integration]")
     print("  tools/agent-skills/validate_agent_skills.py  [managed set patch if needed]")
     print("  .gitignore  [append local .smc state paths if needed]")
+    overlay_names = {p.as_posix() for p in rel_files(OVERLAY)}
+    extra = [
+        (action, dest_rel)
+        for action, dest_rel in planned_mirror_repairs(project)
+        if not (dest_rel.startswith(".cursor/skills/") and dest_rel[len(".cursor/skills/"):] in overlay_names)
+    ]
+    if extra:
+        print("Additional declared full-tree mirror repairs (canonical .agents -> .cursor):")
+        for action, dest_rel in extra:
+            print(f"  {action:6} {dest_rel}")
+    else:
+        print("No extra full-tree mirror repairs beyond overlay copies.")
 
 
 def validation_commands(project: Path, skip_project_validator: bool) -> list[tuple[str, list[str]]]:
@@ -298,6 +390,7 @@ def main() -> int:
         integration_count = copy_integration(project, backup_root, records)
         patched = patch_governed_skills(project, backup_root, records)
         ignored = update_gitignore(project, backup_root, records)
+        mirrored = sync_declared_mirrors(project, backup_root, records)
         manifest = write_transaction_manifest(project, backup_root, records, "VALIDATING")
     except Exception as exc:
         try:
@@ -328,6 +421,7 @@ def main() -> int:
     print(f"Integration files    : {integration_count}")
     print(f"Governed set patched : {patched}")
     print(f".gitignore updated   : {ignored}")
+    print(f"Mirror repairs       : {mirrored}")
     print(f"Backup transaction   : {backup_root}")
     print(f"Transaction manifest : {manifest}")
     print("No git commit was created.")

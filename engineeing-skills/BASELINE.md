@@ -9,7 +9,7 @@ Canonical Repository: loudon84/smc-delivery-governance
 Canonical Branch    : master
 Canonical Path      : engineeing-skills/
 Foundation Commit   : 4b0ab08a62c971df4f40faa98480f12f21440aa7
-Bundle Release      : 4.1.1
+Bundle Release      : 4.1.2
 Pipeline Contract   : v4.1
 Plan Contract       : smc.plan.v3.3
 Commit Policy       : post_review
@@ -85,7 +85,7 @@ Architecture
 
 ## 6. Accepted Installation Safety
 
-当前 v4.1.1 installer 已接受：
+当前 v4.1.2 installer 已接受：
 
 - dry-run default；
 - package checksum validation；
@@ -95,6 +95,7 @@ Architecture
 - validation failure automatic rollback；
 - manual rollback；
 - no automatic git commit。
+- declared full-tree mirror sync from canonical `.agents`。
 
 ## 7. Windows Compatibility Baseline
 
@@ -120,13 +121,13 @@ NodeSkClaw 的项目级 validator 会检查整个：
 .agents/references == .cursor/references
 ```
 
-因此 `SKILL-004 CURSOR_SKILL_MIRROR_DRIFT` 属于 **consumer full-tree acceptance drift**。它可以使安装事务 rollback，但它不是 Delivery 13 项 self-test 的失败。
+因此 `SKILL-004 CURSOR_SKILL_MIRROR_DRIFT` 属于 **consumer full-tree acceptance drift**。v4.1.2 installer 会在 overlay 之后把 canonical `.agents` 同步到 declared `.cursor` mirrors，使该检查成为安装事务的一部分，而不是 Delivery 13 项 self-test 的失败。
 
 后续 installer 输出应进一步把 Core validation 与 Consumer validation 分层报告。
 
 ## 9. Transitional Technical Debt
 
-v4.1.1 的 `install.py` 仍包含 NodeSkClaw-compatible baseline 假设，例如：
+v4.1.2 的 `install.py` 仍包含 NodeSkClaw-compatible baseline 假设，例如：
 
 - `.cursor/skills` 必须存在；
 - 特定 references / validators 必须存在；

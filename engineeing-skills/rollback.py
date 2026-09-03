@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rollback a completed SMC Skills v4.1.1 overlay transaction safely."""
+"""Rollback a completed SMC Skills overlay transaction safely."""
 from __future__ import annotations
 
 import argparse

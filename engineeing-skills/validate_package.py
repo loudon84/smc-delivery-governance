@@ -124,7 +124,7 @@ def verify_release_integrity(errors: list[str]) -> None:
     if manifest.is_file():
         try:
             data = json.loads(manifest.read_text(encoding="utf-8"))
-            if data.get("package_version") != "4.1.1":
+            if data.get("package_version") != "4.1.2":
                 errors.append("PACKAGE-MANIFEST version mismatch")
         except Exception as exc:
             errors.append(f"PACKAGE-MANIFEST invalid: {exc}")
@@ -155,6 +155,12 @@ def installer_smoke(errors: list[str]) -> None:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("# baseline\n", encoding="utf-8")
         (project / ".cursor/skills").mkdir(parents=True, exist_ok=True)
+        # SKILL-004 shape: canonical-only file, stale mirror content, mirror-only extra.
+        (project / ".agents/skills/code-review-and-quality/extra.md").write_text("canonical extra\n", encoding="utf-8")
+        (project / ".cursor/skills/code-review-and-quality").mkdir(parents=True, exist_ok=True)
+        (project / ".cursor/skills/code-review-and-quality/SKILL.md").write_text("# stale mirror\n", encoding="utf-8")
+        (project / ".cursor/skills/stale-local/SKILL.md").parent.mkdir(parents=True, exist_ok=True)
+        (project / ".cursor/skills/stale-local/SKILL.md").write_text("# cursor only\n", encoding="utf-8")
         result = run([sys.executable, str(ROOT / "install.py"), str(project), "--apply", "--skip-project-validator"], ROOT, capture=True)
         if result.returncode:
             errors.append("installer smoke failed: " + (result.stdout + result.stderr).replace("\n", " | "))
@@ -172,6 +178,28 @@ def installer_smoke(errors: list[str]) -> None:
             if token not in ignore:
                 errors.append(f"installer smoke .gitignore missing: {token}")
 
+        def tree_bytes(path: Path) -> dict[str, bytes]:
+            if not path.is_dir():
+                return {}
+            return {
+                p.relative_to(path).as_posix(): p.read_bytes()
+                for p in path.rglob("*")
+                if p.is_file() and "__pycache__" not in p.parts and p.suffix != ".pyc"
+            }
+
+        if tree_bytes(project / ".agents/skills") != tree_bytes(project / ".cursor/skills"):
+            errors.append("installer smoke left .agents/skills vs .cursor/skills drift")
+        if tree_bytes(project / ".agents/references") != tree_bytes(project / ".cursor/references"):
+            errors.append("installer smoke left .agents/references vs .cursor/references drift")
+        extra_mirror = project / ".cursor/skills/code-review-and-quality/extra.md"
+        if not extra_mirror.is_file() or extra_mirror.read_text(encoding="utf-8") != "canonical extra\n":
+            errors.append("installer smoke did not copy canonical-only skill file to mirror")
+        mirrored_skill = project / ".cursor/skills/code-review-and-quality/SKILL.md"
+        if not mirrored_skill.is_file() or mirrored_skill.read_text(encoding="utf-8") != "# baseline\n":
+            errors.append("installer smoke did not repair stale skill mirror content")
+        if (project / ".cursor/skills/stale-local/SKILL.md").exists():
+            errors.append("installer smoke did not remove mirror-only extra skill")
+
         rollback = run([sys.executable, str(ROOT / "rollback.py"), str(project), "--apply"], ROOT, capture=True)
         if rollback.returncode:
             errors.append("rollback smoke failed: " + (rollback.stdout + rollback.stderr).replace("\n", " | "))
@@ -181,6 +209,14 @@ def installer_smoke(errors: list[str]) -> None:
             baseline = (project / ".agents/skills/smc-plan-validator/scripts/validate_plan.py").read_text(encoding="utf-8")
             if baseline != "# baseline\n":
                 errors.append("rollback smoke failed to restore overwritten baseline file")
+            restored_mirror = project / ".cursor/skills/code-review-and-quality/SKILL.md"
+            if not restored_mirror.is_file() or restored_mirror.read_text(encoding="utf-8") != "# stale mirror\n":
+                errors.append("rollback smoke failed to restore stale skill mirror content")
+            if (project / ".cursor/skills/code-review-and-quality/extra.md").exists():
+                errors.append("rollback smoke failed to remove copied canonical-only mirror file")
+            leftover = project / ".cursor/skills/stale-local/SKILL.md"
+            if not leftover.is_file() or leftover.read_text(encoding="utf-8") != "# cursor only\n":
+                errors.append("rollback smoke failed to restore mirror-only extra skill")
 
 
 def main() -> int:

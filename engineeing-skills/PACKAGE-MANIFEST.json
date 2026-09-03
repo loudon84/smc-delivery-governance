@@ -233,22 +233,22 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "068ef7c62beee96f1b0beadff03b249d04b96f5708cfcccd0587caae47d7618e",
-      "size": 2069
+      "sha256": "ce94fe7f503cca101c1be9fdf10aa68549127729d07ee1aecd4e4338243f205d",
+      "size": 2598
     },
     {
       "path": "PRODUCTION-VALIDATION.md",
-      "sha256": "1622a3183259fb91e7e475c6deb858c130629782492f0209c72fdda379ca4faf",
-      "size": 3214
+      "sha256": "7dd42c5070c69ff3fc936911d0b9f2b4548539ef5697185caf017ff82a75665a",
+      "size": 3710
     },
     {
       "path": "README.md",
-      "sha256": "4c916946abc240d1f189905d73f178b0c23d4a3429463812a2a612018f72b688",
-      "size": 8903
+      "sha256": "da7714718525311a387bb608cabf49f09033834ff300f4af51e8c5cea90a17cb",
+      "size": 9034
     },
     {
       "path": "UPGRADE-MANIFEST.md",
-      "sha256": "d7142f28a082020cc7594f2316e0af66b78ac51b6001326ee74381f2ed96cc57",
+      "sha256": "728c58254cd935f70b83edf0a089dabfcef01dc647d41ab940f1197756378d2e",
       "size": 3143
     },
     {
@@ -263,8 +263,8 @@
     },
     {
       "path": "install.py",
-      "sha256": "f3add5b679cea610cccc77c408e8d676e11ddb798ed39f0d1e780659603eecfc",
-      "size": 13642
+      "sha256": "ca822a9904df40b4528f5f486b5600226c6742f2cc390250dd1b63d9ecf1ca44",
+      "size": 17328
     },
     {
       "path": "project-integration/tools/agent-skills/validate_plan.py",
@@ -273,17 +273,17 @@
     },
     {
       "path": "rollback.py",
-      "sha256": "fe7f387b2b108163b14dd14c7b332aa67271384a5539298c32b443de596090ed",
-      "size": 3320
+      "sha256": "767831c87c018c2bd9f1af45503fb0200514b6ecd90123253a6d6695b8a7c425",
+      "size": 3313
     },
     {
       "path": "validate_package.py",
-      "sha256": "a1b0f974cd19d614c5f4416f410996983e88d9194e187ef1bf98238bb377413c",
-      "size": 11005
+      "sha256": "2511ec6c74dc90f4df65e24073c9802eff24762f03262f0588cd4378afb3e7f6",
+      "size": 13819
     }
   ],
   "package": "SMC-Governed-Engineering-Skills",
-  "package_version": "4.1.1",
+  "package_version": "4.1.2",
   "release_date": "2026-09-03",
   "schema": "smc.skills.package.manifest.v1",
   "target": "loudon84/nodeskclaw .agents/skills governed engineering overlay"
