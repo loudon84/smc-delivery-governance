@@ -1,4 +1,4 @@
-# Production Validation — SMC Governed Engineering Skills v4.1.0
+# Production Validation — SMC Governed Engineering Skills v4.1.1
 
 Release date: 2026-09-03
 
@@ -63,3 +63,7 @@ The Roadmap test suite verifies:
 ## Runtime boundary
 
 This release changes development-governance Skills and local developer evidence state only. It does not add a second NodeSkClaw/Hermes production runtime owner and does not alter production Agent artifact storage.
+
+## v4.1.1 Windows path identity regression
+
+Validated the production failure class where Python sees a Windows 8.3 path (for example `C:\Users\SMC-SZ~1\...`) while Git reports the equivalent long path. The shared `repo_relative_path()` helper now uses filesystem identity (`os.path.samefile`) after the lexical fast path. Delivery self-test includes deterministic alias-root coverage.

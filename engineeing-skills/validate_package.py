@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 SKILLS = ROOT / ".agents" / "skills"
 EXPECTED = {
-    "smc-plan-delivery": "1.0.0",
+    "smc-plan-delivery": "1.0.1",
     "smc-plan-from-approved-prd-ponytail": "3.4.0",
     "smc-plan-validator": "1.3.0",
     "smc-plan-review": "1.1.0",
@@ -124,7 +124,7 @@ def verify_release_integrity(errors: list[str]) -> None:
     if manifest.is_file():
         try:
             data = json.loads(manifest.read_text(encoding="utf-8"))
-            if data.get("package_version") != "4.1.0":
+            if data.get("package_version") != "4.1.1":
                 errors.append("PACKAGE-MANIFEST version mismatch")
         except Exception as exc:
             errors.append(f"PACKAGE-MANIFEST invalid: {exc}")
@@ -252,7 +252,7 @@ def main() -> int:
         print("PACKAGE VALIDATION FAILED", file=sys.stderr)
         print("\n".join(errors), file=sys.stderr)
         return 1
-    print(f"PACKAGE VALIDATION PASS — {len(EXPECTED)} pipeline skills, 11 delivery tests, 3 Roadmap tests, installer + rollback smoke PASS")
+    print(f"PACKAGE VALIDATION PASS — {len(EXPECTED)} pipeline skills, 13 delivery tests, 3 Roadmap tests, installer + rollback smoke PASS")
     return 0
 
 

@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from common import find_repo_root, parse_first_table, plan_id, section, strip_md
+from common import find_repo_root, parse_first_table, plan_id, section, strip_md, repo_relative_path
 from completion_audit import check as audit_status
 from delivery_state import load as load_run
 from evidence import current_status as evidence_status
@@ -47,7 +47,7 @@ def collect(plan: Path) -> dict:
     return {
         "schema": "smc.delivery.readiness.v1",
         "plan_id": plan_id(plan),
-        "plan": str(plan.relative_to(root)).replace("\\", "/"),
+        "plan": repo_relative_path(plan, root),
         "fingerprint": fingerprint(root),
         "run_state": run.get("state", "UNINITIALIZED"),
         "last_valid_state": run.get("last_valid_state", "UNINITIALIZED"),

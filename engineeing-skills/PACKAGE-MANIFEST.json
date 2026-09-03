@@ -18,7 +18,7 @@
     },
     {
       "path": ".agents/skills/smc-plan-delivery/SKILL.md",
-      "sha256": "e917a19f62b82e7900003cf231636e8b72eac985be95219bac51ff930c839598",
+      "sha256": "241dcb27fc6ad9387e8e38c7f04bb415147ced054c4ac49a677cb2eaaaea72fc",
       "size": 17637
     },
     {
@@ -53,23 +53,23 @@
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/common.py",
-      "sha256": "2d86f85236a80b8b5e3c4bf62b3b30cf53bae70eba49cda4f5a518c78c7a6c81",
-      "size": 7712
+      "sha256": "f00b9c14148e33399b87d9e371aef7b0652cffeb540ceb768a720e296363c95d",
+      "size": 9294
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/completion_audit.py",
-      "sha256": "4cc52c41017dcc92183e9132aa630533a94320335273a6f6aa145f250899fe14",
-      "size": 4888
+      "sha256": "75c4ff134bb8c73c7025643076d1f862d04a11f3ada5320404c58197732e698a",
+      "size": 4892
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/delivery_state.py",
-      "sha256": "adadf8a53319febb6ba746e906f31129d8e9dc6dac0395d59dd82ee168d887df",
-      "size": 5448
+      "sha256": "21941848f0719a1b63003b9d6fdfc31adea0e5152b07c439bae132ec6a8ccce2",
+      "size": 5452
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/evidence.py",
-      "sha256": "51be7685514098510a094e803f9694b43caaaabd76f1b595ec97bff5909f60c1",
-      "size": 13880
+      "sha256": "ee57f7acedbe494a284546ea0612ebe41b078d0c51895ca9361d8efd93b4cfad",
+      "size": 13858
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/migrate_legacy_plan.py",
@@ -83,13 +83,13 @@
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/readiness.py",
-      "sha256": "230c03ea1b08d71d302bacb1eec302408399a92ba73e4274ec30bc5732d0df60",
-      "size": 4182
+      "sha256": "a32ce0fc070e459d405e4ff83a545a65e81048741e4d96973f7e667578db4f98",
+      "size": 4186
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/resolve_plan.py",
-      "sha256": "92ce383687c25cf5a2dae03d548500f40cf289db5f8e1215cadadb4704d281ad",
-      "size": 2801
+      "sha256": "1c26b4696c59d30974b8ca077cd0964aab7ebddcb998fb9aa53f814af99a9927",
+      "size": 2814
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/review_record.py",
@@ -103,8 +103,8 @@
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/tests/test_delivery_tools.py",
-      "sha256": "6a2c1c0f2ba309cce442faa4b90a6c702e3e0fcf4cbeb4ef6ececb2a3d1db816",
-      "size": 10600
+      "sha256": "8b19857414d6d22f42872f54de557ba9e820ca98e7c1803933ae48a585a880f6",
+      "size": 12846
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/validate_delivery_completion.py",
@@ -153,8 +153,8 @@
     },
     {
       "path": ".agents/skills/smc-plan-validator/scripts/validate_plan_v33.py",
-      "sha256": "2efac4bf57b8da50c5c8099455000a246fcf7152c78bea288f59d8a03a745afa",
-      "size": 6726
+      "sha256": "6ec5adf67f26f2de5473d67dab101a152659159fb5090a76a9a7cec266876955",
+      "size": 6752
     },
     {
       "path": ".agents/skills/smc-prd-converge/SKILL.md",
@@ -233,22 +233,22 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "3c5231a4bf7766f7022948813306ff1eb1ca0dc1d6368438114c48d6e834c2a7",
-      "size": 1617
+      "sha256": "068ef7c62beee96f1b0beadff03b249d04b96f5708cfcccd0587caae47d7618e",
+      "size": 2069
     },
     {
       "path": "PRODUCTION-VALIDATION.md",
-      "sha256": "b17d2c7077eb712c558510ace6bb824383f51e3873a818f6337a167e4871113c",
-      "size": 2828
+      "sha256": "1622a3183259fb91e7e475c6deb858c130629782492f0209c72fdda379ca4faf",
+      "size": 3214
     },
     {
       "path": "README.md",
-      "sha256": "88d6b3781ea1cf404276c90eae91ad49ff7b5f0c33aef73c241e761fa1a0ba18",
-      "size": 8648
+      "sha256": "4c916946abc240d1f189905d73f178b0c23d4a3429463812a2a612018f72b688",
+      "size": 8903
     },
     {
       "path": "UPGRADE-MANIFEST.md",
-      "sha256": "a49f365e36bf5732f0b2da3f62f04f400951e50c4c549d948a3ce753ff2b5c94",
+      "sha256": "d7142f28a082020cc7594f2316e0af66b78ac51b6001326ee74381f2ed96cc57",
       "size": 3143
     },
     {
@@ -263,7 +263,7 @@
     },
     {
       "path": "install.py",
-      "sha256": "60e5672b24386931e99f250547099161ba5ba09e93a7a247de916cc0b1b68eb5",
+      "sha256": "f3add5b679cea610cccc77c408e8d676e11ddb798ed39f0d1e780659603eecfc",
       "size": 13642
     },
     {
@@ -273,17 +273,17 @@
     },
     {
       "path": "rollback.py",
-      "sha256": "d273208c6e8163f5f3741a86f3b8dad4dc1ee62564fa86d6a32299970edf219b",
+      "sha256": "fe7f387b2b108163b14dd14c7b332aa67271384a5539298c32b443de596090ed",
       "size": 3320
     },
     {
       "path": "validate_package.py",
-      "sha256": "076af95f3bcb9fcef6e9543464eef7409340ea8107a4afbb0891a8623107d440",
+      "sha256": "a1b0f974cd19d614c5f4416f410996983e88d9194e187ef1bf98238bb377413c",
       "size": 11005
     }
   ],
   "package": "SMC-Governed-Engineering-Skills",
-  "package_version": "4.1.0",
+  "package_version": "4.1.1",
   "release_date": "2026-09-03",
   "schema": "smc.skills.package.manifest.v1",
   "target": "loudon84/nodeskclaw .agents/skills governed engineering overlay"

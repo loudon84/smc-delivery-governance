@@ -8,7 +8,7 @@ import re
 import sys
 from pathlib import Path
 
-from common import find_repo_root, parse_top_level_frontmatter, plan_id_from_text, split_frontmatter
+from common import find_repo_root, parse_top_level_frontmatter, plan_id_from_text, split_frontmatter, repo_relative_path
 
 
 def body_hash(text: str) -> str:
@@ -41,16 +41,16 @@ def main() -> int:
         text = target.read_text(encoding="utf-8"); pid = plan_id_from_text(target, text); bh = body_hash(text)
         same_id = [r for r in rows if r["plan_id"] == pid]
         semantic = [r for r in rows if r["body_hash"] == bh]
-        duplicate_paths = sorted({str(r["path"].relative_to(root)) for r in same_id + semantic if r["path"].resolve() != target})
+        duplicate_paths = sorted({repo_relative_path(r["path"], root) for r in same_id + semantic if r["path"].resolve() != target})
         if duplicate_paths:
             code = "PLAN_ID_DUPLICATE" if len(same_id) > 1 else "PLAN_SEMANTIC_DUPLICATE"
             print(f"{code}: {pid}: {', '.join(duplicate_paths)}", file=sys.stderr); return 1
-        result = {"plan": str(target.relative_to(root)).replace("\\", "/"), "plan_id": pid, "body_hash": bh}
+        result = {"plan": repo_relative_path(target, root), "plan_id": pid, "body_hash": bh}
     else:
         matches = [r for r in rows if r["plan_id"] == args.plan_id]
         if not matches: print(f"PLAN_NOT_FOUND: {args.plan_id}", file=sys.stderr); return 2
-        if len(matches) > 1: print(f"PLAN_ID_DUPLICATE: {args.plan_id}: {', '.join(str(r['path'].relative_to(root)) for r in matches)}", file=sys.stderr); return 1
-        r = matches[0]; result = {"plan": str(r["path"].relative_to(root)).replace("\\", "/"), "plan_id": r["plan_id"], "body_hash": r["body_hash"]}
+        if len(matches) > 1: print(f"PLAN_ID_DUPLICATE: {args.plan_id}: {', '.join(repo_relative_path(r['path'], root) for r in matches)}", file=sys.stderr); return 1
+        r = matches[0]; result = {"plan": repo_relative_path(r["path"], root).replace("\\", "/"), "plan_id": r["plan_id"], "body_hash": r["body_hash"]}
     print(json.dumps(result, ensure_ascii=False, indent=2) if args.json else result["plan"]); return 0
 
 

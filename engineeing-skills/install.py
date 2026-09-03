@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install SMC Governed Engineering Skills v4.1.0 as a transactional overlay.
+"""Install SMC Governed Engineering Skills v4.1.1 as a transactional overlay.
 
 Dry-run by default. Use --apply to write. Every touched file is recorded and
 backed up under .smc/skill-upgrade-backups/<timestamp>/. If post-install
@@ -20,7 +20,7 @@ from pathlib import Path
 PACKAGE = Path(__file__).resolve().parent
 OVERLAY = PACKAGE / ".agents" / "skills"
 INTEGRATION = PACKAGE / "project-integration"
-PACKAGE_VERSION = "4.1.0"
+PACKAGE_VERSION = "4.1.1"
 IGNORE_LINES = [
     ".smc/evidence/",
     ".smc/reviews/",

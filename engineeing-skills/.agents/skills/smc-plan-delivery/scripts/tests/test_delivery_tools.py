@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 HERE=Path(__file__).resolve().parents[1]
@@ -201,6 +202,44 @@ class DeliveryToolsTest(unittest.TestCase):
         p.parent.mkdir(parents=True,exist_ok=True)
         p.write_text("{}\n",encoding="utf-8")
         self.assertEqual(before,fingerprint(self.root))
+
+    def test_repo_relative_path_accepts_filesystem_alias(self):
+        # Simulate Windows 8.3/long-name identity mismatch deterministically.
+        # The alias root is lexically different from the Git root, but the
+        # filesystem identity layer says they are the same directory.
+        alias_root = self.root.parent / (self.root.name + "-SHORT")
+        alias_plan = alias_root / ".cursor" / "plans" / "rm-01.plan.md"
+        original_same = common.paths_same
+
+        def fake_same(left, right):
+            if Path(left) == alias_root and Path(right) == self.root:
+                return True
+            return original_same(left, right)
+
+        with mock.patch.object(common, "paths_same", side_effect=fake_same):
+            self.assertEqual(".cursor/plans/rm-01.plan.md", common.repo_relative_path(alias_plan, self.root))
+
+    def test_completion_precheck_accepts_repo_root_path_alias(self):
+        # Reproduce the production failure shape: plan keeps one spelling while
+        # git root is returned through an equivalent, lexically different path.
+        plan_state.set_status(self.plan,"T1","completed")
+        (self.root/"app.py").write_text("def main():\n    return 2\n",encoding="utf-8")
+        base=subprocess.run(["git","-C",str(self.root),"rev-parse","HEAD"],capture_output=True,text=True,check=True).stdout.strip()
+        alias_root = self.root.parent / (self.root.name + "-LONG")
+        original_find = completion_audit.find_repo_root
+        original_same = common.paths_same
+
+        def fake_same(left, right):
+            if Path(left) == self.root and Path(right) == alias_root:
+                return True
+            return original_same(left, right)
+
+        with mock.patch.object(completion_audit, "find_repo_root", return_value=alias_root), \
+             mock.patch.object(common, "paths_same", side_effect=fake_same), \
+             mock.patch.object(completion_audit, "git", side_effect=lambda _root,*args,**kwargs: common.git(self.root,*args,**kwargs)), \
+             mock.patch.object(completion_audit, "fingerprint", side_effect=lambda _root: fingerprint(self.root)):
+            pre=completion_audit.precheck(self.plan,base)
+        self.assertTrue(pre["pass"],pre)
 
     def test_todo_mapping_and_state(self):
         self.assertEqual([],plan_state.validate(self.plan));plan_state.set_status(self.plan,"T1","completed")

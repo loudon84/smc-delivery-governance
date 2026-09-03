@@ -1,5 +1,14 @@
 # Changelog
 
+## v4.1.1 — 2026-09-03
+
+### Fixed
+
+- Windows 8.3 short-path / long-path identity mismatch across `smc-plan-delivery`.
+- Added filesystem-identity based `repo_relative_path()` shared helper.
+- Replaced lexical `Path.relative_to(repo_root)` calls in completion audit, readiness, delivery state, evidence, Plan resolution and v3.3 duplicate validation.
+- Added deterministic alias-path regression tests covering the production installer failure shape.
+
 ## v4.1.0 — 2026-09-03
 
 - Added `smc-plan-delivery v1.0.0` as the unique post-Plan delivery orchestrator.

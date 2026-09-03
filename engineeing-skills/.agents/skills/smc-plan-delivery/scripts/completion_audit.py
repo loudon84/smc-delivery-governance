@@ -7,7 +7,7 @@ import re
 import sys
 from pathlib import Path
 
-from common import atomic_write, find_repo_root, git, parse_first_table, plan_id, section, strip_md, utc_now
+from common import atomic_write, find_repo_root, git, parse_first_table, plan_id, repo_relative_path, section, strip_md, utc_now
 from plan_state import cursor_todos, smc_todo_id
 from working_tree_fingerprint import fingerprint
 
@@ -32,7 +32,7 @@ def precheck(plan: Path, base: str) -> dict:
     incomplete = sorted(k for k, v in states.items() if v != "completed")
     diff = git(root, "diff", "--name-only", base, "--").stdout.splitlines()
     untracked = git(root, "ls-files", "--others", "--exclude-standard").stdout.splitlines()
-    rel_plan = str(plan.relative_to(root)).replace("\\", "/")
+    rel_plan = repo_relative_path(plan, root)
     changed = {
         x.strip().replace("\\", "/")
         for x in [*diff, *untracked]

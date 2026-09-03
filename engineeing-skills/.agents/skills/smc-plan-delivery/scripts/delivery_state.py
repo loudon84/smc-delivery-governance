@@ -6,7 +6,7 @@ import json
 import sys
 from pathlib import Path
 
-from common import atomic_write, find_repo_root, git, plan_id, utc_now
+from common import atomic_write, find_repo_root, git, plan_id, utc_now, repo_relative_path
 from working_tree_fingerprint import fingerprint
 
 STATES = [
@@ -60,7 +60,7 @@ def init(plan: Path) -> dict:
     data = {
         "schema": "smc.delivery.run.v1",
         "plan_id": plan_id(plan),
-        "plan": str(plan.relative_to(root)).replace("\\", "/"),
+        "plan": repo_relative_path(plan, root),
         "state": "PLAN_CREATED",
         "last_valid_state": "PLAN_CREATED",
         "base_commit": head,

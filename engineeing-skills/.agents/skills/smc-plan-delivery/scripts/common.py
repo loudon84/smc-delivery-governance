@@ -32,6 +32,44 @@ def find_repo_root(path: Path | str) -> Path:
     raise RuntimeError(f"REPO_ROOT_NOT_FOUND: {p}")
 
 
+def paths_same(left: Path | str, right: Path | str) -> bool:
+    """Return filesystem identity equality, not lexical path equality.
+
+    Windows may expose the same directory through an 8.3 short name, a long
+    user-profile name, a junction, or a subst/symlink alias.  ``Path`` lexical
+    comparisons cannot safely decide identity in those cases.
+    """
+    try:
+        return os.path.samefile(os.fspath(left), os.fspath(right))
+    except (FileNotFoundError, NotADirectoryError, OSError):
+        # Fallback is intentionally conservative and only covers normal lexical
+        # aliases when filesystem identity cannot be queried.
+        l = os.path.normcase(os.path.abspath(os.fspath(left)))
+        r = os.path.normcase(os.path.abspath(os.fspath(right)))
+        return l == r
+
+
+def repo_relative_path(path: Path | str, root: Path | str) -> str:
+    """Return a POSIX repo-relative path across filesystem aliases.
+
+    First use the normal lexical fast path.  If that fails, walk the supplied
+    path's existing ancestors and compare each ancestor to the Git root using
+    filesystem identity.  This makes Windows 8.3/long-path aliases, junctions
+    and symlinks equivalent without weakening the outside-repository guard.
+    """
+    p = Path(path).absolute()
+    r = Path(root).absolute()
+    try:
+        return p.relative_to(r).as_posix()
+    except ValueError:
+        pass
+
+    for ancestor in (p, *p.parents):
+        if paths_same(ancestor, r):
+            return p.relative_to(ancestor).as_posix()
+    raise ValueError(f"PATH_OUTSIDE_REPO: path={p} root={r}")
+
+
 def git(root: Path, *args: str, check: bool = True, text: bool = True):
     result = subprocess.run(
         ["git", "-C", str(root), *args],

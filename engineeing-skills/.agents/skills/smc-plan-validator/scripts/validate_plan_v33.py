@@ -20,7 +20,7 @@ from pathlib import Path
 HERE=Path(__file__).resolve().parent
 DELIVERY=HERE.parents[1]/"smc-plan-delivery"/"scripts"
 sys.path.insert(0,str(DELIVERY))
-from common import parse_first_table, parse_top_level_frontmatter, section, strip_md  # type: ignore
+from common import parse_first_table, parse_top_level_frontmatter, repo_relative_path, section, strip_md  # type: ignore
 from plan_state import validate as validate_cursor_todos  # type: ignore
 
 VALID_POLICIES={"LOCAL_TRANSIENT","LOCAL_DURABLE","CI_ARTIFACT","EXTERNAL_ARTIFACT","REPO_SUMMARY"}
@@ -48,8 +48,8 @@ def duplicate_checks(plan:Path,pid:str)->list[dict[str,str]]:
         if other.resolve()==plan.resolve():continue
         text=other.read_text(encoding="utf-8",errors="replace");fm=parse_top_level_frontmatter(text)
         opid=fm.get("plan_id","").strip()
-        if opid and opid==pid:out.append({"code":"PLAN_ID_DUPLICATE","detail":str(other.relative_to(root))})
-        elif this_body and body(text)==this_body:out.append({"code":"PLAN_SEMANTIC_DUPLICATE","detail":str(other.relative_to(root))})
+        if opid and opid==pid:out.append({"code":"PLAN_ID_DUPLICATE","detail":repo_relative_path(other, root)})
+        elif this_body and body(text)==this_body:out.append({"code":"PLAN_SEMANTIC_DUPLICATE","detail":repo_relative_path(other, root)})
     return out
 
 

@@ -1,7 +1,7 @@
 ---
 name: smc-plan-delivery
 description: SMC Plan 后半程唯一交付编排器。对 canonical Plan 执行 Static Gate -> Semantic Gate -> Execution -> Plan Completion Audit -> Implementation Review -> Verification -> Evidence Freshness -> post_review Commit -> Roadmap Update；支持中断恢复，禁止 Todo 阶段提前 commit。
-version: 1.0.0
+version: 1.0.1
 ---
 
 # SMC Plan Delivery v1.0

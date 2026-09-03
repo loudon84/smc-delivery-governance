@@ -18,6 +18,7 @@ from common import (
     parse_first_table,
     plan_id,
     read_jsonl,
+    repo_relative_path,
     section,
     strip_md,
     utc_now,
@@ -144,7 +145,7 @@ def run_cmd(plan: Path, vid: str, command: list[str]) -> int:
         "result": "PASS" if rc == 0 else "FAIL",
         "wtree_fingerprint": fp,
         "timestamp": ts,
-        "log_path": str(log.relative_to(root)).replace(os.sep, "/"),
+        "log_path": repo_relative_path(log, root),
         "policy": policy,
     }
     append_jsonl(ledger_path(root, pid), record)
@@ -213,7 +214,7 @@ def build_manifest(plan: Path, output: Path | None = None) -> tuple[Path, dict]:
             }
         )
 
-    rel_plan = str(plan.relative_to(root)).replace(os.sep, "/")
+    rel_plan = repo_relative_path(plan, root)
     payload = {
         "schema": MANIFEST_SCHEMA,
         "plan_id": pid,
@@ -247,7 +248,7 @@ def build_manifest(plan: Path, output: Path | None = None) -> tuple[Path, dict]:
     payload["payload_sha256"] = payload_sha256(payload)
     out = (output.resolve() if output else default_manifest_path(root, pid))
     try:
-        out.relative_to(root)
+        repo_relative_path(out, root)
     except ValueError as exc:
         raise ValueError(f"EVIDENCE_MANIFEST_OUTSIDE_REPO: {out}") from exc
     atomic_write(out, json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
@@ -324,7 +325,7 @@ def main() -> int:
             json.dumps(
                 {
                     "status": "WRITTEN",
-                    "manifest": str(path.relative_to(root)).replace(os.sep, "/"),
+                    "manifest": repo_relative_path(path, root),
                     "plan_id": payload["plan_id"],
                     "wtree_fingerprint": payload["wtree_fingerprint"],
                     "payload_sha256": payload["payload_sha256"],

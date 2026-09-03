@@ -1,4 +1,4 @@
-# Upgrade Manifest — SMC Governed Engineering Skills v4.1.0
+# Upgrade Manifest — SMC Governed Engineering Skills v4.1.1
 
 ## Package Type
 
@@ -14,7 +14,7 @@
 
 | Skill | Version | Purpose |
 |---|---:|---|
-| `smc-plan-delivery` | 1.0.0 | Plan -> implementation -> audit -> review -> verification -> post_review commit -> Roadmap orchestration |
+| `smc-plan-delivery` | 1.0.1 | Plan -> implementation -> audit -> review -> verification -> post_review commit -> Roadmap orchestration |
 
 ## Upgraded Skills
 

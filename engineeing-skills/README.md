@@ -1,4 +1,6 @@
-# SMC Governed Engineering Skills v4.1.0
+# SMC Governed Engineering Skills v4.1.1
+
+> **Canonical source:** `loudon84/smc-delivery-governance` branch `master`, directory `engineeing-skills/`. Future governed engineering Skill iterations must originate there; generated ZIP files are release artifacts, not an independent source of truth.
 
 面向 `loudon84/nodeskclaw` 当前 `.agents/skills` 治理链的 **overlay 升级包**。
 
@@ -41,7 +43,7 @@ smc-plan-delivery
 
 ## 2. 本包新增 / 升级的核心能力
 
-### NEW: `smc-plan-delivery v1.0.0`
+### NEW: `smc-plan-delivery v1.0.1`
 
 独立 Skill 包，包含：
 
