@@ -14,6 +14,9 @@ from pathlib import Path
 # as a stable path while the v4.2 implementation is versioned explicitly.
 _GES_V420 = Path(__file__).resolve().with_name("validate_package_v420.py")
 if __name__ == "__main__" and _GES_V420.is_file() and os.environ.get("GES_V420_NO_DISPATCH") != "1":
+    # Keep validation deterministic across Windows locale/code-page settings.
+    # All GES source, Plan fixtures and generated metadata are UTF-8.
+    os.environ.setdefault("PYTHONUTF8", "1")
     os.execv(sys.executable, [sys.executable, str(_GES_V420), *sys.argv[1:]])
 
 ROOT = Path(__file__).resolve().parent

@@ -21,6 +21,9 @@ from pathlib import Path
 # as a stable path while the v4.2 implementation is versioned explicitly.
 _GES_V420 = Path(__file__).resolve().with_name("install_v420.py")
 if __name__ == "__main__" and _GES_V420.is_file() and os.environ.get("GES_V420_NO_DISPATCH") != "1":
+    # Windows Python may default to a locale codec such as GBK.  GES plan and
+    # test fixtures are UTF-8; child validation processes must inherit UTF-8 mode.
+    os.environ.setdefault("PYTHONUTF8", "1")
     os.execv(sys.executable, [sys.executable, str(_GES_V420), *sys.argv[1:]])
 
 PACKAGE = Path(__file__).resolve().parent
