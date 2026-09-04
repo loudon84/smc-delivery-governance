@@ -10,6 +10,12 @@ import sys
 import tempfile
 from pathlib import Path
 
+# GES v4.2.0 compatibility dispatch.  Keep the accepted v4.1.2 entrypoint
+# as a stable path while the v4.2 implementation is versioned explicitly.
+_GES_V420 = Path(__file__).resolve().with_name("validate_package_v420.py")
+if __name__ == "__main__" and _GES_V420.is_file() and os.environ.get("GES_V420_NO_DISPATCH") != "1":
+    os.execv(sys.executable, [sys.executable, str(_GES_V420), *sys.argv[1:]])
+
 ROOT = Path(__file__).resolve().parent
 SKILLS = ROOT / ".agents" / "skills"
 EXPECTED = {

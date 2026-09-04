@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Install SMC Governed Engineering Skills v4.1.2 as a transactional overlay.
+"""Install GES v4.2.0 as a transactional overlay.
 
-Dry-run by default. Use --apply to write. Every touched file is recorded and
-backed up under .smc/skill-upgrade-backups/<timestamp>/. If post-install
-validation fails, the installer automatically restores the pre-upgrade state.
+Dry-run by default.  v4.2 keeps the v4.1.2 full-tree mirror repair semantics
+for consumers that declare `.cursor` mirrors, while the Core delivery changes
+remain repository-agnostic.  No git commit is created by this installer.
 """
 from __future__ import annotations
 
@@ -17,16 +17,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-# GES v4.2.0 compatibility dispatch.  Keep the accepted v4.1.2 entrypoint
-# as a stable path while the v4.2 implementation is versioned explicitly.
-_GES_V420 = Path(__file__).resolve().with_name("install_v420.py")
-if __name__ == "__main__" and _GES_V420.is_file() and os.environ.get("GES_V420_NO_DISPATCH") != "1":
-    os.execv(sys.executable, [sys.executable, str(_GES_V420), *sys.argv[1:]])
-
 PACKAGE = Path(__file__).resolve().parent
 OVERLAY = PACKAGE / ".agents" / "skills"
 INTEGRATION = PACKAGE / "project-integration"
-PACKAGE_VERSION = "4.1.2"
+PACKAGE_VERSION = "4.2.0"
+SUMS_FILE = f"SHA256SUMS-v{PACKAGE_VERSION}"
+MANIFEST_FILE = f"PACKAGE-MANIFEST-v{PACKAGE_VERSION}.json"
 MIRROR_PAIRS = (
     (".agents/skills", ".cursor/skills"),
     (".agents/references", ".cursor/references"),
@@ -40,6 +36,8 @@ IGNORE_LINES = [
     "*.py[cod]",
 ]
 
+# Compatibility prerequisites inherited from the accepted v4.1.2 baseline.
+# These are consumer integration prerequisites, not GES Core semantic rules.
 REQUIRED_BASELINE = [
     ".agents/skills/smc-plan-validator/scripts/validate_plan.py",
     ".agents/skills/smc-plan-review/scripts/assess_plan_review.py",
@@ -54,7 +52,6 @@ REQUIRED_BASELINE = [
     ".agents/references/prd-contract.md",
     ".agents/references/evidence-contract.md",
     ".agents/references/architecture-convergence.md",
-    ".cursor/skills",
 ]
 
 
@@ -63,6 +60,8 @@ def now_tag() -> str:
 
 
 def rel_files(root: Path) -> list[Path]:
+    if not root.is_dir():
+        return []
     return sorted(
         p.relative_to(root)
         for p in root.rglob("*")
@@ -88,24 +87,6 @@ def prune_empty_dirs(root: Path) -> None:
             directory.rmdir()
         except OSError:
             pass
-
-
-def planned_mirror_repairs(project: Path) -> list[tuple[str, str]]:
-    """Return (action, dest_rel) needed to make declared mirrors match canonical trees."""
-    repairs: list[tuple[str, str]] = []
-    for canon_rel, mirror_rel in MIRROR_PAIRS:
-        canonical = tree_files(project / canon_rel)
-        mirror = tree_files(project / mirror_rel)
-        for rel, src in sorted(canonical.items()):
-            dest_rel = f"{mirror_rel}/{rel}"
-            dest = project / dest_rel
-            if rel not in mirror:
-                repairs.append(("ADD", dest_rel))
-            elif sha256(src) != sha256(dest):
-                repairs.append(("UPDATE", dest_rel))
-        for rel in sorted(set(mirror) - set(canonical)):
-            repairs.append(("REMOVE", f"{mirror_rel}/{rel}"))
-    return repairs
 
 
 def sha256(path: Path) -> str | None:
@@ -153,9 +134,14 @@ def mark_after(target: Path, record: dict) -> None:
 
 def copy_overlay(project: Path, backup_root: Path, records: dict[str, dict]) -> int:
     count = 0
+    mirror_skills = project / ".cursor" / "skills"
+    mirror_declared = mirror_skills.is_dir()
     for rel in rel_files(OVERLAY):
         src = OVERLAY / rel
-        for dest in (project / ".agents" / "skills" / rel, project / ".cursor" / "skills" / rel):
+        destinations = [project / ".agents" / "skills" / rel]
+        if mirror_declared:
+            destinations.append(mirror_skills / rel)
+        for dest in destinations:
             rec = record_before(project, dest, backup_root, records)
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dest)
@@ -166,8 +152,6 @@ def copy_overlay(project: Path, backup_root: Path, records: dict[str, dict]) -> 
 
 def copy_integration(project: Path, backup_root: Path, records: dict[str, dict]) -> int:
     count = 0
-    if not INTEGRATION.is_dir():
-        return count
     for rel in rel_files(INTEGRATION):
         src = INTEGRATION / rel
         dest = project / rel
@@ -197,21 +181,18 @@ def patch_governed_skills(project: Path, backup_root: Path, records: dict[str, d
 
 
 def sync_declared_mirrors(project: Path, backup_root: Path, records: dict[str, dict]) -> int:
-    """Make declared IDE mirrors byte-identical to canonical `.agents` trees.
+    """Repair only mirror trees already declared by the consumer.
 
-    Overlay copy only writes package files. NodeSkClaw's project validator
-    compares the full `.agents/{skills,references}` trees with `.cursor/...`.
-    Pre-existing unmanaged-file drift in those trees is consumer acceptance
-    failure (SKILL-004), so the installer repairs it inside the same transaction.
-    Canonical `.agents` is the source of truth.
+    `.agents` remains canonical.  v4.2 does not require every consumer to use
+    Cursor, but if `.cursor/skills` or `.cursor/references` already exists the
+    declared mirror is made byte-identical inside the same transaction.
     """
     count = 0
     for canon_rel, mirror_rel in MIRROR_PAIRS:
         canonical_root = project / canon_rel
         mirror_root = project / mirror_rel
-        if not canonical_root.is_dir():
+        if not canonical_root.is_dir() or not mirror_root.is_dir():
             continue
-        mirror_root.mkdir(parents=True, exist_ok=True)
         canonical = tree_files(canonical_root)
         mirror = tree_files(mirror_root)
         for rel, src in sorted(canonical.items()):
@@ -274,10 +255,8 @@ def restore(project: Path, backup_root: Path, records: dict[str, dict]) -> None:
                 raise RuntimeError(f"ROLLBACK_BACKUP_MISSING: {rel}")
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
-        else:
-            if target.is_file() or target.is_symlink():
-                target.unlink()
-    # Prune only newly-created empty directories under known upgrade roots.
+        elif target.is_file() or target.is_symlink():
+            target.unlink()
     for base in (
         project / ".agents" / "skills",
         project / ".agents" / "references",
@@ -288,11 +267,13 @@ def restore(project: Path, backup_root: Path, records: dict[str, dict]) -> None:
         prune_empty_dirs(base)
 
 
-
 def verify_package_integrity() -> list[str]:
-    sums = PACKAGE / "SHA256SUMS"
+    sums = PACKAGE / SUMS_FILE
+    manifest = PACKAGE / MANIFEST_FILE
     if not sums.is_file():
-        return ["PACKAGE_SHA256SUMS_MISSING"]
+        return [f"PACKAGE_SHA256SUMS_MISSING: {SUMS_FILE}"]
+    if not manifest.is_file():
+        return [f"PACKAGE_MANIFEST_MISSING: {MANIFEST_FILE}"]
     errors: list[str] = []
     seen: set[str] = set()
     for line in sums.read_text(encoding="utf-8").splitlines():
@@ -317,13 +298,31 @@ def verify_package_integrity() -> list[str]:
         actual = sha256(target)
         if actual != digest:
             errors.append(f"PACKAGE_INTEGRITY_MISMATCH: {rel}: expected={digest} actual={actual}")
-    for rel in ("install.py", "rollback.py", ".agents/skills/smc-plan-delivery/SKILL.md", ".agents/skills/smc-roadmap/scripts/validate_roadmap_v11.py"):
+    try:
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+    except Exception as exc:
+        errors.append(f"PACKAGE_MANIFEST_INVALID: {exc}")
+    else:
+        if data.get("package_version") != PACKAGE_VERSION:
+            errors.append(f"PACKAGE_MANIFEST_VERSION_MISMATCH: {data.get('package_version')}")
+        manifest_paths = {str(row.get("path")) for row in data.get("files", []) if isinstance(row, dict)}
+        if manifest_paths != seen:
+            errors.append("PACKAGE_MANIFEST_SUMS_PATHSET_MISMATCH")
+    for rel in (
+        "install_v420.py",
+        "validate_package_v420.py",
+        ".agents/skills/smc-plan-delivery/SKILL.md",
+        ".agents/skills/smc-plan-delivery/scripts/workspace.py",
+        ".agents/skills/smc-plan-delivery/scripts/execution_context.py",
+        ".agents/skills/smc-plan-validator/scripts/validate_plan_v34.py",
+    ):
         if rel not in seen:
             errors.append(f"PACKAGE_SHA256SUMS_REQUIRED_FILE_MISSING: {rel}")
     return errors
 
+
 def preflight(project: Path) -> list[str]:
-    errors: list[str] = verify_package_integrity()
+    errors = verify_package_integrity()
     if not (project / ".agents" / "skills").is_dir():
         errors.append("TARGET_NOT_SMC_REPO: .agents/skills missing")
     for rel in REQUIRED_BASELINE:
@@ -335,47 +334,30 @@ def preflight(project: Path) -> list[str]:
 
 
 def preview(project: Path) -> None:
-    print(f"Package: {PACKAGE.name}")
+    print(f"Package: GES v{PACKAGE_VERSION}")
     print(f"Target : {project}")
     print(f"Overlay files: {len(rel_files(OVERLAY))}")
-    print("Writes:")
-    for rel in rel_files(OVERLAY):
-        print(f"  .agents/skills/{rel}")
-        print(f"  .cursor/skills/{rel}  [mirror]")
-    for rel in rel_files(INTEGRATION):
-        print(f"  {rel}  [project integration]")
-    print("  tools/agent-skills/validate_agent_skills.py  [managed set patch if needed]")
-    print("  .gitignore  [append local .smc state paths if needed]")
-    overlay_names = {p.as_posix() for p in rel_files(OVERLAY)}
-    extra = [
-        (action, dest_rel)
-        for action, dest_rel in planned_mirror_repairs(project)
-        if not (dest_rel.startswith(".cursor/skills/") and dest_rel[len(".cursor/skills/"):] in overlay_names)
-    ]
-    if extra:
-        print("Additional declared full-tree mirror repairs (canonical .agents -> .cursor):")
-        for action, dest_rel in extra:
-            print(f"  {action:6} {dest_rel}")
-    else:
-        print("No extra full-tree mirror repairs beyond overlay copies.")
+    declared = [mirror for _, mirror in MIRROR_PAIRS if (project / mirror).is_dir()]
+    print("Declared mirrors:", ", ".join(declared) if declared else "none")
+    print("No stash/reset/clean and no git commit will be performed.")
 
 
 def validation_commands(project: Path, skip_project_validator: bool) -> list[tuple[str, list[str]]]:
     commands = [
         ("delivery self-test", [sys.executable, str(project / ".agents/skills/smc-plan-delivery/scripts/run_selftest.py")]),
-        ("roadmap v1.1 self-test", [sys.executable, str(project / ".agents/skills/smc-roadmap/scripts/test_roadmap_v11.py"), "-q"]),
+        ("roadmap v1.2 self-test", [sys.executable, str(project / ".agents/skills/smc-roadmap/scripts/test_roadmap_v11.py"), "-q"]),
     ]
     project_validator = project / "tools" / "agent-skills" / "validate_agent_skills.py"
     if project_validator.is_file() and not skip_project_validator:
-        commands.append(("project skill validator", [sys.executable, str(project_validator)]))
+        commands.append(("consumer project validator", [sys.executable, str(project_validator)]))
     return commands
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("project", nargs="?", default=".", type=Path)
-    ap.add_argument("--apply", action="store_true", help="apply the overlay; default is dry-run")
-    ap.add_argument("--skip-project-validator", action="store_true", help="installer smoke/test escape hatch; production should not use")
+    ap.add_argument("--apply", action="store_true", help="apply; default is dry-run")
+    ap.add_argument("--skip-project-validator", action="store_true", help="diagnostic/smoke only; production acceptance should not use")
     args = ap.parse_args()
     project = args.project.resolve()
     errors = preflight(project)
@@ -395,8 +377,8 @@ def main() -> int:
         overlay_count = copy_overlay(project, backup_root, records)
         integration_count = copy_integration(project, backup_root, records)
         patched = patch_governed_skills(project, backup_root, records)
+        mirror_repairs = sync_declared_mirrors(project, backup_root, records)
         ignored = update_gitignore(project, backup_root, records)
-        mirrored = sync_declared_mirrors(project, backup_root, records)
         manifest = write_transaction_manifest(project, backup_root, records, "VALIDATING")
     except Exception as exc:
         try:
@@ -414,7 +396,7 @@ def main() -> int:
             print(f"INSTALL_VALIDATION_FAILED: {label}; automatic rollback starting", file=sys.stderr)
             try:
                 restore(project, backup_root, records)
-                manifest = write_transaction_manifest(project, backup_root, records, f"ROLLED_BACK_AFTER_{label.replace(' ', '_').upper()}")
+                write_transaction_manifest(project, backup_root, records, f"ROLLED_BACK_AFTER_{label.replace(' ', '_').upper()}")
                 print(f"ROLLBACK PASS — original project files restored. Transaction retained at {backup_root}", file=sys.stderr)
             except Exception as exc:
                 write_transaction_manifest(project, backup_root, records, "ROLLBACK_FAILED")
@@ -426,8 +408,8 @@ def main() -> int:
     print(f"Overlay source files : {overlay_count}")
     print(f"Integration files    : {integration_count}")
     print(f"Governed set patched : {patched}")
+    print(f"Mirror repairs       : {mirror_repairs}")
     print(f".gitignore updated   : {ignored}")
-    print(f"Mirror repairs       : {mirrored}")
     print(f"Backup transaction   : {backup_root}")
     print(f"Transaction manifest : {manifest}")
     print("No git commit was created.")
