@@ -98,6 +98,11 @@ GES 必须按两层维护：
 12. **Single Writer / ownership-aware slicing 不得被并行执行破坏**。
 13. 不得新增第二个与 `smc-plan-delivery` 并列的 production delivery owner。
 14. 不得以 `--skip-*`、`--no-*` 选项作为生产成功路径；诊断逃生口不能成为验收策略。
+15. **Blocking Failure Integrity**：已知 blocking AC/Claim 的真实 FAIL 不得被降级为 observation/note/manual attestation 后继续 DONE；改变 blocking 语义必须回到 PRD。
+16. **Acceptance Scenario Binding**：LIVE/FAULT/EXTERNAL proof 必须在 Plan 中预先绑定 Scenario、Subject/Fixture、Stimulus、Oracle；Execute 阶段不得进行 Tool/Fixture capability discovery 或自行替换。
+17. **Evidence Inheritance**：前序 delivery 已证明且未被当前变更影响的 Claim 默认复用；重复执行必须有明确 invalidation / residual gap。
+18. **Live Environment Preflight**：fixture、credential、fault driver、external dependency 或 candidate provenance 未就绪时不得启动 live verification；环境缺失是 PRECHECK BLOCKED，不是产品 FAIL。
+19. **Verification Candidate Provenance**：live proof 必须证明被测 SUT 对应当前 Plan-owned candidate content；禁止“修了 A、部署/测试 B”。该规则不得破坏 `post_review` commit policy。
 
 改变上述任一规则均属于 **MAJOR governance change**。
 

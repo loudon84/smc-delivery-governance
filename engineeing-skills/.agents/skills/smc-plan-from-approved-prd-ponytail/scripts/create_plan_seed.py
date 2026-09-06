@@ -112,6 +112,10 @@ def render(prd:Path,out:Path,meta:dict[str,str],pid:str,chs,reqs)->str:
         ledger.append(f"| {t} | {c} | `<GROUND>` | - | - | no |")
         todos.append(f"## Todo {t} — {cap}\n\n**Owns Changes**\n- {c}\n\n**Goal**\n<DECIDE>\n\n**Immediate anchors**\n- `<GROUND>`\n\n**Changes**\n- <DECIDE>\n\n**Stop conditions**\n- [ ] <VERIFY>\n\n**Triggered reads**\n- None unless a listed trigger becomes true")
     coverage=[f"| {rid} | {src} | {ob} | <CLASSIFY> | - | - | <VERIFY> | <EVIDENCE_CLASS> | yes |" for rid,src,ob in reqs]
+    claims=[
+        f"| CLM-{i:02d} | {rid} | {ob} | yes | <GROUND_PRIOR_EVIDENCE> | UNKNOWN | <DECIDE_EVIDENCE_ACTION> | <DECIDE> | <VERIFY> |"
+        for i,(rid,_,ob) in enumerate(reqs,1)
+    ]
     return f'''---
 name: {title}
 overview: SMC governed implementation plan for {title}
@@ -121,6 +125,7 @@ isProject: false
 plan_contract: smc.plan.v3.4
 plan_id: {pid}
 commit_policy: post_review
+acceptance_contract: smc.acceptance.v1
 source_revision: {source}
 grounded_commit: {grounded}
 grounding_source: committed_baseline
@@ -163,11 +168,29 @@ working_tree_fingerprint: clean
 |---|---|---|---|---|---|---|---|---|---|
 | <DECIDE> | <DECIDE> | <GROUND> | <GROUND> | <GROUND> | <GROUND> | <GROUND> | <GROUND> | <GROUND> | <VERIFY> |
 
+## Acceptance Claim Ledger
+
+| Claim ID | Requirement | Observable Fact | Blocking | Prior Evidence | Prior Result | Evidence Action | Invalidation Reason | Verification IDs |
+|---|---|---|---|---|---|---|---|---|
+{chr(10).join(claims)}
+
+## Live Scenario Matrix
+
+| Scenario ID | Claim IDs | Verification IDs | Subject / Fixture | Required Capabilities | Preconditions | Stimulus | Oracle | Environment ID |
+|---|---|---|---|---|---|---|---|---|
+| <DECIDE> | <DECIDE> | <VERIFY> | <DECIDE> | <DECIDE> | <DECIDE> | <DECIDE> | <VERIFY> | <ENVIRONMENT> |
+
+## Live Environment Matrix
+
+| Environment ID | Required Env Vars | Preflight Command | Fault Driver Env | Candidate Mode | Candidate Probe |
+|---|---|---|---|---|---|
+| <ENVIRONMENT> | <DECIDE> | <VERIFY> | <DECIDE> | <DECIDE> | <DECIDE> |
+
 ## Verification Ledger
 
-| Verification ID | Level | Entry Point / Command | Oracle | Negative / Regression | Evidence Policy | Environment | Blocking |
-|---|---|---|---|---|---|---|---|
-| V01 | <VERIFY_LEVEL> | <VERIFY> | <VERIFY> | <VERIFY> | LOCAL_TRANSIENT | <ENVIRONMENT> | yes |
+| Verification ID | Claim IDs | Level | Acceptance Mode | Entry Point / Command | Oracle | Negative / Regression | Evidence Policy | Environment | Evidence Action | Blocking |
+|---|---|---|---|---|---|---|---|---|---|---|
+| V01 | <DECIDE> | <VERIFY_LEVEL> | <ACCEPTANCE_MODE> | <VERIFY> | <VERIFY> | <VERIFY> | LOCAL_TRANSIENT | <ENVIRONMENT> | <DECIDE_EVIDENCE_ACTION> | yes |
 
 ## Immediate Read
 

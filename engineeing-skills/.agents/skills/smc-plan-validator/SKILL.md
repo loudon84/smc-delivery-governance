@@ -60,7 +60,12 @@ PLAN_CURSOR_TODO_STATE_INVALID
 - Lifecycle / Contract / Data Flow closure；
 - Blocking Verification / Evidence Policy；
 - unique `plan_id` / single canonical Plan；
-- `commit_policy: post_review`。
+- `commit_policy: post_review`；
+- `smc.acceptance.v1` Acceptance Claim / Scenario / Environment binding；
+- blocking prior FAIL 不得 `REUSE_EVIDENCE`；
+- LIVE/FAULT/EXTERNAL 每个 Verification 必须绑定唯一 Scenario；
+- FAULT_INJECTION 必须声明 fault driver；
+- live candidate provenance mode/probe 完整。
 
 ## Compatibility
 
