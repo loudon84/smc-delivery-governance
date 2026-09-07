@@ -1,0 +1,28 @@
+{
+  "schema": "smc.ges.consumer-profile.v2",
+  "id": "smc-copilot-work",
+  "version": "1.0.0",
+  "mirror_policy": "managed-set",
+  "domains": {
+    "frontend": {
+      "activation": "auto"
+    }
+  },
+  "required_paths": [
+    ".agents/skills",
+    ".agents/skills/code-review-and-quality/SKILL.md",
+    "package.json"
+  ],
+  "project_validator": "python tools/agent-skills/validate_agent_skills.py",
+  "quality_commands": {
+    "lint": "npm run lint",
+    "typecheck": "npm run typecheck",
+    "unit": "npm test",
+    "build": "npm run build",
+    "visual": "npm run test:live-visual",
+    "knowledge": "npx lat check"
+  },
+  "consumer_skills": {
+    "preserve": ["electron-pro", "typescript-expert", "lat-md", "hermes-agent"]
+  }
+}

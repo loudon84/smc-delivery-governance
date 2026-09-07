@@ -1,0 +1,9 @@
+{
+  "schema": "smc.ges.domain-registry.v1",
+  "packs": {
+    "frontend": {
+      "path": "frontend/pack.json",
+      "status": "stable"
+    }
+  }
+}

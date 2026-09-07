@@ -1,10 +1,10 @@
 ---
 name: smc-plan-delivery
-description: SMC canonical Plan 后半程唯一交付编排器。v1.1 增加 Plan-Scoped Delivery Workspace 与 Persistent Execution Context；执行 Static -> Semantic -> Scoped Execution -> Completion Audit -> Implementation Review -> Verification -> Evidence Freshness -> post_review scoped Commit -> Roadmap Update。
-version: 1.1.0
+description: SMC canonical Plan 后半程唯一交付编排器。v1.2 在 v1.1 scoped workspace/context 基础上增加 Generic Domain Provider hooks；Domain Pack 只在 engineering/review/verification 阶段扩展能力，不拥有 Delivery state。
+version: 1.2.0
 ---
 
-# SMC Plan Delivery v1.1
+# SMC Plan Delivery v1.2
 
 ## Role
 
@@ -57,6 +57,31 @@ Canonical Plan -> smc-plan-delivery
 6. [`references/completion-audit-contract.md`](references/completion-audit-contract.md)
 7. [`references/recovery-contract.md`](references/recovery-contract.md)
 8. [`references/acceptance-governance-contract.md`](references/acceptance-governance-contract.md)
+
+## Domain Pack Extension Contract (v1.2)
+
+对 `smc.plan.v3.5`，在任何 implementation write 前必须验证 Domain policy binding：
+
+```bash
+python .agents/skills/smc-plan-delivery/scripts/domain_hooks.py validate "$PLAN_PATH"
+python .agents/skills/smc-plan-delivery/scripts/domain_hooks.py assert-policy "$PLAN_PATH"
+```
+
+各阶段只通过通用 provider 查询扩展，不得在 Delivery Core 中写具体 domain 分支：
+
+```bash
+python .agents/skills/smc-plan-delivery/scripts/domain_hooks.py providers "$PLAN_PATH" --phase engineering
+python .agents/skills/smc-plan-delivery/scripts/domain_hooks.py providers "$PLAN_PATH" --phase review
+python .agents/skills/smc-plan-delivery/scripts/domain_hooks.py providers "$PLAN_PATH" --phase verification
+```
+
+规则：
+
+- engineering provider 作为当前 Todo implementation 的专业约束上下文；
+- review provider 的 findings 由 canonical `code-review-and-quality` 汇总；
+- verification provider 只提供项目级验证入口/oracle，真实 evidence/freshness 仍由 Delivery evidence layer 持有；
+- Domain Pack 不写 Plan/Delivery/Commit/Roadmap canonical state；
+- 多 Domain 可同时激活，但 Single Writer / scope fingerprint / post_review 不变。
 
 # Input Binding
 

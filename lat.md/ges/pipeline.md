@@ -30,6 +30,10 @@ Architecture
        Roadmap Update
 ```
 
+对于 `smc.plan.v3.5`，`smc-plan-delivery` 在既有阶段边界通过 Generic Domain hooks 动态查询 provider：engineering 在 Scoped Execution，review 在 Implementation Review，verification 在 Verification。Domain provider 不增加 pipeline state，也不获得 artifact ownership。
+
+激活由 `Consumer Profile + Change Matrix + pack policy` 决定；Core pipeline 不出现具体 domain id 分支。见 [[domain-packs]]。
+
 `executing-plans` 与 `subagent-driven-development` 只实施 Todo。`post_review` 是 commit policy，不是 workflow executor。`workflow-runner` 不参与本流水线。
 
 ## Artifact Routing

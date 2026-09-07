@@ -1,0 +1,14 @@
+{
+  "schema": "smc.ges.consumer-profile.v2",
+  "id": "nodeskclaw",
+  "version": "2.0.0",
+  "mirror_policy": "full-tree",
+  "domains": {},
+  "required_paths": [
+    ".agents/skills",
+    ".agents/skills/code-review-and-quality/SKILL.md",
+    "tools/agent-skills/validate_agent_skills.py"
+  ],
+  "project_validator": "python tools/agent-skills/validate_agent_skills.py",
+  "quality_commands": {}
+}

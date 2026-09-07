@@ -17,10 +17,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-# GES v4.2.0 compatibility dispatch.  Keep the accepted v4.1.2 entrypoint
-# as a stable path while the v4.2 implementation is versioned explicitly.
+# Stable dispatcher. Prefer the newest installed bundle while retaining the
+# versioned v4.2 entrypoint for explicit compatibility diagnostics.
 # @lat: [[install#Stable Entrypoint]]
+_GES_V430 = Path(__file__).resolve().with_name("install_v430.py")
 _GES_V420 = Path(__file__).resolve().with_name("install_v420.py")
+if __name__ == "__main__" and _GES_V430.is_file() and os.environ.get("GES_V430_NO_DISPATCH") != "1":
+    os.environ.setdefault("PYTHONUTF8", "1")
+    raise SystemExit(subprocess.call([sys.executable, str(_GES_V430), *sys.argv[1:]]))
 if __name__ == "__main__" and _GES_V420.is_file() and os.environ.get("GES_V420_NO_DISPATCH") != "1":
     # Windows Python may default to a locale codec such as GBK.  GES plan and
     # test fixtures are UTF-8; child validation processes must inherit UTF-8 mode.

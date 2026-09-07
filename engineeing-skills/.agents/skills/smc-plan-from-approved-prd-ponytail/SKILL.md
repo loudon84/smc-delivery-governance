@@ -1,17 +1,19 @@
 ---
 name: smc-plan-from-approved-prd-ponytail
-description: 将 APPROVED SMC PRD 转换为唯一 canonical Cursor Plan；保留 Ponytail minimality、Change ID、single writer、lifecycle/data-flow closure，并生成 smc.plan.v3.4 的 Cursor todo metadata 与 Evidence Policy。支持 CREATE/REVISE/AUDIT_SKILL/DIAGNOSE_PLAN。
-version: 3.5.0
+description: 将 APPROVED SMC PRD 转换为唯一 canonical Cursor Plan；v3.6 生成 smc.plan.v3.5，并通过 Consumer Profile + Change Matrix 绑定 Generic Domain Pack Activation；Domain Pack 只扩展专业能力，不成为第二 workflow owner。
+version: 3.6.0
 disable-model-invocation: true
 ---
 
-# SMC Plan From Approved PRD — Ponytail v3.5
+# SMC Plan From Approved PRD — Ponytail v3.6
 
 ## Purpose
 
 把 **APPROVED PRD** 转换为一个且仅一个可执行 canonical Cursor `.plan.md`。
 
-v3.5 不改变既有 Ponytail 核心：
+v3.6 新增 `smc.plan.v3.5` Domain Activation Ledger。Plan author 通过通用 Domain Runtime 解析 Consumer Profile + Change Matrix；禁止在本 Skill 中硬编码 frontend/backend/electron/mobile/data 分支。
+
+v3.6 不改变既有 Ponytail 核心：
 
 - 先理解真实调用流，再选最小正确实现；
 - Change ID 稳定；
@@ -41,6 +43,8 @@ v3.5 在既有四个交付合同上增加 Cursor Projection Contract：
 并以本升级包的：
 
 - [`references/plan-contract-v3.md`](references/plan-contract-v3.md)
+- [`references/plan-contract-v35.md`](references/plan-contract-v35.md)
+- [`references/plan-template-v35.md`](references/plan-template-v35.md)
 - [`references/plan-template.md`](references/plan-template.md)
 
 作为当前 contract/template。

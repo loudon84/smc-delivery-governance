@@ -73,7 +73,7 @@ None
 ## Live Environment Matrix
 | Environment ID | Required Env Vars | Preflight Command | Fault Driver Env | Candidate Mode | Candidate Probe |
 |---|---|---|---|---|---|
-| ENV-01 | TEST_TOKEN | - | - | ENV_TOKEN | DEPLOYED_CANDIDATE |
+| ENV-01 | TEST_TOKEN | `python -c "print('ok')"` | - | ENV_TOKEN | DEPLOYED_CANDIDATE |
 
 ## Verification Ledger
 | Verification ID | Claim IDs | Level | Acceptance Mode | Entry Point / Command | Oracle | Negative / Regression | Evidence Policy | Environment | Evidence Action | Blocking |

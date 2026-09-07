@@ -146,3 +146,40 @@ Core package
 ```
 
 并保持 v4.1.x NodeSkClaw profile 行为向后兼容。
+
+## 10. Consumer Profile v2 / Domain Packs
+
+GES v4.3 使用 `smc.ges.consumer-profile.v2`。Profile 除 mirror / validator / quality command 外，还声明项目**可使用**的 Domain Pack：
+
+```json
+{
+  "schema": "smc.ges.consumer-profile.v2",
+  "id": "example",
+  "version": "1.0.0",
+  "domains": {
+    "some-domain": {"activation": "auto"}
+  }
+}
+```
+
+`activation=auto` 不代表所有任务都运行该 Domain。最终 required set 由：
+
+```text
+Consumer Profile
++ canonical Plan Change Matrix
++ pack activation policy
+= Effective Domain Set
+```
+
+决定。
+
+Generic installer 读取 `core/manifest.json` 与 pack capabilities，只安装 Core managed skills + profile-selected Domain provider skills。Project-local skills 必须保留。
+
+Mirror policy：
+
+- `none`
+- `declared-managed-set`
+- `managed-set`
+- `full-tree`
+
+Domain metadata/runtime 安装到 `.agents/ges/`，不成为第二 `.plan.md` 或第二 evidence SOT。

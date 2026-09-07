@@ -213,3 +213,31 @@ CONSUMER_INTEGRATION_VALIDATION
 7. consumer project local documentation
 
 consumer 文档不得覆盖 Core Frozen Invariants。
+
+## 11. Domain Pack Extension Framework
+
+GES v4.3 起允许以 `smc.ges.domain-pack.v1` 扩展专业工程能力，但 Domain Pack **不是新 workflow**。
+
+三个架构决策：
+
+1. Domain Pack 只能提供 engineering / review / verification provider，不获得 Plan、Delivery、Commit、Roadmap canonical ownership；
+2. Consumer Profile 声明项目可用 Domain，当前 canonical Plan 的 Change Matrix 决定实际激活集合；
+3. Core runtime 只认识 Domain Contract/Registry，不得硬编码具体 domain id 或 framework 分支。新增 Domain 必须能够只通过 pack metadata + provider skills + tests 接入。
+
+Domain activation 是集合而不是单值，同一 Plan 可以同时激活多个 Domain；这不改变 Single Writer、scope fingerprint、evidence freshness 或 `post_review`。
+
+### 11.1 Domain Policy Reproducibility
+
+生产 blocking policy 必须随 pack/version 被 pin。运行时从网络拉取“最新规则”不得直接成为 blocking governance authority。
+
+Plan v3.5 通过 `domain_policy_digest` 绑定 Consumer Profile + pack manifest + activation policy + policy lock。绑定变化必须返回 `DOMAIN_POLICY_STALE` 并 fail closed。
+
+### 11.2 Extension Ownership
+
+Domain provider 的输出必须回到现有 canonical owner：
+
+- engineering guidance -> Todo implementation owner；
+- domain review findings -> `code-review-and-quality` final verdict；
+- verification adapter/oracle -> `smc-plan-delivery` evidence/acceptance layer。
+
+任何 Domain Pack 尝试声明第二 Plan/Delivery/Commit/Roadmap SOT 都属于 contract violation。

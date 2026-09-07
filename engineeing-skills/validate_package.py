@@ -10,9 +10,13 @@ import sys
 import tempfile
 from pathlib import Path
 
-# GES v4.2.0 compatibility dispatch.  Keep the accepted v4.1.2 entrypoint
-# as a stable path while the v4.2 implementation is versioned explicitly.
+# Stable dispatcher. Prefer v4.3 Domain Pack validation while keeping v4.2
+# available for explicit compatibility diagnostics.
+_GES_V430 = Path(__file__).resolve().with_name("validate_package_v430.py")
 _GES_V420 = Path(__file__).resolve().with_name("validate_package_v420.py")
+if __name__ == "__main__" and _GES_V430.is_file() and os.environ.get("GES_V430_NO_DISPATCH") != "1":
+    os.environ.setdefault("PYTHONUTF8", "1")
+    raise SystemExit(subprocess.call([sys.executable, str(_GES_V430), *sys.argv[1:]]))
 if __name__ == "__main__" and _GES_V420.is_file() and os.environ.get("GES_V420_NO_DISPATCH") != "1":
     # Keep validation deterministic across Windows locale/code-page settings.
     # All GES source, Plan fixtures and generated metadata are UTF-8.

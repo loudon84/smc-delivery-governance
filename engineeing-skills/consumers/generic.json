@@ -1,0 +1,9 @@
+{
+  "schema": "smc.ges.consumer-profile.v2",
+  "id": "generic",
+  "version": "1.0.0",
+  "mirror_policy": "declared-managed-set",
+  "domains": {},
+  "required_paths": [".agents/skills"],
+  "quality_commands": {}
+}

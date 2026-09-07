@@ -1,11 +1,11 @@
 ---
 name: smc-plan-validator
-description: 对 SMC Plan 做确定性静态 Gate。v1.4 新增 smc.plan.v3.4 Cursor Projection Contract（todos id/content/status）并保留 v3.3/v3.2 兼容；PASS 只表示 PLAN_STATIC_VALID。
-version: 1.4.0
+description: 对 SMC Plan 做确定性静态 Gate。v1.5 新增 smc.plan.v3.5 Domain Pack binding/extension validation；Core 只调用 Domain Contract 与 pack-declared validator，不硬编码具体 domain。
+version: 1.5.0
 disable-model-invocation: true
 ---
 
-# SMC Plan Validator v1.4
+# SMC Plan Validator v1.5
 
 ## Role
 
@@ -14,6 +14,14 @@ PASS = PLAN_STATIC_VALID
 PASS != IMPLEMENTATION_COMPLETE
 PASS != IMPLEMENTED_AND_PROVEN
 ```
+
+## Current v3.5 Usage
+
+```bash
+python .agents/skills/smc-plan-validator/scripts/validate_plan_v35.py .cursor/plans/<feature>.plan.md
+```
+
+v3.5 = v3.4 structural/acceptance gates + deterministic Domain Activation binding + dynamically declared Domain Plan extension validator. A Domain policy digest mismatch is `DOMAIN_POLICY_STALE` and fails closed.
 
 ## Current v3.4 Usage
 

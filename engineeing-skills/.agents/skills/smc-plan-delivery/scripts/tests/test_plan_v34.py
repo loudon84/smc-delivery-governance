@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
@@ -121,7 +122,13 @@ grounded_commit: abcdef
 ''', encoding="utf-8")
         out = self.root / ".cursor/plans/rm-02.plan.md"
         script = HERE.parents[1] / "smc-plan-from-approved-prd-ponytail" / "scripts" / "create_plan_seed.py"
-        result = subprocess.run([sys.executable, str(script), str(prd), str(out), "--plan-id", "RM-02"], capture_output=True, text=True)
+        env = {**os.environ, "GES_PLAN_V34_COMPAT": "1"}
+        result = subprocess.run(
+            [sys.executable, str(script), str(prd), str(out), "--plan-id", "RM-02"],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         text = out.read_text()
         self.assertIn("plan_contract: smc.plan.v3.4", text)

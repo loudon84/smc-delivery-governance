@@ -10,6 +10,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+# v4.3 stable seed entrypoint: direct invocation emits Plan v3.5.  Compatibility
+# wrappers import this module (rather than execute it as __main__) and therefore
+# retain the v3.4 implementation below for historical Plan migration/tests.
+_V35 = Path(__file__).resolve().with_name("create_plan_seed_v35.py")
+if __name__ == "__main__" and _V35.is_file() and os.environ.get("GES_PLAN_V34_COMPAT") != "1":
+    raise SystemExit(subprocess.call([sys.executable, str(_V35), *sys.argv[1:]]))
+
 ACTIONS={"KEEP","MODIFY","ADD","REPLACE","REMOVE"}
 
 

@@ -1,0 +1,26 @@
+{
+  "schema": "smc.ges.core-manifest.v1",
+  "bundle": "4.3.0",
+  "managed_skills": [
+    "smc-architecture-decision",
+    "smc-architecture-review",
+    "smc-roadmap",
+    "smc-prd-grounding",
+    "smc-prd-review",
+    "smc-prd-converge",
+    "smc-plan-from-approved-prd-ponytail",
+    "smc-plan-validator",
+    "smc-plan-review",
+    "smc-plan-delivery",
+    "executing-plans",
+    "subagent-driven-development",
+    "using-superpowers"
+  ],
+  "consumer_required_skills": [
+    "code-review-and-quality",
+    "verification-before-completion"
+  ],
+  "domain_contract": "smc.ges.domain-pack.v1",
+  "domain_activation_contract": "smc.ges.domain-activation.v1",
+  "consumer_profile_contract": "smc.ges.consumer-profile.v2"
+}
