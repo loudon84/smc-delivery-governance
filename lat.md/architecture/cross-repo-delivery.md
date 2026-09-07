@@ -21,8 +21,8 @@ Contract Candidate
         ↓
 ┌─────────────────────┬─────────────────────┐
 │ Provider Repository │ Consumer Repository │
-│ contract release    │ local PRD           │
-│ conformance         │ Plan                │
+│ contract release    │ local PRD (GES)     │
+│ conformance         │ Plan / Delivery     │
 │                     │ Dark Execute        │
 └─────────────────────┴─────────────────────┘
         ↓
@@ -38,6 +38,8 @@ Immutable IntegrationRun
         ↓
 Feature DONE
 ```
+
+Consumer 仓内的 Stage PRD / Canonical Plan / Plan Delivery 由 [[ges]] 约束；中央只接收 Receipt 与 Attestation，不执行该流水线。
 
 ## Global Change ID
 

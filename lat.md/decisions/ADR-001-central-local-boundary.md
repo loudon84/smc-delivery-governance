@@ -6,6 +6,6 @@
 
 中央拥有 Feature、Global Architecture、Global Roadmap、Contract Lifecycle、Repo Work Package、Integration Gate、IntegrationRun、Evidence Index、Governance Kit identity、Lifecycle Audit。
 
-项目拥有 Local LAT、Stage PRD、Implementation Plan、Code、Tests、Release，以及 Acceptance 的本地执行。
+项目拥有 Local LAT、Stage PRD、Implementation Plan、Code、Tests、Release，以及 Acceptance 的本地执行。本地 Architecture → Plan Delivery 工作流由 [[ges]] 约束，不改变中央 Interface 归属。
 
 对象与归属表见 [[architecture/governance#Production Ownership]]。

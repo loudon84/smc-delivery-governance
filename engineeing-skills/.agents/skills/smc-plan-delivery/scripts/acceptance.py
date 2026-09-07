@@ -171,6 +171,7 @@ def _header_errors(header: list[str], expected: tuple[str, ...], section_name: s
 
 
 def validate_contract(plan: Path) -> list[dict[str, str]]:
+    # @lat: [[acceptance#Five Gates]]
     """Deterministic acceptance-structure validation.
 
     Semantic suitability (e.g. whether a fixture truly invokes a tool) stays

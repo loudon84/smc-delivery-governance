@@ -245,6 +245,7 @@ def write_transaction_manifest(project: Path, backup_root: Path, records: dict[s
     return path
 
 
+# @lat: [[install#Transactional Overlay]]
 def restore(project: Path, backup_root: Path, records: dict[str, dict]) -> None:
     for rel in reversed(sorted(records)):
         rec = records[rel]
@@ -322,6 +323,7 @@ def verify_package_integrity() -> list[str]:
 
 
 def preflight(project: Path) -> list[str]:
+    # @lat: [[install#Consumer Integration]]
     errors = verify_package_integrity()
     if not (project / ".agents" / "skills").is_dir():
         errors.append("TARGET_NOT_SMC_REPO: .agents/skills missing")

@@ -27,6 +27,7 @@ def latest_backup(project: Path) -> Path | None:
 
 
 def main() -> int:
+    # @lat: [[install#Rollback]]
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("project", nargs="?", default=".", type=Path)
     ap.add_argument("--backup", type=Path, help="specific backup transaction; default latest")

@@ -9,3 +9,5 @@
 - [[project-onboarding]] — 项目注册、Bootstrap、Sync/Enforce
 - [[delivery-traceability]] — Source PRD 到 IntegrationRun 的可追踪链
 - [[acceptance-evidence]] — Stage PRD 验收证据与中央 Attestation Gate
+
+项目仓内的 GES 工作流见 [[ges]]，它不替代本目录描述的中央 Gate。

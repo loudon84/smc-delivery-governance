@@ -19,12 +19,16 @@ from pathlib import Path
 
 # GES v4.2.0 compatibility dispatch.  Keep the accepted v4.1.2 entrypoint
 # as a stable path while the v4.2 implementation is versioned explicitly.
+# @lat: [[install#Stable Entrypoint]]
 _GES_V420 = Path(__file__).resolve().with_name("install_v420.py")
 if __name__ == "__main__" and _GES_V420.is_file() and os.environ.get("GES_V420_NO_DISPATCH") != "1":
     # Windows Python may default to a locale codec such as GBK.  GES plan and
     # test fixtures are UTF-8; child validation processes must inherit UTF-8 mode.
     os.environ.setdefault("PYTHONUTF8", "1")
-    os.execv(sys.executable, [sys.executable, str(_GES_V420), *sys.argv[1:]])
+    # Do not use os.execv here.  On Windows it does not overlay the console
+    # process, so PowerShell redisplays the prompt while install_v420.py is
+    # still running and the install looks hung with no progress.
+    raise SystemExit(subprocess.call([sys.executable, str(_GES_V420), *sys.argv[1:]]))
 
 PACKAGE = Path(__file__).resolve().parent
 OVERLAY = PACKAGE / ".agents" / "skills"

@@ -34,6 +34,8 @@ OUT_OF_SYNC
 
 生产安装必须来自已验证的 canonical Kit Bundle。source-tree / unsigned HEAD 仅用于开发，且必须显式允许。Binding 与 lock 必须 pin `version / tag / commit / manifest_sha256`。
 
+GES Skills overlay 是另一份工程工作流发布物，不写入 Binding pin，也不能替代 Kit。安装语义见 [[install]]。
+
 ## Required Local Interface
 
 中央不读取项目私有实现源码来推断状态。项目通过标准 Receipt 汇报事实，通过 CI artifact 提供可验证 Acceptance。

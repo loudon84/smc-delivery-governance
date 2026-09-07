@@ -6,7 +6,7 @@
 
 ## Principle
 
-中央信任的是 GitHub Actions Attestation 与 digest 对齐，而不是 Receipt 里的 `acceptance.status`。没有中央 Attestation 的自称 PASS 不能把 Consumer Work Package 推到 VERIFIED。
+中央信任的是 GitHub Actions Attestation 与 digest 对齐，而不是 Receipt 里的 `acceptance.status`。没有中央 Attestation 的自称 PASS 不能把 Consumer Work Package 推到 VERIFIED。项目仓内 LIVE 验收门禁见 [[acceptance]]，它只约束本地 proof，不替代本 Gate。
 
 ## Chain
 

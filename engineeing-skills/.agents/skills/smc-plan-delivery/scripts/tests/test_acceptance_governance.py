@@ -164,9 +164,11 @@ class AcceptanceGovernanceTest(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_contract_accepts_targeted_rerun(self):
+        # @lat: [[ges-tests#GES Tests#Acceptance#Contract accepts targeted rerun]]
         self.assertEqual([], acceptance.validate_contract(self.plan))
 
     def test_blocking_prior_failure_cannot_be_reused(self):
+        # @lat: [[ges-tests#GES Tests#Acceptance#Blocking prior failure cannot be reused]]
         text = self.plan.read_text(encoding="utf-8")
         text = text.replace(
             "| CLM-01 | AC-01 | runtime approval returns accepted | yes | RM-15/V13 | FAIL | TARGETED_RERUN | approval bearer changed | V01 |",
@@ -178,6 +180,7 @@ class AcceptanceGovernanceTest(unittest.TestCase):
         self.assertIn("PLAN_BLOCKING_FAILURE_REUSE_FORBIDDEN", codes)
 
     def test_live_preflight_blocks_missing_environment_before_execution(self):
+        # @lat: [[ges-tests#GES Tests#Acceptance#Missing environment is precheck blocked]]
         acceptance.capture_candidate(self.plan)
         result = acceptance.preflight_verification(self.plan, "V01")
         self.assertFalse(result["pass"])
@@ -185,6 +188,7 @@ class AcceptanceGovernanceTest(unittest.TestCase):
         self.assertIn("TEST_TOKEN", result["missing_env"])
 
     def test_live_preflight_rejects_deployed_candidate_mismatch(self):
+        # @lat: [[ges-tests#GES Tests#Acceptance#Candidate mismatch is LIVE_SUT_MISMATCH]]
         candidate = acceptance.capture_candidate(self.plan)
         with mock.patch.dict(
             os.environ,
@@ -197,6 +201,7 @@ class AcceptanceGovernanceTest(unittest.TestCase):
         self.assertEqual(candidate["candidate_id"], result["expected_candidate_id"])
 
     def test_live_preflight_accepts_matching_candidate(self):
+        # @lat: [[ges-tests#GES Tests#Acceptance#Matching candidate passes preflight]]
         candidate = acceptance.capture_candidate(self.plan)
         with mock.patch.dict(
             os.environ,

@@ -2,9 +2,10 @@
 
 本目录是中央治理仓库的架构意图事实源。它只描述跨仓库交付控制面的 Why、领域模型、边界、状态机和治理决策，不复述项目源码。
 
-当前意图版本：**Closed Loop v1 / Governance Kit v1.2.1**。
+当前意图版本：**Closed Loop v1 / Governance Kit v1.2.1**；本地工程工作流见 **GES Bundle 4.2.0 候选 / 已接受基线 4.1.2**。
 
 - [[architecture]] — 中央控制面领域模型、交付闭环、合同生命周期与证据链
+- [[ges]] — 项目仓内 Architecture → Plan Delivery 的 GES 工作流
 - [[decisions]] — 已批准的架构决策（中央/本地边界、状态机、证据合同）
 - [[domain]] — Feature、Work Package、Contract、Receipt 与状态机等核心概念
 - [[tests]] — 治理工具、证据合同与测试隔离的规格

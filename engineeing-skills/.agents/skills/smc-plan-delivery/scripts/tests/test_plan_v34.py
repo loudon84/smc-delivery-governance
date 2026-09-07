@@ -66,11 +66,13 @@ class PlanV34Test(unittest.TestCase):
     def tearDown(self): self.tmp.cleanup()
 
     def test_v33_missing_content_is_warning_not_error(self):
+        # @lat: [[ges-tests#GES Tests#Plan contract#v3.3 missing content is warning]]
         self.assertEqual([], plan_state.validate(self.plan))
         warnings = plan_state.legacy_content_warnings(self.plan)
         self.assertEqual(["PLAN_CURSOR_TODO_CONTENT_LEGACY_WARNING: T1"], warnings)
 
     def test_sync_content_backfills_without_status_change(self):
+        # @lat: [[ges-tests#GES Tests#Plan contract#sync-content backfills without status change]]
         before = common.semantic_plan_sha256(self.plan)
         changed = plan_state.sync_content(self.plan)
         self.assertEqual(1, changed)

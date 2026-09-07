@@ -71,6 +71,7 @@ def _freshness(plan: Path, rec: dict) -> bool:
 
 
 def current_status(plan: Path, vid: str, expected_command: str | None = None) -> tuple[str, dict | None]:
+    # @lat: [[plan-delivery#Evidence Freshness]]
     root = find_repo_root(plan); pid = plan_id(plan)
     records = [r for r in read_jsonl(ledger_path(root, pid)) if r.get("verification_id") == vid]
     if not records: return "MISSING", None
