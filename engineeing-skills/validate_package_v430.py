@@ -5,16 +5,16 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parent
 SKILLS=ROOT/'.agents/skills'
-PACKAGE_VERSION='4.3.0'
+PACKAGE_VERSION='4.3.1'
 EXPECTED={
- 'smc-plan-delivery':'1.2.0',
- 'smc-plan-from-approved-prd-ponytail':'3.6.0',
- 'smc-plan-validator':'1.5.0',
+ 'smc-plan-delivery':'1.3.0',
+ 'smc-plan-from-approved-prd-ponytail':'3.7.0',
+ 'smc-plan-validator':'1.6.0',
  'smc-plan-review':'1.1.0',
  'executing-plans':'4.2.0',
  'subagent-driven-development':'4.2.0',
  'smc-roadmap':'1.2.0',
- 'using-superpowers':'4.3.0',
+ 'using-superpowers':'4.3.1',
  'smc-architecture-decision':'1.0.0',
  'smc-architecture-review':'1.0.0',
  'smc-prd-grounding':'4.0.0',
@@ -27,7 +27,7 @@ EXPECTED={
 REQUIRED=[
  'core/manifest.json','domain-runtime/domain_runtime.py','domain-packs/registry.json','domain-packs/frontend/pack.json','domain-packs/frontend/activation.json','domain-packs/frontend/policy-lock.json',
  'consumers/generic.json','consumers/nodeskclaw.json','consumers/smc-copilot-work.json','install_v430.py',
- '.agents/skills/smc-plan-validator/scripts/validate_plan_v35.py','.agents/skills/smc-plan-from-approved-prd-ponytail/scripts/create_plan_seed_v35.py','.agents/skills/smc-plan-delivery/scripts/domain_hooks.py',
+ '.agents/skills/smc-plan-validator/scripts/validate_plan_v35.py','.agents/skills/smc-plan-validator/scripts/validate_plan_v36.py','.agents/skills/smc-plan-validator/scripts/validate_plan_current.py','.agents/skills/smc-plan-from-approved-prd-ponytail/scripts/create_plan_seed_v35.py','.agents/skills/smc-plan-from-approved-prd-ponytail/scripts/create_plan_seed_v36.py','.agents/skills/smc-plan-delivery/scripts/domain_hooks.py','.agents/skills/smc-plan-delivery/scripts/contract_resolver.py','.agents/skills/smc-plan-delivery/scripts/test_assets.py','.agents/skills/smc-plan-delivery/references/test-asset-contract.md',
 ]
 FORBIDDEN_DOMAIN_IDS=('frontend','backend','electron','mobile','data')
 CORE_GENERIC_FILES=('domain-runtime/domain_runtime.py','.agents/skills/smc-plan-delivery/scripts/domain_hooks.py','install_v430.py')
@@ -85,7 +85,11 @@ def framework_tests(errors):
 
 def installer_smoke(errors):
     with tempfile.TemporaryDirectory() as td:
-        project=Path(td)/'repo';project.mkdir();subprocess.run(['git','init','-q',str(project)],check=True);(project/'.agents/skills/code-review-and-quality').mkdir(parents=True);(project/'.agents/skills/code-review-and-quality/SKILL.md').write_text('# local review\n',encoding='utf-8');(project/'.cursor/skills').mkdir(parents=True);(project/'package.json').write_text('{}\n',encoding='utf-8')
+        project=Path(td)/'repo';project.mkdir();subprocess.run(['git','init','-q',str(project)],check=True)
+        (project/'.agents/skills/code-review-and-quality').mkdir(parents=True);(project/'.agents/skills/code-review-and-quality/SKILL.md').write_text('# local review\n',encoding='utf-8')
+        (project/'.agents/skills/verification-before-completion').mkdir(parents=True);(project/'.agents/skills/verification-before-completion/SKILL.md').write_text('# local verification\n',encoding='utf-8')
+        legacy=project/'.agents/skills/smc-plan-validator/scripts/validate_plan.py';legacy.parent.mkdir(parents=True);legacy.write_text('def validate_plan(path): return []\n',encoding='utf-8')
+        (project/'.cursor/skills').mkdir(parents=True);(project/'package.json').write_text('{}\n',encoding='utf-8')
         result=run([sys.executable,str(ROOT/'install_v430.py'),str(project),'--profile','smc-copilot-work','--apply','--skip-project-validator'],ROOT,capture=True)
         if result.returncode:errors.append('v4.3 installer smoke failed: '+(result.stdout+result.stderr).replace('\n',' | '));return
         for rel in ('.agents/ges/profile.json','.agents/ges/domain-runtime/domain_runtime.py','.agents/ges/domain-packs/frontend/pack.json','.agents/skills/smc-frontend-engineering/SKILL.md','.agents/skills/smc-plan-delivery/scripts/domain_hooks.py'):

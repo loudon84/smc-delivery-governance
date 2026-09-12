@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install GES v4.3.0 Core + selected Domain Packs transactionally.
+"""Install GES v4.3.1 Core + selected Domain Packs transactionally.
 
 Key rule: Consumer Profile declares available domains; Plan Change Scope activates
 those domains later. Installer never hardcodes domain ids or framework names.
@@ -16,7 +16,7 @@ DOMAIN_RUNTIME=PACKAGE/'domain-runtime'
 DOMAIN_PACKS=PACKAGE/'domain-packs'
 CONSUMERS=PACKAGE/'consumers'
 INTEGRATION=PACKAGE/'project-integration'
-PACKAGE_VERSION='4.3.0'
+PACKAGE_VERSION='4.3.1'
 IGNORE_LINES=['.smc/evidence/','.smc/reviews/','.smc/runs/','.smc/skill-upgrade-backups/','__pycache__/','*.py[cod]']
 
 
@@ -164,6 +164,9 @@ def preflight(project,profile,selected,names):
         if not (project/rel).exists():errors.append(f'CONSUMER_REQUIRED_PATH_MISSING: {rel}')
     for name in names:
         if not (SKILLS/name/'SKILL.md').is_file():errors.append(f'PACKAGE_MANAGED_SKILL_MISSING: {name}')
+    core=read_json(CORE_MANIFEST)
+    for name in core.get('consumer_required_skills',[]):
+        if not (project/'.agents/skills'/str(name)/'SKILL.md').is_file():errors.append(f'CONSUMER_REQUIRED_SKILL_MISSING: {name}')
     if not (DOMAIN_RUNTIME/'domain_runtime.py').is_file():errors.append('DOMAIN_RUNTIME_MISSING')
     return errors
 

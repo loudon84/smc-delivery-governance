@@ -1,6 +1,6 @@
 # GES Acceptance Governance
 
-Acceptance contract 补上「实现证明」与「现场验收证明」之间的缺口。它正交于 `smc.plan.v3.4`：只有 LIVE / FAULT_INJECTION / EXTERNAL 的 Plan 才声明 `acceptance_contract: smc.acceptance.v1`。
+Acceptance contract 补上「实现证明」与「现场验收证明」之间的缺口。它正交于 `smc.plan.v3.6`：只有 LIVE / FAULT_INJECTION / EXTERNAL 的 Plan 才声明 `acceptance_contract: smc.acceptance.v1`。
 
 该合同强化 [[invariants]] 第 15–19 条，且不得削弱 `post_review`。中央 Attestation 仍是跨仓 VERIFIED 的唯一裁决，见 [[acceptance-evidence]]。
 

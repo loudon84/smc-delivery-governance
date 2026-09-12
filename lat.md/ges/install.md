@@ -2,11 +2,11 @@
 
 GES 以 checksummed overlay 安装到已有 SMC skills baseline。默认 dry-run；`--apply` 才写入；失败自动回滚；永不自动 git commit。
 
-生产安装必须校验发布包完整性。`install.py` 是稳定入口，当前树在存在 `install_v420.py` 时派发到 Bundle 4.2.0 实现。
+生产安装必须校验发布包完整性。`install.py` 是稳定入口；当前工作树存在 `install_v430.py` 时派发到 4.3.1 candidate 实现，已接受生产发布仍由 `BASELINE.md` 裁决。
 
 ## Stable Entrypoint
 
-`install.py` 保持 v4.1.2 兼容路径，存在 `install_v420.py` 且未设置 `GES_V420_NO_DISPATCH` 时把控制权交给 4.2.0 实现。
+`install.py` 保持 v4.1.2 兼容路径，存在 `install_v430.py` 且未设置 `GES_V430_NO_DISPATCH` 时把控制权交给 4.3.1 candidate 实现。
 
 Windows 上禁止用 `os.execv` 派发：它不会覆盖当前控制台进程，PowerShell 会提前回到提示符，安装看起来像卡住。实现必须 `subprocess.call` 并返回子进程退出码。
 
@@ -46,10 +46,10 @@ Profile 应声明 canonical/mirror roots、project validator、managed vs local 
 | 轴 | 已接受基线 | 当前工作区 |
 |---|---|---|
 | Governance Baseline | `GES-BASELINE-v1.0.0` | 尚未升基线 |
-| Bundle | 4.1.2 | 4.2.0 RC |
-| Pipeline contract | 4.1 | 4.1 + scoped workspace / acceptance |
-| Plan contract | `smc.plan.v3.3` | 新 Plan 为 `smc.plan.v3.4`；v3.3 可读 |
-| Plan author / validator / delivery | 3.4.0 / 1.3.0 / 1.0.1 | 3.5.0 / 1.4.0 / 1.1.0 |
+| Bundle | 4.1.2 | 4.3.1 candidate |
+| Pipeline contract | 4.1 | 4.3 + scoped workspace / acceptance / Test Asset Contract |
+| Plan contract | `smc.plan.v3.3` | 新 Plan 为 `smc.plan.v3.6`；v3.3–v3.5 可读 |
+| Plan author / validator / delivery | 3.4.0 / 1.3.0 / 1.0.1 | 3.7.0 / 1.6.0 / 1.3.0 |
 
 PATCH 修 bug 与路径兼容；MINOR 加向后兼容能力；MAJOR 改 Frozen Invariant 或替换 canonical owner。单个 Skill 变更必须提升该 Skill SemVer，Bundle 至少 PATCH，未改动 Skill 不得机械升版。
 

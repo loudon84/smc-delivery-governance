@@ -3,6 +3,7 @@
   "id": "smc-copilot-work",
   "version": "1.0.0",
   "mirror_policy": "managed-set",
+  "test_asset_root": "docs_agent/test-assets",
   "domains": {
     "frontend": {
       "activation": "auto"
@@ -11,6 +12,8 @@
   "required_paths": [
     ".agents/skills",
     ".agents/skills/code-review-and-quality/SKILL.md",
+    ".agents/skills/verification-before-completion/SKILL.md",
+    ".agents/skills/smc-plan-validator/scripts/validate_plan.py",
     "package.json"
   ],
   "project_validator": "python tools/agent-skills/validate_agent_skills.py",

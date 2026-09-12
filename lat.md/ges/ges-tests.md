@@ -159,3 +159,23 @@ blocking Claim 的 Prior Result=FAIL 使用 `REUSE_EVIDENCE` 时必须 `PLAN_BLO
 ### Matching candidate passes preflight
 
 环境就绪且 candidate 一致时，live preflight 必须通过。
+
+## Test Asset Catalog
+
+Test Asset Catalog 的回归测试保证跨 Roadmap Item 可复用测试实现，同时不把已变更的脚本伪装成可复用或历史 PASS。
+
+### Resolves the v3.6 contract
+
+Delivery readiness and completion 必须将 v3.6 Plan 分派给 v3.6 validator，不得回退到 v3.3 或把候选合同误判为非当前版本。
+
+### Reuses an unchanged live asset
+
+后续 Plan 引用 ACTIVE 且 digest-current 的 live asset 时，验证允许 `REUSE` 并保持资产文件不属于当前 Plan 写集。
+
+### Rejects stale reuse
+
+资产文件内容与 manifest digest 不一致时，Plan 不能声明 `REUSE`，以防 RM-20 错把已变更的 RM-10 live test 当作可靠基线。
+
+### Synchronizes an extended asset
+
+`EXTEND` asset 的测试文件和 manifest 都被 Plan 所有时，Delivery sync 必须刷新 digest，使后续 Plan 能确定性发现该资产的新版本。

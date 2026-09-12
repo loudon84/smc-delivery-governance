@@ -3,7 +3,13 @@
   "id": "generic",
   "version": "1.0.0",
   "mirror_policy": "declared-managed-set",
+  "test_asset_root": "docs_agent/test-assets",
   "domains": {},
-  "required_paths": [".agents/skills"],
+  "required_paths": [
+    ".agents/skills",
+    ".agents/skills/code-review-and-quality/SKILL.md",
+    ".agents/skills/verification-before-completion/SKILL.md",
+    ".agents/skills/smc-plan-validator/scripts/validate_plan.py"
+  ],
   "quality_commands": {}
 }

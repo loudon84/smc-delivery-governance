@@ -57,6 +57,18 @@ raw log 留在 `.smc/evidence/`，默认不进 Git。blocking evidence 全 FRESH
 
 实现入口：[[engineeing-skills/.agents/skills/smc-plan-delivery/scripts/evidence.py#current_status]]。
 
+## Test Asset Synchronization
+
+`smc.plan.v3.6` 把可复用 test、fixture、driver 与 harness 放到项目级 Test Asset Catalog，而不再让每个 Roadmap Item 临时复制 live test。
+
+Plan 的 `REUSE` 资产必须拥有当前 digest；`EXTEND` / `NEW` 资产与其 `docs_agent/test-assets/<asset_id>.json` manifest 必须是 Plan-owned Change Matrix 路径。Delivery 在 Completion Audit 前同步 manifest，Evidence Manifest 记录最终 asset ref/digest，详见 [[test-assets]]。
+
+## Plan Contract Resolution
+
+运行时按 Plan frontmatter 声明的 contract 选择校验器，明确支持 v3.3 到 v3.6，且不静默回退到旧规则。
+
+这让历史 Plan 仍可读取，同时确保 v3.6 Plan 必经 v3.6 的验收与测试资产规则。
+
 ## Execution Context
 
 Resume capsule 在上下文丢失后恢复当前 Todo、下一步、指纹与最近错误。Continuation gate 只判断 Agent 是否该继续，不能产出 `IMPLEMENTED_AND_PROVEN`。

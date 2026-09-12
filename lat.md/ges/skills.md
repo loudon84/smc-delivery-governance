@@ -16,12 +16,12 @@
 | Stage PRD grounding | `smc-prd-grounding` | 4.0.0 |
 | Stage PRD review | `smc-prd-review` | 4.0.0 |
 | Stage PRD converge | `smc-prd-converge` | 3.0.0 |
-| Canonical Plan author | `smc-plan-from-approved-prd-ponytail` | 3.6.0 |
-| Plan static truth | `smc-plan-validator` | 1.5.0 |
+| Canonical Plan author | `smc-plan-from-approved-prd-ponytail` | 3.7.0 |
+| Plan static truth | `smc-plan-validator` | 1.6.0 |
 | Plan semantic truth | `smc-plan-review` | 1.1.0 |
-| Plan delivery sequencing | `smc-plan-delivery` | 1.2.0 |
+| Plan delivery sequencing | `smc-plan-delivery` | 1.3.0 |
 | Todo implementation | `executing-plans` / `subagent-driven-development` | 4.2.0 |
-| Workflow router | `using-superpowers` | 4.3.0 |
+| Workflow router | `using-superpowers` | 4.3.1 |
 | Implementation semantic review | `code-review-and-quality` | consumer baseline |
 | Verification truthfulness | `verification-before-completion` + delivery evidence | inherited |
 | Frontend engineering provider | `smc-frontend-engineering` | 1.0.0 |

@@ -1,10 +1,10 @@
 ---
 name: using-superpowers
-description: SMC governed work 统一 Artifact Router。v4.3 保持唯一 Core workflow，并允许 Consumer Profile/Plan Change Scope 激活 Domain providers；Domain Pack 不获得 artifact routing ownership。
-version: 4.3.0
+description: SMC governed work 统一 Artifact Router。v4.3.1 保持唯一 Core workflow，并路由 smc.plan.v3.6 Test Asset contract；Domain Pack 与 Test Asset 都不获得 artifact routing ownership。
+version: 4.3.1
 ---
 
-# Using Superpowers — SMC Artifact Router v4.3
+# Using Superpowers — SMC Artifact Router v4.3.1
 
 <SUBAGENT-STOP>
 若当前实例是被分派的子智能体，只执行父任务给定的 Skill/Artifact，不重新做全局路由。
@@ -121,4 +121,4 @@ Governed flow 不得调用：
 
 ## GES 4.2 Routing
 
-New canonical Plans are `smc.plan.v3.4`. After Plan creation, execution context/workspace ownership belongs exclusively to `smc-plan-delivery`; do not insert a second planning/runtime-memory Skill as another SOT.
+New canonical Plans are `smc.plan.v3.6`. After Plan creation, execution context/workspace ownership belongs exclusively to `smc-plan-delivery`; do not insert a second planning/runtime-memory Skill as another SOT. Test Asset manifests are durable project evidence inputs, not a second Plan or Delivery state machine.
