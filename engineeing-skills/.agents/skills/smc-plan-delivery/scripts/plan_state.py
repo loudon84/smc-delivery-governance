@@ -121,7 +121,7 @@ def validate(path: Path) -> list[str]:
     text = path.read_text(encoding="utf-8")
     fm = parse_top_level_frontmatter(text)
     contract = fm.get("plan_contract", "").strip()
-    require_content = contract == "smc.plan.v3.4"
+    require_content = contract in {"smc.plan.v3.4", "smc.plan.v3.5", "smc.plan.v3.6", "smc.plan.v3.7"}
     expected = expected_contents(text)
     curs = cursor_todos(text)
     md = markdown_todos(text)
@@ -182,6 +182,9 @@ def set_status(path: Path, tid: str, status: str) -> None:
     if len(items) != 1:
         raise ValueError(f"PLAN_CURSOR_TODO_MAPPING_INVALID: {tid} matches={len(items)}")
     item = items[0]
+    if status == 'completed' and parse_top_level_frontmatter(text).get('plan_contract') == 'smc.plan.v3.7':
+        from engineering_method import completion_check
+        completion_check(path, tid)
     if item["status_line"] is not None:
         line_no = int(item["status_line"])
         indent = re.match(r"^(\s*)", lines[line_no]).group(1)

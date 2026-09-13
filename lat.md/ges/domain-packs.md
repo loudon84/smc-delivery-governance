@@ -1,16 +1,16 @@
 # GES Domain Pack Framework v1
 
-Domain Pack 把专业工程能力挂到既有 GES 流水线上；Core 只认合同，不硬编码具体 domain id。
+Domain Pack 把专业工程能力挂到既有 GES 流水线上；v5 在保留 v1 兼容性的基础上增加 v2 preplan。Core 只认合同，不硬编码具体 domain id。
 
 ## Purpose
 
-Domain Pack 是专业工程能力扩展，不是新的 workflow。GES Core 只读取 `smc.ges.domain-pack.v1` / `smc.ges.domain-activation.v1` 合同，不允许在 Core runtime 中硬编码具体 domain id。
+Domain Pack 是专业工程能力扩展，不是新的 workflow。GES Core 读取 domain-pack v1/v2 和 domain-activation v1/v2 合同，不允许在 Core runtime 中硬编码具体 domain id。
 
 ## Three Decisions
 
 三条发布决策固定 Domain 与 Core、Profile、Plan 的边界，防止第二套 workflow 出现。
 
-1. Domain Pack 只能提供 `engineering | review | verification` provider，不得拥有 Plan、Delivery、Commit、Roadmap canonical state。
+1. Domain Pack 提供 `preplan | engineering | review | verification` provider（v1 无 preplan），不得拥有 Plan、Delivery、Commit、Roadmap canonical state。
 2. Consumer Profile 决定项目可用 Domain；Canonical Plan 的 Change Matrix 决定当前 delivery 实际激活集合。
 3. 新增 Domain 必须能够通过 registry + pack manifest + activation rules + provider skills 接入，不修改 Core routing code。
 
@@ -33,7 +33,7 @@ Domain Pack 是专业工程能力扩展，不是新的 workflow。GES Core 只�
 
 ## Domain Pack Contract
 
-`pack.json` MUST declare:
+v1 的 `pack.json` 声明以下字段；v2 保留这些字段并增加必需的 preplan provider、preplan_section 和 preplan_validator。
 
 - `schema = smc.ges.domain-pack.v1`
 - stable `id` and SemVer `version`
@@ -84,3 +84,9 @@ GES Frozen Invariants
 ```
 
 Conflicting same-level MUST rules require architecture resolution; agents must not pick one silently.
+
+## V2 Preplan and Policy
+
+v2 provider 在 PRD 审查前把领域设计意图写入同一 PRD；已批准后生成 Plan 时再次校验，避免设计在执行中漂移。
+
+[[engineeing-skills/domain-runtime/domain_runtime.py#validate_preplan]] 要求领域行与激活 Change ID 一一对应。[[engineeing-skills/domain-runtime/domain_table.py#validate_table]] 拒绝错列、重复 ID、空值及未决占位符。Frontend 覆盖 React/Vue；Backend 和 Ops 由各自数据包接入。Profile v3 的项目策略文件内容纳入 policy digest，v2/v1 绑定算法保留，以保护在途 Plan。

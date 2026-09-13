@@ -1,6 +1,14 @@
 {
   "schema": "smc.ges.domain-activation-rules.v1",
-  "extensions": [".tsx", ".jsx", ".css", ".scss", ".less", ".html"],
+  "extensions": [
+    ".tsx",
+    ".jsx",
+    ".vue",
+    ".css",
+    ".scss",
+    ".less",
+    ".html"
+  ],
   "path_globs": [
     "**/renderer/**",
     "**/components/**",
@@ -12,16 +20,12 @@
   "target_tokens": [
     "renderer_ui",
     "react_component",
+    "vue_component",
     "css_theme",
     "interaction"
   ],
   "exclude_globs": [
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
     "**/generated/**",
-    "**/dist/**",
-    "**/out/**"
+    "**/dist/**"
   ]
 }

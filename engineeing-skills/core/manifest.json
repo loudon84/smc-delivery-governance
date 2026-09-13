@@ -1,6 +1,6 @@
 {
   "schema": "smc.ges.core-manifest.v1",
-  "bundle": "4.4.1",
+  "bundle": "5.0.0",
   "managed_skills": [
     "smc-architecture-decision",
     "smc-architecture-review",
@@ -20,7 +20,7 @@
     "code-review-and-quality",
     "verification-before-completion"
   ],
-  "domain_contract": "smc.ges.domain-pack.v1",
-  "domain_activation_contract": "smc.ges.domain-activation.v1",
-  "consumer_profile_contract": "smc.ges.consumer-profile.v2"
+  "domain_contract": "smc.ges.domain-pack.v2",
+  "domain_activation_contract": "smc.ges.domain-activation.v2",
+  "consumer_profile_contract": "smc.ges.consumer-profile.v3"
 }

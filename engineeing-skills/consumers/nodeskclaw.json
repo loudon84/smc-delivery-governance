@@ -1,10 +1,20 @@
 {
-  "schema": "smc.ges.consumer-profile.v2",
+  "schema": "smc.ges.consumer-profile.v3",
   "id": "nodeskclaw",
   "version": "2.0.0",
   "mirror_policy": "full-tree",
   "test_asset_root": "docs_agent/test-assets",
-  "domains": {},
+  "domains": {
+    "frontend": {
+      "activation": "auto"
+    },
+    "backend": {
+      "activation": "auto"
+    },
+    "ops": {
+      "activation": "auto"
+    }
+  },
   "required_paths": [
     ".agents/skills",
     ".agents/skills/code-review-and-quality/SKILL.md",
@@ -13,5 +23,15 @@
     "tools/agent-skills/validate_agent_skills.py"
   ],
   "project_validator": "python tools/agent-skills/validate_agent_skills.py",
-  "quality_commands": {}
+  "quality_commands": {},
+  "project_policy_paths": [
+    "AGENTS.md"
+  ],
+  "execution_policy": {
+    "model_tiers": {
+      "FAST": "fast",
+      "STANDARD": "standard",
+      "REASONING": "reasoning"
+    }
+  }
 }

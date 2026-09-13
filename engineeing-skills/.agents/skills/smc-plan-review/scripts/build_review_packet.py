@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import difflib
 import json
 import re
@@ -64,6 +65,7 @@ def accept(plan: Path) -> Path:
         raise ValueError("PLAN_REVIEW_SNAPSHOT_REQUIRES_FRESH_PASS")
     path = snapshot_path(plan)
     atomic_write(path, semantic_text(plan))
+    atomic_write(path.with_suffix('.json'), json.dumps({'plan_id': pid, 'plan_sha256': current_hash, 'snapshot_sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'review_sha256': hashlib.sha256(json.dumps(latest, sort_keys=True).encode()).hexdigest()}, sort_keys=True)+'\n')
     return path
 
 
@@ -85,7 +87,14 @@ def build(plan: Path, requested_depth: str = "AUTO") -> dict:
     diff = ""
 
     if depth == "DELTA":
-        if previous is None:
+        from review_record import latest_status
+        _, reviewed = latest_status(plan, 'plan')
+        try:
+            binding = json.loads(snap.with_suffix('.json').read_text(encoding='utf-8'))
+            bound = bool(reviewed and reviewed.get('verdict') == 'PASS' and binding['plan_id'] == plan_id(plan) and binding['plan_sha256'] == reviewed.get('plan_sha256') and binding['snapshot_sha256'] == hashlib.sha256(snap.read_bytes()).hexdigest() and binding['review_sha256'] == hashlib.sha256(json.dumps(reviewed, sort_keys=True).encode()).hexdigest())
+        except (OSError, ValueError, KeyError):
+            bound = False
+        if previous is None or not bound:
             depth = "FULL"
             reasons.append("DELTA requested but no prior semantic snapshot exists; fail-closed upgrade to FULL")
         else:
@@ -99,8 +108,8 @@ def build(plan: Path, requested_depth: str = "AUTO") -> dict:
                 )
             )
             if not diff:
-                depth = "NONE"
-                reasons.append("semantic snapshot equals current Plan")
+                depth = "FULL"
+                reasons.append("changed review hash with empty diff is inconsistent; FULL required")
 
     packet = {
         "schema": "smc.plan.semantic-review-packet.v1",

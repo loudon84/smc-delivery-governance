@@ -1,80 +1,11 @@
-# GES Domain Pack Framework v1
+# Domain Pack v2
 
-## Purpose
+Each pack declares preplan, engineering, review and verification providers, deterministic activation selectors, a policy lock and a Plan extension. Providers extend the canonical PRD/Plan; they never create competing state machines.
 
-Domain Pack 是专业工程能力扩展，不是新的 workflow。GES Core 只读取 `smc.ges.domain-pack.v1` / `smc.ges.domain-activation.v1` 合同，不允许在 Core runtime 中硬编码具体 domain id。
+## Validation
 
-## Three Decisions
+preplan_section and preplan_validator bind domain intent before PRD approval. Each triggered Change ID must occur exactly once. Plan extension coverage uses the same activated changes. Shared table validation rejects missing rows/columns, duplicate IDs, malformed row shapes and unresolved placeholders. An explicit justified N/A is a decision, not a blank field.
 
-1. Domain Pack 只能提供 `engineering | review | verification` provider，不得拥有 Plan、Delivery、Commit、Roadmap canonical state。
-2. Consumer Profile 决定项目可用 Domain；Canonical Plan 的 Change Matrix 决定当前 delivery 实际激活集合。
-3. 新增 Domain 必须能够通过 registry + pack manifest + activation rules + provider skills 接入，不修改 Core routing code。
+## Compatibility and policy
 
-## Installed Layout
-
-```text
-.agents/ges/
-├── profile.json
-├── domain-runtime/
-│   └── domain_runtime.py
-└── domain-packs/
-    ├── registry.json
-    └── <domain>/
-        ├── pack.json
-        ├── activation.json
-        └── policy-lock.json   # optional
-```
-
-## Domain Pack Contract
-
-`pack.json` MUST declare:
-
-- `schema = smc.ges.domain-pack.v1`
-- stable `id` and SemVer `version`
-- `activation_rules`
-- zero or more capability providers: `engineering`, `review`, `verification`
-- optional `plan_extension`
-- optional `plan_validator`
-- optional `selftest`
-
-Forbidden ownership concepts: `plan_owner`, `delivery_owner`, `commit_owner`, `roadmap_owner`.
-
-## Activation
-
-Resolver input:
-
-```text
-Consumer Profile
-+ Domain Registry / Pack policy
-+ Canonical Plan Change Matrix
-```
-
-Resolver output is a set, not a scalar:
-
-```json
-{
-  "schema": "smc.ges.domain-activation.v1",
-  "profile": "consumer@1.0.0",
-  "policy_digest": "sha256:...",
-  "domains": []
-}
-```
-
-`policy_digest` binds profile + selected pack manifests + activation policies + pinned policy lock. Policy change makes old Plan domain proof stale.
-
-## Provider Composition
-
-Multiple domains may be active. Provider collision does not change Single Writer. Domain providers advise/validate the same Plan-owned implementation scope and cannot create parallel delivery state machines.
-
-Precedence:
-
-```text
-GES Frozen Invariants
-> Approved Architecture / PRD / Plan
-> Consumer explicit policy
-> Domain MUST
-> Domain SHOULD
-> Domain ADVISORY
-```
-
-Conflicting same-level MUST rules require architecture resolution; agents must not pick one silently.
+The runtime reads Consumer Profile v2/v3 and Domain Pack v1/v2. Existing v2 consumers retain v1 metadata; v3 consumers use v2 packs and content-bound project policy. Plan v3.7 requires domain-activation.v2; legacy Plans require v1. New seed creation checks preplan readiness and never auto-approves unfinished intent. External policy fetching cannot change a blocking rule during execution.

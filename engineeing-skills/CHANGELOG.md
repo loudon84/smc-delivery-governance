@@ -1,3 +1,7 @@
+# GES 5.0.0 repaired candidate
+
+Adaptive profiles, Domain v2 preplan, Plan v3.7 compatibility, command-bound method freshness and closed review gates. Existing v3.6 consumers preserve policy bindings. See CHANGES-v5.0.0.md.
+
 # Changelog
 
 ## v4.4.1 Candidate — 2026-09-13

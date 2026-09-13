@@ -13,20 +13,22 @@
 | Architecture Decision | `smc-architecture-decision` | 1.0.0 |
 | Architecture Review | `smc-architecture-review` | 1.0.0 |
 | Roadmap / Delivery state | `smc-roadmap` | 1.2.0 |
-| Stage PRD grounding | `smc-prd-grounding` | 4.0.0 |
-| Stage PRD review | `smc-prd-review` | 4.0.0 |
-| Stage PRD converge | `smc-prd-converge` | 3.0.0 |
-| Canonical Plan author | `smc-plan-from-approved-prd-ponytail` | 3.7.0 |
-| Plan static truth | `smc-plan-validator` | 1.6.0 |
-| Plan semantic truth | `smc-plan-review` | 1.2.0 |
-| Plan delivery sequencing | `smc-plan-delivery` | 1.4.0 |
-| Todo implementation | `executing-plans` / `subagent-driven-development` | 4.3.0 / 4.4.0 |
-| Workflow router | `using-superpowers` | 4.4.0 |
+| Stage PRD grounding | `smc-prd-grounding` | 5.0.0 |
+| Stage PRD review | `smc-prd-review` | 5.0.0 |
+| Stage PRD converge | `smc-prd-converge` | 4.0.0 |
+| Canonical Plan author | `smc-plan-from-approved-prd-ponytail` | 4.0.0 |
+| Plan static truth | `smc-plan-validator` | 2.0.0 |
+| Plan semantic truth | `smc-plan-review` | 2.0.0 |
+| Plan delivery sequencing | `smc-plan-delivery` | 1.5.0 |
+| Todo implementation | `executing-plans` / `subagent-driven-development` | 5.0.0 / 5.0.0 |
+| Workflow router | `using-superpowers` | 5.0.0 |
 | Implementation semantic review | `code-review-and-quality` | consumer baseline |
 | Verification truthfulness | `verification-before-completion` + delivery evidence | inherited |
-| Frontend engineering provider | `smc-frontend-engineering` | 1.0.0 |
-| Frontend review provider | `smc-frontend-review` -> canonical review owner | 1.0.0 |
-| Frontend verification provider | `smc-frontend-visual-verification` -> delivery evidence | 1.0.0 |
+| Frontend preplan / engineering providers | `smc-frontend-preplan` / `smc-frontend-engineering` | 2.0.0 / 2.0.0 |
+| Frontend review provider | `smc-frontend-review` -> canonical review owner | 2.0.0 |
+| Frontend verification provider | `smc-frontend-visual-verification` -> delivery evidence | 2.0.0 |
+| Backend providers | `smc-backend-preplan` / `smc-backend-engineering` / `smc-backend-review` / `smc-backend-verification` | 1.0.0 |
+| Ops providers | `smc-ops-preplan` / `smc-ops-engineering` / `smc-ops-review` / `smc-ops-verification` | 1.0.0 |
 
 `code-review-and-quality` 属于 consumer required baseline，不在 GES overlay 包内发布。`verification-before-completion` 当前无独立 SemVer frontmatter，不得在无关 patch 中顺手改版本。
 
@@ -36,7 +38,7 @@
 
 无论路由结果是 `NOT_REQUIRED` 还是实际 `PASS`，都必须留下绑定当前 semantic Plan hash 的 clearance。运行时 Todo `status` 变化不得使 Plan review stale。
 
-`DELTA` 仅可在已有 fresh PASS semantic snapshot 且风险未升级时缩小读取范围；缺 snapshot 或涉及 acceptance、owner、boundary、安全、schema、protocol、并发或生命周期时必须 `FULL`，详见 [[runtime-cost#Adaptive Plan Review]]。
+`DELTA` 仅可在已有绑定上次 PASS 的 semantic snapshot 且风险未升级时缩小读取范围；缺失或被改写的 snapshot、未关闭非 PASS 或高风险变更必须 `FULL`，详见 [[runtime-cost#Adaptive Plan Review]]。
 
 ## Domain Provider Ownership
 

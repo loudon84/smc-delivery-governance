@@ -4,6 +4,8 @@ GES 交付工具的关键测试规格。它们证明 Plan 投影、scoped worksp
 
 覆盖当前树内 `smc-plan-delivery` 与 Roadmap evidence 合同，而不是复述脚本实现。
 
+v5 补充回归覆盖 v3.7 Test Asset 复用与陈旧阻断、命令绑定 RED/GREEN、epoch 不复活、显式 v1 迁移、根因与 VERIFIED 顺序、Todo 完成门禁、STALE REVISE 和快照篡改。包集成验证 Profile v2 策略保留、v3 项目策略摘要、领域激活、seed/wrapper 兼容及事务回滚，见 [[ges-v5#Verification Boundary]]。
+
 ## Plan contract
 
 `smc.plan.v3.4` 把 Cursor `content` 当成校验过的 UI 投影；Markdown Todo 仍是规格 SOT。v3.3 缺 content 只警告。

@@ -1,21 +1,33 @@
 {
-  "schema": "smc.ges.domain-pack.v1",
+  "schema": "smc.ges.domain-pack.v2",
   "id": "frontend",
-  "version": "1.0.0",
-  "display_name": "Frontend Engineering",
+  "version": "2.0.0",
+  "display_name": "frontend engineering",
   "activation_rules": "activation.json",
   "policy_lock": "policy-lock.json",
   "capabilities": {
-    "engineering": {"skill": "smc-frontend-engineering"},
-    "review": {"skill": "smc-frontend-review"},
-    "verification": {"skill": "smc-frontend-visual-verification"}
+    "preplan": {
+      "skill": "smc-frontend-preplan"
+    },
+    "engineering": {
+      "skill": "smc-frontend-engineering"
+    },
+    "review": {
+      "skill": "smc-frontend-review"
+    },
+    "verification": {
+      "skill": "smc-frontend-visual-verification"
+    }
   },
+  "preplan_section": "Frontend Design Intent",
+  "preplan_validator": ".agents/skills/smc-frontend-preplan/scripts/validate_prd_intent.py",
   "plan_extension": {
-    "contract": "smc.frontend.quality.v1",
+    "contract": "smc.frontend.quality.v2",
     "section": "Frontend Quality Ledger",
     "columns": [
       "Change ID",
       "Surface",
+      "Framework",
       "Composition",
       "State Ownership",
       "Design System",
@@ -24,18 +36,10 @@
       "Performance",
       "Visual Verification"
     ],
-    "defaults": {
-      "Composition": "REQUIRED",
-      "State Ownership": "REQUIRED",
-      "Design System": "REQUIRED",
-      "Accessibility": "REQUIRED",
-      "Interaction States": "REQUIRED",
-      "Performance": "REVIEW",
-      "Visual Verification": "<VERIFY>"
-    }
+    "defaults": {}
   },
   "plan_validator": ".agents/skills/smc-frontend-review/scripts/validate_plan_extension.py",
-  "verification_preflight": ".agents/skills/smc-frontend-visual-verification/scripts/preflight.py",
-  "selftest": ".agents/skills/smc-frontend-review/scripts/selftest.py",
-  "evidence_namespace": "frontend"
+  "selftest": ".agents/skills/smc-frontend-preplan/scripts/selftest.py",
+  "evidence_namespace": "frontend",
+  "verification_preflight": ".agents/skills/smc-frontend-visual-verification/scripts/preflight.py"
 }

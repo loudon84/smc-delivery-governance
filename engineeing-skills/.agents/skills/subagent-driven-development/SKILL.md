@@ -1,7 +1,7 @@
 ---
 name: subagent-driven-development
 description: Fresh-context multi-agent Plan implementation engine。v4.4 在 v4.3 file-based handoff/batching/model-tier/fix-loop 上接入 Engineering Method Runtime，并以 Unified Task Reviewer 作为 normal-risk 默认，降低 reviewer seats 与重复 token。
-version: 4.4.0
+version: 5.0.0
 ---
 
 # Subagent Driven Development v4.4
@@ -259,3 +259,7 @@ QUALITY: PASS | FAIL
 Todo 标记 `completed` 前，Controller 按 method policy 调用 `tdd-check` / `debug-check`。TDD RED 与 debugging records 位于 `.smc/runs/<plan-id>/engineering/`，只作为 execution working memory；Final Verification/Evidence 仍由 `smc-plan-delivery` 重新建立。
 
 若 debugging 找到的 root cause 超出当前 Todo write ownership，立即停止 Worker，返回 `PLAN_REVISE_REQUIRED` / `RETURN_PRD`；不得让 fresh implementer 借机扩大 scope。三次 failed fix 进入 `DEBUG_ARCHITECTURE_ESCALATION`，优先重新判断 Plan/architecture，而不是启动第四轮盲修。
+
+## GES 5 runtime binding
+
+Use Engineering Method v2 and source_context.py capsules. TDD success requires tdd-run command records for the current method epoch and current owned-source content. Classification is sticky until explicit revision; old v1 overrides require an explicit migration decision. Retain per-Todo identities and all write ownership checks when batching. The controller calls method gates before completed; final Delivery proof remains independent.

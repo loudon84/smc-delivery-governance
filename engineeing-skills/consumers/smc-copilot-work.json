@@ -1,11 +1,17 @@
 {
-  "schema": "smc.ges.consumer-profile.v2",
+  "schema": "smc.ges.consumer-profile.v3",
   "id": "smc-copilot-work",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "mirror_policy": "managed-set",
   "test_asset_root": "docs_agent/test-assets",
   "domains": {
     "frontend": {
+      "activation": "auto"
+    },
+    "backend": {
+      "activation": "auto"
+    },
+    "ops": {
       "activation": "auto"
     }
   },
@@ -26,6 +32,21 @@
     "knowledge": "npx lat check"
   },
   "consumer_skills": {
-    "preserve": ["electron-pro", "typescript-expert", "lat-md", "hermes-agent"]
+    "preserve": [
+      "electron-pro",
+      "typescript-expert",
+      "lat-md",
+      "hermes-agent"
+    ]
+  },
+  "project_policy_paths": [
+    "AGENTS.md"
+  ],
+  "execution_policy": {
+    "model_tiers": {
+      "FAST": "fast",
+      "STANDARD": "standard",
+      "REASONING": "reasoning"
+    }
   }
 }
