@@ -18,10 +18,10 @@
 | Stage PRD converge | `smc-prd-converge` | 3.0.0 |
 | Canonical Plan author | `smc-plan-from-approved-prd-ponytail` | 3.7.0 |
 | Plan static truth | `smc-plan-validator` | 1.6.0 |
-| Plan semantic truth | `smc-plan-review` | 1.1.0 |
+| Plan semantic truth | `smc-plan-review` | 1.2.0 |
 | Plan delivery sequencing | `smc-plan-delivery` | 1.3.0 |
-| Todo implementation | `executing-plans` / `subagent-driven-development` | 4.2.0 |
-| Workflow router | `using-superpowers` | 4.3.1 |
+| Todo implementation | `executing-plans` / `subagent-driven-development` | 4.3.0 |
+| Workflow router | `using-superpowers` | 4.4.0 |
 | Implementation semantic review | `code-review-and-quality` | consumer baseline |
 | Verification truthfulness | `verification-before-completion` + delivery evidence | inherited |
 | Frontend engineering provider | `smc-frontend-engineering` | 1.0.0 |
@@ -32,9 +32,11 @@
 
 ## Plan Review Split
 
-静态 PASS 与语义 clearance 必须分开。`assess_plan_review` 只输出 `NOT_REQUIRED | REQUIRED`；实际审查输出 `PASS | REVISE | RETURN_PRD`。
+静态 PASS 与语义 clearance 必须分开。`assess_plan_review` 继续只输出 `NOT_REQUIRED | REQUIRED`，但可在 packet 中声明 `NONE | DELTA | FULL` 深度；实际审查输出仍为 `PASS | REVISE | RETURN_PRD`。
 
 无论路由结果是 `NOT_REQUIRED` 还是实际 `PASS`，都必须留下绑定当前 semantic Plan hash 的 clearance。运行时 Todo `status` 变化不得使 Plan review stale。
+
+`DELTA` 仅可在已有 fresh PASS semantic snapshot 且风险未升级时缩小读取范围；缺 snapshot 或涉及 acceptance、owner、boundary、安全、schema、protocol、并发或生命周期时必须 `FULL`，详见 [[runtime-cost#Adaptive Plan Review]]。
 
 ## Domain Provider Ownership
 

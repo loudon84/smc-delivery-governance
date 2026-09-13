@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install SMC Governed Engineering Skills v4.1.2 as a transactional overlay.
+"""Dispatch the current SMC Governed Engineering Skills installer transactionally.
 
 Dry-run by default. Use --apply to write. Every touched file is recorded and
 backed up under .smc/skill-upgrade-backups/<timestamp>/. If post-install
@@ -18,10 +18,14 @@ import sys
 from pathlib import Path
 
 # Stable dispatcher. Prefer the newest installed bundle while retaining the
-# versioned v4.2 entrypoint for explicit compatibility diagnostics.
+# versioned entrypoints for explicit compatibility diagnostics.
 # @lat: [[install#Stable Entrypoint]]
+_GES_V440 = Path(__file__).resolve().with_name("install_v440.py")
 _GES_V430 = Path(__file__).resolve().with_name("install_v430.py")
 _GES_V420 = Path(__file__).resolve().with_name("install_v420.py")
+if __name__ == "__main__" and _GES_V440.is_file() and os.environ.get("GES_V440_NO_DISPATCH") != "1":
+    os.environ.setdefault("PYTHONUTF8", "1")
+    raise SystemExit(subprocess.call([sys.executable, str(_GES_V440), *sys.argv[1:]]))
 if __name__ == "__main__" and _GES_V430.is_file() and os.environ.get("GES_V430_NO_DISPATCH") != "1":
     os.environ.setdefault("PYTHONUTF8", "1")
     raise SystemExit(subprocess.call([sys.executable, str(_GES_V430), *sys.argv[1:]]))

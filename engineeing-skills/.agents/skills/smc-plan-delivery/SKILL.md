@@ -1,6 +1,6 @@
 ---
 name: smc-plan-delivery
-description: SMC canonical Plan 后半程唯一交付编排器。v1.3 增加 Test Asset 生命周期：可复用 test/fixture/driver 以 digest-bound manifest 跨 RM 复用，仍不拥有 Delivery state。
+description: SMC canonical Plan 后半程唯一交付编排器。v1.3 在 Test Asset 生命周期上增加 task brief、worker report 与 write-scoped review package，降低执行上下文成本，仍不拥有 Delivery state。
 version: 1.3.0
 ---
 
@@ -14,6 +14,8 @@ v1.1 新增两个 runtime responsibility，但不改变业务规则 owner：
 
 1. **Plan-Scoped Delivery Workspace Controller**：把 Plan identity、允许写集、audit/review/verification/commit scope 对齐到同一个 canonical Plan；
 2. **Persistent Execution Context Controller**：以 `.smc/runs/<plan_id>/` 中的 resume capsule、per-agent ledger、error ledger 保存长任务运行状态，支持 context reset / compaction / session resume。
+
+v1.3 在同一 `.smc/runs/<plan_id>/` working-memory scope 下增加 derived task brief、worker report path 与 write-scoped review package。它们只用于降低 subagent/context 传递成本，不是第二 Plan、Review 或 Evidence SOT，也不改变 Delivery state machine。
 
 它仍然不替代 Plan Author、Plan Review、Implementation Review、Verification、Roadmap Skill。
 

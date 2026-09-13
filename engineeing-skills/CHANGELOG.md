@@ -1,5 +1,25 @@
 # Changelog
 
+## v4.4.0 Candidate — 2026-09-13
+
+### Added
+
+- Adaptive request classification: SPIKE / BOUNDED / ARCHITECTURAL with one-way complexity escalation.
+- Backward-compatible Plan semantic review depth: NONE / DELTA / FULL while preserving REQUIRED / NOT_REQUIRED and PASS / REVISE / RETURN_PRD public contracts.
+- Plan semantic review packets and local semantic snapshots under `.smc/` for DELTA review.
+- Plan-scoped task briefs, worker report paths and write-scoped task review packages under `.smc/runs/<plan-id>/`.
+- SDD same-shape batching policy, FAST/STANDARD/REASONING model tiers and five-round fix-loop breaker.
+- Stable `install.py` dispatch to `install_v440.py`; Consumer Profile v2 / Domain Pack v1 / `smc.plan.v3.6` remain unchanged.
+
+### Fixed
+
+- Restored the previously documented `smc-plan-review/scripts/assess_plan_review.py` runtime path and added deterministic self-tests.
+
+### Compatibility
+
+- No governed BOUNDED Lean Plan in v4.4A; tasks already bound to SMC governed artifacts stay on the existing canonical pipeline.
+- `post_review`, Single Writer, Evidence Freshness, Completion Audit, final Verification and Roadmap DONE semantics are unchanged.
+
 ## v4.1.2 — 2026-09-03
 
 ### Fixed

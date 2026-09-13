@@ -75,6 +75,8 @@ Resume capsule 在上下文丢失后恢复当前 Todo、下一步、指纹与最
 
 Workers 只追加自己的 ledger；canonical Todo `status` 仍由 controller 通过 [[engineeing-skills/.agents/skills/smc-plan-delivery/scripts/plan_state.py#set_status]] 写入。
 
+v4.4 的 task brief、worker report 与 write-scoped review package 都是 `.smc/runs/<plan_id>/` 下的派生产物：它们把单个 Todo 的必要输入交给 worker/reviewer，不能成为第二 Plan、Review 或 Evidence SOT，详见 [[runtime-cost#Task Context Artifacts]]。
+
 ## post_review Commit
 
 允许 implementation commit 的充要条件是全部当前 proof FRESH，而不是 Todo 全 completed。

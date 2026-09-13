@@ -179,3 +179,39 @@ Delivery readiness and completion 必须将 v3.6 Plan 分派给 v3.6 validator�
 ### Synchronizes an extended asset
 
 `EXTEND` asset 的测试文件和 manifest 都被 Plan 所有时，Delivery sync 必须刷新 digest，使后续 Plan 能确定性发现该资产的新版本。
+
+## Runtime Cost Optimization
+
+运行时成本优化必须缩小重复上下文而非削弱 Plan、Review、Evidence 或 Delivery 的唯一事实源。
+
+### Creates a todo-scoped brief
+
+派生 brief 必须只包含当前 Todo 及全局约束，不能意外携带其它 Todo 的写权限。
+
+### Creates a plan-scoped report path
+
+worker report 必须位于当前 Plan 的 `.smc/runs/<plan_id>/reports/`，避免跨 Plan 状态混用。
+
+### Scopes task review to declared writes
+
+task review package 只能包含当前 Todo 声明的写路径差异，不能泄露或重审其它 Todo 的未完成变更。
+
+### Skips semantic review for low risk
+
+无确定性语义风险的首次 Plan review 可以路由为 `NOT_REQUIRED/NONE`，但仍需要记录当前 hash 的 clearance。
+
+### Escalates acceptance review to full
+
+声明 acceptance contract 的 Plan 必须路由到 `REQUIRED/FULL`，不得因成本优化跳过真实语义审查。
+
+### Routes a reviewed semantic delta
+
+已有 PASS snapshot 且 Plan 语义变化时必须路由为 `REQUIRED/DELTA`，并只提供可审计的语义 diff。
+
+### Fails closed without a semantic snapshot
+
+请求 DELTA 但没有先前 snapshot 时必须升级为 FULL，不能把未知差异误作轻量审查。
+
+### Requires a fresh pass before snapshot
+
+semantic snapshot 只能在当前 Plan hash 对应的 PASS review record 之后保存。
