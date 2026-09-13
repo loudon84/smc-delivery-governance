@@ -28,7 +28,9 @@ jobs:
       - run: python tools/verify_state_invariants.py
       - run: pytest -q
       - name: Tests must not mutate central SOT
-        run: git diff --exit-code
+        run: |
+          git diff --check
+          git diff --exit-code
 
   ges-package-gate:
     name: GES Package Gate / validate-package

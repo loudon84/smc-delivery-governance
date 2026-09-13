@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Derived work-authority artifact for production SPIKE/NONE trust boundary."""
+"""Legacy work-authority.v1 shim — prefer work_facts.smc.ges.work-facts.v1.
+
+Kept as a read-only compatibility layer for one release. Trust decisions converge
+on work_facts.verify_envelope / route_bound.
+"""
 from __future__ import annotations
 
 import argparse
@@ -41,7 +45,7 @@ def load_authority(path: Path) -> dict[str, Any]:
 
 
 def verify_authority(data: dict[str, Any], repo: Path | None = None) -> tuple[str, list[str]]:
-    """Return (VERIFIED|MISSING|STALE|CONFLICT, reasons)."""
+    """Return (VERIFIED|MISSING|STALE|CONFLICT, reasons). Compat shim."""
     reasons: list[str] = []
     sources = data.get("sources")
     if not isinstance(sources, list) or not sources:

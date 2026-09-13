@@ -1,7 +1,7 @@
 {
   "schema": "smc.ges.domain-pack.v2",
   "id": "ops",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "display_name": "ops engineering",
   "activation_rules": "activation.json",
   "policy_lock": "policy-lock.json",
@@ -39,17 +39,12 @@
   "plan_validator": ".agents/skills/smc-ops-review/scripts/validate_plan_extension.py",
   "selftest": ".agents/skills/smc-ops-preplan/scripts/selftest.py",
   "evidence_namespace": "ops",
-  "intent_binding": {
-    "preplan_section": "Ops Design Intent",
-    "plan_section": "Ops Quality Ledger",
-    "fields": {
-      "Deployment Impact": "Deployment Impact",
-      "Compatibility": "Compatibility",
-      "Environment/Config": "Environment/Config",
-      "Health": "Health",
-      "Migration Order": "Migration Order",
-      "Rollback": "Rollback",
-      "Live Verification": "Verification"
-    }
+  "intent_bindings": {
+    "Deployment Impact": {"plan_column": "Deployment Impact", "mode": "EXACT"},
+    "Compatibility": {"plan_column": "Compatibility", "mode": "EXACT"},
+    "Environment/Config": {"plan_column": "Environment/Config", "mode": "EXACT"},
+    "Migration Order": {"plan_column": "Migration Order", "mode": "EXACT"},
+    "Rollback": {"plan_column": "Rollback", "mode": "EXACT"},
+    "Live Verification": {"plan_column": "Verification", "mode": "EXACT"}
   }
 }

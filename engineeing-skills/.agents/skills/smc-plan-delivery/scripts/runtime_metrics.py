@@ -69,9 +69,10 @@ def result(plan: Path, **fields) -> Path:
                 raise ValueError("TELEMETRY_REQUIRED_FIELD_MISSING: fallback_reason")
     usage_keys = ("prompt_tokens", "completion_tokens", "cache_read_tokens", "cache_write_tokens")
     if all(fields.get(k) in (None, "") for k in usage_keys) and not fields.get("usage_unavailable_reason"):
-        # zeros alone are allowed only when explicitly provided; missing must explain
         if not any(k in fields for k in usage_keys):
-            raise ValueError("TELEMETRY_USAGE_UNAVAILABLE")
+            raise ValueError("TELEMETRY_TOKEN_ACCOUNTING_MISSING")
+    if fields.get("usage_unavailable_reason") in {"TOKEN_ACCOUNTING_UNAVAILABLE", "unavailable"}:
+        payload["usage_unavailable_reason"] = fields.get("usage_unavailable_reason") or "TOKEN_ACCOUNTING_UNAVAILABLE"
     return _append(plan, payload)
 
 
@@ -87,9 +88,25 @@ def reviewer_seat(plan: Path, seats: int = 1, mode: str = "UNIFIED") -> Path:
     return _append(plan, {"kind": "reviewer-seat", "reviewer_seats": seats, "mode": mode})
 
 
+def ingest(plan: Path, event: dict) -> Path:
+    kind = event.get("kind")
+    if kind == "dispatch":
+        return dispatch(plan, **{k: v for k, v in event.items() if k != "kind"})
+    if kind == "result":
+        return result(plan, **{k: v for k, v in event.items() if k != "kind"})
+    if kind == "cache-hit":
+        return cache_hit(plan, event.get("path_key_hash", ""))
+    if kind == "cache-miss":
+        return cache_miss(plan, event.get("path_key_hash", ""))
+    if kind == "reviewer-seat":
+        return reviewer_seat(plan, int(event.get("reviewer_seats") or event.get("seats") or 1), event.get("mode", "UNIFIED"))
+    raise ValueError("TELEMETRY_SCHEMA_INVALID: unknown kind")
+
+
 def summarize(plan: Path) -> dict:
     # @lat: [[acceptance-hardening#Runtime Telemetry]]
     # @lat: [[acceptance-closure#Telemetry Dispatch Correlation]]
+    # @lat: [[governance-architecture-closure]]
     path = telemetry_path(plan)
     if not path.is_file():
         return {
@@ -127,23 +144,42 @@ def summarize(plan: Path) -> dict:
 
     dispatches = {e.get("dispatch_id"): e for e in events if e.get("kind") == "dispatch" and e.get("dispatch_id")}
     results = [e for e in events if e.get("kind") == "result"]
-    result_ids = {e.get("dispatch_id") for e in results if e.get("dispatch_id")}
+    result_by_id: dict[str, list] = {}
+    for e in results:
+        did = e.get("dispatch_id")
+        if did:
+            result_by_id.setdefault(did, []).append(e)
     errors = []
     for did, d in dispatches.items():
         missing = [k for k in DISPATCH_REQUIRED if not d.get(k)]
         if missing:
             errors.append({"code": "TELEMETRY_REQUIRED_FIELD_MISSING", "detail": ",".join(missing)})
-        if did not in result_ids:
+        matched = result_by_id.get(did) or []
+        if not matched:
+            errors.append({"code": "TELEMETRY_DISPATCH_UNPAIRED", "detail": did})
+            # compat alias
             errors.append({"code": "TELEMETRY_ORPHAN_DISPATCH", "detail": did})
+        elif len(matched) > 1:
+            errors.append({"code": "TELEMETRY_RESULT_DUPLICATE", "detail": did})
     for r in results:
-        if r.get("dispatch_id") not in dispatches:
-            errors.append({"code": "TELEMETRY_ORPHAN_RESULT", "detail": str(r.get("dispatch_id"))})
+        did = r.get("dispatch_id")
+        if did not in dispatches:
+            errors.append({"code": "TELEMETRY_DISPATCH_UNPAIRED", "detail": str(did)})
+            errors.append({"code": "TELEMETRY_ORPHAN_RESULT", "detail": str(did)})
+        if not r.get("provider") and not r.get("model") and not r.get("model_identity_unavailable"):
+            errors.append({"code": "TELEMETRY_MODEL_IDENTITY_MISSING", "detail": str(did)})
         missing = [k for k in RESULT_REQUIRED if k not in r]
-        # usage may be replaced by usage_unavailable_reason
-        if r.get("usage_unavailable_reason"):
-            missing = [k for k in missing if k not in {
-                "prompt_tokens", "completion_tokens", "cache_read_tokens", "cache_write_tokens"
-            }]
+        if r.get("usage_unavailable_reason") in {"TOKEN_ACCOUNTING_UNAVAILABLE", "unavailable"} or r.get(
+            "usage_unavailable_reason"
+        ):
+            missing = [
+                k
+                for k in missing
+                if k not in {"prompt_tokens", "completion_tokens", "cache_read_tokens", "cache_write_tokens"}
+            ]
+        elif any(k not in r for k in ("prompt_tokens", "completion_tokens", "cache_read_tokens", "cache_write_tokens")):
+            if not r.get("usage_unavailable_reason"):
+                errors.append({"code": "TELEMETRY_TOKEN_ACCOUNTING_MISSING", "detail": str(did)})
         if missing:
             errors.append({"code": "TELEMETRY_REQUIRED_FIELD_MISSING", "detail": ",".join(missing)})
     kinds = {e.get("kind") for e in events}
@@ -179,7 +215,7 @@ def summarize(plan: Path) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("dispatch", "result", "cache-hit", "cache-miss", "reviewer-seat", "summarize"):
+    for name in ("dispatch", "result", "cache-hit", "cache-miss", "reviewer-seat", "summarize", "ingest"):
         p = sub.add_parser(name)
         p.add_argument("plan", type=Path)
         if name in {"dispatch", "result"}:
@@ -205,6 +241,8 @@ def main() -> int:
         if name == "reviewer-seat":
             p.add_argument("--seats", type=int, default=1)
             p.add_argument("--mode", default="UNIFIED")
+        if name == "ingest":
+            p.add_argument("--event-json", type=Path, required=True)
         p.add_argument("--json", action="store_true")
     a = ap.parse_args()
     plan = a.plan.resolve()
@@ -212,10 +250,15 @@ def main() -> int:
         out = summarize(plan)
         print(json.dumps(out, indent=2) if a.json else out)
         return 0 if out.get("complete") else 2
+    if a.cmd == "ingest":
+        event = json.loads(a.event_json.read_text(encoding="utf-8"))
+        path = ingest(plan, event)
+        print(path)
+        return 0
     fields = {
         k.replace("-", "_"): v
         for k, v in vars(a).items()
-        if k not in {"cmd", "plan", "json"} and v not in ("", None)
+        if k not in {"cmd", "plan", "json", "event_json"} and v not in ("", None)
     }
     fn = {
         "dispatch": dispatch,

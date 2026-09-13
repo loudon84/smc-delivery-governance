@@ -1,7 +1,7 @@
 {
   "schema": "smc.ges.domain-pack.v2",
   "id": "backend",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "display_name": "backend engineering",
   "activation_rules": "activation.json",
   "policy_lock": "policy-lock.json",
@@ -40,17 +40,11 @@
   "plan_validator": ".agents/skills/smc-backend-review/scripts/validate_plan_extension.py",
   "selftest": ".agents/skills/smc-backend-preplan/scripts/selftest.py",
   "evidence_namespace": "backend",
-  "intent_binding": {
-    "preplan_section": "Backend Design Intent",
-    "plan_section": "Backend Quality Ledger",
-    "fields": {
-      "Owner": "Owner",
-      "Contract": "Contract",
-      "Data/Transaction": "Data/Transaction",
-      "Auth": "Auth",
-      "Idempotency/Concurrency": "Idempotency/Concurrency",
-      "Failure Semantics": "Failure Semantics",
-      "Observability": "Observability"
-    }
+  "intent_bindings": {
+    "Owner": {"plan_column": "Owner", "mode": "EXACT"},
+    "Contract": {"plan_column": "Contract", "mode": "EXACT"},
+    "Data/Transaction": {"plan_column": "Data/Transaction", "mode": "EXACT"},
+    "Auth": {"plan_column": "Auth", "mode": "EXACT"},
+    "Idempotency/Concurrency": {"plan_column": "Idempotency/Concurrency", "mode": "EXACT"}
   }
 }

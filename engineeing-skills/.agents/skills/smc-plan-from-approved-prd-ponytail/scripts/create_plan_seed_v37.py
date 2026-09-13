@@ -143,10 +143,26 @@ def main():
         if "governance_profile:" not in text.split("---", 2)[1]:
             text = insert_frontmatter(text, f"governance_profile: {profile}")
         prd_sha = source_prd_sha256(prd)
+        if "source_prd:" not in text.split("---", 2)[1]:
+            # Prefer repo-relative path when possible
+            try:
+                rel = prd.resolve().relative_to(repo_root(prd).resolve()).as_posix()
+            except ValueError:
+                rel = str(prd)
+            text = insert_frontmatter(text, f"source_prd: {rel}")
         if "source_prd_sha256:" not in text.split("---", 2)[1]:
             text = insert_frontmatter(text, f"source_prd_sha256: {prd_sha}")
         if "domain_intent_binding_version:" not in text.split("---", 2)[1]:
             text = insert_frontmatter(text, "domain_intent_binding_version: 1")
+        try:
+            from domain_intent import aggregate_intent_digest  # noqa: E402
+
+            ctx0 = load_context(repo_root(prd))
+            digest = aggregate_intent_digest(prd, ctx0["packs"])
+            if "domain_intent_digest:" not in text.split("---", 2)[1]:
+                text = insert_frontmatter(text, f"domain_intent_digest: {digest}")
+        except Exception:
+            pass
         marker = "## Requirement Coverage Ledger"
         block = (
             f"## Governance Profile\n\n"

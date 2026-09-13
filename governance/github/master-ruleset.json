@@ -1,0 +1,13 @@
+{
+  "schema": "smc.repo.ruleset.v1",
+  "name": "GES Master Governance",
+  "target_branch": "master",
+  "require_pull_request": true,
+  "required_checks": [
+    "validate",
+    "GES Package Gate / validate-package"
+  ],
+  "allow_force_push": false,
+  "allow_delete": false,
+  "direct_update": "restricted"
+}

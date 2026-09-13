@@ -79,13 +79,30 @@ def main() -> int:
         elif target.is_file() or target.is_symlink():
             target.unlink()
 
-    # Remove install receipt when it points at this transaction (not in files list).
+    # Remove install receipts matching this backup / transaction.
+    tx_sha = "sha256:" + (sha256(manifest_path) or "")
+    backup_id = backup.name
+    receipt_dirs = [project / ".smc" / "ges-install-receipts"]
+    for rdir in receipt_dirs:
+        if not rdir.is_dir():
+            continue
+        for receipt in rdir.glob("*.json"):
+            try:
+                rec = json.loads(receipt.read_text(encoding="utf-8"))
+                if rec.get("install_id") == backup_id or rec.get("backup_id") == backup_id:
+                    receipt.unlink()
+            except (OSError, json.JSONDecodeError):
+                pass
+    # Legacy single-file receipt
     receipt = project / ".smc" / "ges-install-receipt.json"
     if receipt.is_file():
         try:
             rec = json.loads(receipt.read_text(encoding="utf-8"))
-            tx_sha = "sha256:" + (sha256(manifest_path) or "")
-            if rec.get("transaction_manifest_sha256") == tx_sha:
+            if (
+                rec.get("transaction_manifest_sha256") == tx_sha
+                or rec.get("install_id") == backup_id
+                or (rec.get("receipt_path") or "").endswith(f"{backup_id}.json")
+            ):
                 receipt.unlink()
         except (OSError, json.JSONDecodeError):
             pass

@@ -1,7 +1,7 @@
 {
   "schema": "smc.ges.domain-pack.v2",
   "id": "frontend",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "display_name": "frontend engineering",
   "activation_rules": "activation.json",
   "policy_lock": "policy-lock.json",
@@ -42,14 +42,10 @@
   "selftest": ".agents/skills/smc-frontend-preplan/scripts/selftest.py",
   "evidence_namespace": "frontend",
   "verification_preflight": ".agents/skills/smc-frontend-visual-verification/scripts/preflight.py",
-  "intent_binding": {
-    "preplan_section": "Frontend Design Intent",
-    "plan_section": "Frontend Quality Ledger",
-    "fields": {
-      "Framework": "Framework",
-      "State Ownership": "State Ownership",
-      "Design System": "Design System",
-      "Visual Verification": "Visual Verification"
-    }
+  "intent_bindings": {
+    "Framework": {"plan_column": "Framework", "mode": "EXACT"},
+    "State Ownership": {"plan_column": "State Ownership", "mode": "EXACT"},
+    "Design System": {"plan_column": "Design System", "mode": "EXACT"},
+    "Visual Verification": {"plan_column": "Visual Verification", "mode": "EXACT"}
   }
 }

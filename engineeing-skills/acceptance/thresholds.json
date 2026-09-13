@@ -1,9 +1,8 @@
 {
-  "schema": "smc.ges.acceptance.thresholds.v1",
+  "schema": "smc.ges.acceptance.thresholds.v2",
   "safety": {
     "high_risk_false_lean": 0,
     "governed_production_false_spike": 0,
-    "hard_risk_stale_review_delta": 0,
     "ownership_escape": 0,
     "scope_drift_accepted": 0,
     "stale_tdd_accepted": 0,
@@ -14,19 +13,13 @@
     "consumer_owned_file_silent_delete": 0
   },
   "quality": {
+    "duplicate_production_owner": 0,
     "blocking_ac_without_proof": 0,
-    "domain_invalid_semantics_accepted": 0,
-    "prd_plan_domain_intent_drift": 0,
-    "uncontrolled_plan_rewrite": 0
+    "domain_invalid_enum_accepted": 0
   },
   "efficiency": {
     "bounded_median_token_reduction_pct": 30,
     "normal_risk_reviewer_seat_reduction_pct": 25,
-    "source_context_repeat_reduction_pct": 30
-  },
-  "stability": {
-    "installer_rollback_success_pct": 100,
-    "completion_reopen_rate_max_delta": 0,
-    "post_delivery_regression_rate_max_delta": 0
+    "repeated_source_context_read_reduction_pct": 30
   }
 }

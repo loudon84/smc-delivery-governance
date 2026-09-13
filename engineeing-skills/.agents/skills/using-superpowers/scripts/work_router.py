@@ -109,32 +109,51 @@ def route(
     authority: dict[str, Any] | None = None,
     authority_status: str | None = None,
     require_authority_for_none: bool = False,
+    work_facts: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    """Library-compatible router. Production orchestrators should call route_bound()."""
     if not isinstance(facts, dict):
         raise ValueError("WORK_FACTS_INVALID")
     if previous is not None and previous not in {"NONE", "LEAN", "FULL"}:
         raise ValueError("PREVIOUS_PROFILE_INVALID")
 
-    auth_status = authority_status or ("UNBOUND" if authority is None else "VERIFIED")
-    auth_sha = (authority or {}).get("authority_sha256")
+    auth_status = authority_status or ("UNBOUND" if authority is None and work_facts is None else "VERIFIED")
+    auth_sha = None
     merged = dict(facts)
-    if authority is not None:
-        from work_authority import merge_route_facts, verify_authority
+    research_block: list[str] = []
 
-        status, auth_reasons = verify_authority(authority)
-        auth_status = status
+    if work_facts is not None:
+        from work_facts import envelope_facts, verify_envelope
+
+        status, auth_reasons = verify_envelope(work_facts)
+        auth_status = status if status == "VERIFIED" else status
+        auth_sha = work_facts.get("facts_digest")
         if status != "VERIFIED":
-            merged = dict(facts)
-            # fail closed: treat as missing authority for research
             for k in RESEARCH_AUTHORITY:
                 merged.pop(k, None)
-            research_block = auth_reasons or ["WORK_AUTHORITY_MISSING"]
+            research_block = auth_reasons or ["WORK_FACTS_AUTHORITY_MISSING"]
+            # map unbound/stale to production block codes
+            if status == "UNBOUND":
+                research_block = ["WORK_FACTS_UNBOUND"]
+            elif status == "STALE":
+                research_block = ["WORK_FACTS_STALE"]
         else:
-            merged = merge_route_facts(facts, authority)
-            research_block = []
-    else:
-        research_block = []
+            merged = {**merged, **envelope_facts(work_facts)}
+    elif authority is not None:
+        from work_authority import merge_route_facts, verify_authority
 
+        legacy_status, legacy_reasons = verify_authority(authority)
+        auth_sha = authority.get("authority_sha256")
+        if legacy_status == "VERIFIED":
+            merged = merge_route_facts(facts, authority)
+            auth_status = "VERIFIED"
+        else:
+            for k in RESEARCH_AUTHORITY:
+                merged.pop(k, None)
+            research_block = legacy_reasons or ["WORK_AUTHORITY_MISSING"]
+            auth_status = legacy_status
+    else:
+        pass
     known = all(merged.get(k) is True for k in REQUIRED)
     safe = all(merged.get(k) is False for k in RISKS)
     reasons = [k for k in RISKS if merged.get(k) is not False]
@@ -145,13 +164,14 @@ def route(
     reasons.extend(research_block)
 
     authority_blocked_none = False
-    # Production SPIKE/NONE requires verified authority when required.
-    if research_ok and (require_authority_for_none or authority is not None):
+    bound_required = require_authority_for_none or authority is not None or work_facts is not None
+    if research_ok and bound_required:
         if auth_status != "VERIFIED":
             research_ok = False
             authority_blocked_none = True
-            reasons.append("WORK_AUTHORITY_MISSING")
-    if research_ok and require_authority_for_none and authority is None:
+            if "WORK_FACTS_UNBOUND" not in reasons and "WORK_FACTS_STALE" not in reasons:
+                reasons.append("WORK_AUTHORITY_MISSING" if work_facts is None else "WORK_FACTS_AUTHORITY_MISSING")
+    if research_ok and require_authority_for_none and authority is None and work_facts is None:
         research_ok = False
         authority_blocked_none = True
         reasons.append("WORK_AUTHORITY_MISSING")
@@ -165,7 +185,6 @@ def route(
     elif known and safe and previous != "FULL":
         work = "BOUNDED"
         profile = "LEAN" if merged.get("governed") is True or previous == "LEAN" else "NONE"
-        # Library compatibility: unbound NONE still allowed for unit tests unless require_authority_for_none.
         if profile == "NONE" and require_authority_for_none and auth_status != "VERIFIED":
             work, profile = "BOUNDED", "LEAN"
             reasons.append("WORK_AUTHORITY_MISSING")
@@ -180,29 +199,73 @@ def route(
         "facts": merged,
         "effective_research_only": research_ok,
         "authority_sha256": auth_sha,
-        "authority_status": auth_status if authority is not None or require_authority_for_none else "UNBOUND",
+        "authority_status": auth_status if bound_required else "UNBOUND",
+        "facts_digest": auth_sha if work_facts is not None else None,
     }
+
+
+def route_bound(
+    envelope: dict[str, Any],
+    previous: str | None = None,
+    *,
+    caller_facts: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Production entry: requires verified smc.ges.work-facts.v1 envelope."""
+    # @lat: [[governance-architecture-closure]]
+    from work_facts import envelope_facts
+
+    base = dict(caller_facts or {})
+    base.update(envelope_facts(envelope))
+    return route(base, previous, work_facts=envelope, require_authority_for_none=True)
 
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("facts", type=Path)
+    p.add_argument("facts", type=Path, nargs="?", help="raw facts JSON (requires --unsafe-raw-facts) or work-facts envelope")
     p.add_argument("--previous-profile", choices=("NONE", "LEAN", "FULL"))
-    p.add_argument("--authority", type=Path, help="smc.ges.work-authority.v1 file; required for production NONE")
+    p.add_argument("--authority", type=Path, help="legacy smc.ges.work-authority.v1 (compat)")
+    p.add_argument("--work-facts", type=Path, help="smc.ges.work-facts.v1 envelope (production default)")
+    p.add_argument(
+        "--unsafe-raw-facts",
+        action="store_true",
+        help="dev/selftest only: allow unbound raw facts JSON; forbidden for production orchestrators",
+    )
     a = p.parse_args()
-    authority = None
+    if a.work_facts:
+        from work_facts import load_envelope
+
+        env = load_envelope(a.work_facts)
+        print(json.dumps(route_bound(env, a.previous_profile), indent=2, ensure_ascii=False))
+        return
     if a.authority:
         from work_authority import load_authority
+        from work_facts import from_work_authority
 
         authority = load_authority(a.authority)
+        # prefer converted work-facts path
+        env = from_work_authority(authority)
+        caller = {}
+        if a.facts:
+            caller = json.loads(a.facts.read_text(encoding="utf-8"))
+        print(
+            json.dumps(
+                route(caller, a.previous_profile, authority=authority, require_authority_for_none=True),
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+        return
+    if not a.facts:
+        raise SystemExit("facts path or --work-facts required")
+    raw = json.loads(a.facts.read_text(encoding="utf-8"))
+    if raw.get("schema") == "smc.ges.work-facts.v1":
+        print(json.dumps(route_bound(raw, a.previous_profile), indent=2, ensure_ascii=False))
+        return
+    if not a.unsafe_raw_facts:
+        raise SystemExit("production CLI requires --work-facts (or pass envelope JSON); use --unsafe-raw-facts only for dev/selftest")
     print(
         json.dumps(
-            route(
-                json.loads(a.facts.read_text(encoding="utf-8")),
-                a.previous_profile,
-                authority=authority,
-                require_authority_for_none=True,
-            ),
+            route(raw, a.previous_profile, require_authority_for_none=True),
             indent=2,
             ensure_ascii=False,
         )

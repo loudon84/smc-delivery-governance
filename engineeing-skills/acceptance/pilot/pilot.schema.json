@@ -1,0 +1,22 @@
+{
+  "schema": "smc.ges.pilot.matrix.v1",
+  "description": "3 Consumer × 4 class = 12 delivery pilot slots (specification only)",
+  "required": ["slots"],
+  "properties": {
+    "slots": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "required": ["slot_id", "consumer", "class", "status"],
+        "properties": {
+          "slot_id": {"type": "string"},
+          "consumer": {"enum": ["Frontend", "Backend", "Ops"]},
+          "class": {"enum": ["LEAN", "BEHAVIOR_CHANGE", "BUG_FIX", "HIGH_RISK"]},
+          "status": {"enum": ["NOT_EXECUTED", "NOT_PROVEN", "PASS", "FAIL", "BLOCKED"]}
+        }
+      }
+    }
+  }
+}

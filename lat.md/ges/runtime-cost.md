@@ -8,13 +8,13 @@ GES 5 在保留在途 v3.6、Test Asset 和 Delivery truth ownership 的前提�
 
 只有未引用任何 governed artifact、已有稳定 owner 和可证明 focused verification 的 BOUNDED 工作可走项目轻量流程。已有 Architecture、Roadmap、PRD 或 Plan 的任务仍必须走 [[pipeline#GES Pipeline#Stages]]，不能以成本为由降级。
 
-`research_only` 不能单独产生 SPIKE/NONE；必须通过 [[acceptance-hardening#Work Router Research Trust]] 的 authority 判定。生产 CLI 还需绑定 [[acceptance-closure#Work Authority Binding]]；库接口 `route(facts)` 保持兼容。风险主判据来自 structured Routing Facts，而非全文 broad regex，见 [[acceptance-hardening#Structured Risk Runtime]]。
+`research_only` 不能单独产生 SPIKE/NONE；必须通过 [[acceptance-hardening#Work Router Research Trust]] 的 authority 判定。生产 CLI 还需绑定 [[acceptance-closure#Work Authority Binding]]（canonical work-facts）；库接口 `route(facts)` 保持兼容。风险主判据来自 structured Routing Facts，而非全文 broad regex，见 [[acceptance-hardening#Structured Risk Runtime]]。
 
 ## Adaptive Plan Review
 
 Plan review 保持 `NOT_REQUIRED | REQUIRED` 的外部协议，并以 NONE、DELTA、FULL 缩小安全的语义读取范围。
 
-Closure 起深度按 R1–R7：**当前 hard risk 排在 stale PASS→DELTA 之前**，见 [[acceptance-closure#Plan Review Precedence]]。没有当前 PASS 的高风险 Plan 必须 FULL。低风险 LEAN 或旧合同可获 NONE；已有 PASS 的语义变更可获 DELTA，但必须有绑定该 PASS 记录及内容的 snapshot。任何旧非 PASS（包括 STALE REVISE）均不得降级；`INVALID` snapshot 视为 hard risk，`ABSENT` 对旧 Plan 非阻塞。
+Architecture Closure 起深度按九级序（FRESH_PASS 先于 hard risk 以满足 freshness AC）；主码 `PLAN_REVIEW_CURRENT_RISK_FULL_REQUIRED`，DELTA 需 [[engineeing-skills/.agents/skills/smc-plan-review/scripts/assess_plan_review.py#delta_eligible]]。见 [[acceptance-closure#Plan Review Precedence]]。没有当前 PASS 的高风险 Plan 必须 FULL；STALE PASS + safe 可 DELTA。任何旧非 PASS（包括 STALE REVISE）均不得降级；`INVALID` snapshot 视为 hard risk。
 
 带 acceptance contract 的 LEAN 首次审查可通过确定性结构 clearance 进入 DELTA/LIGHT，见 [[acceptance-hardening#LEAN First Review Clearance]]；无法 clearance 时仍 FULL，不得跳过 blocking acceptance 检查。
 

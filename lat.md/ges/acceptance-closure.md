@@ -1,8 +1,8 @@
 # GES Acceptance Closure Contracts
 
-v5.0.2 Acceptance Closure 冻结跨 Change 共享契约并落地 C07–C13，使 CI 字节身份、审查优先级、authority、intent binding、install receipt 与可执行验收共用同一 SOT。
+v5.0.2 Acceptance Closure 冻结跨 Change 共享契约并落地 C07–C13；Architecture Closure 在其上迁移命名并关闭 C01–C07 架构断点。
 
-权威需求见 `docs/prd/PRD-GES-v5.0.2-Acceptance-Closure.md`。变更摘要见 `engineeing-skills/CHANGES-v5.0.2.md`；Candidate 见 `BASELINE-CANDIDATE-v5.0.2.md`。`BASELINE.md` 仍只记已接受生产基线。
+权威需求见 `docs/prd/PRD-GES-v5.0.2-Acceptance-Closure.md`。命名迁移与后续锚点见 [[governance-architecture-closure]]。`BASELINE.md` 仍只记已接受生产基线。
 
 ## Byte Identity and EOL
 
@@ -14,7 +14,7 @@ Package 字节身份要求工作树字节与 git blob 字节一致，并由根 `
 
 序列化对象哈希复用 [[engineeing-skills/domain-runtime/domain_runtime.py#canonical_json]] 与 [[engineeing-skills/domain-runtime/domain_runtime.py#sha256_json]]；原始文件身份一律对 bytes 做 SHA256，禁止 loads→reserialize→hash。
 
-Work Authority、Domain Intent Binding 属于 derived working-memory，不是第二 SOT；它们的 digest 必须可复算。Install lock 的 `package_manifest_sha256` 绑定 PACKAGE-MANIFEST raw bytes，见 [[install#Install Lock v2]]。
+Work Facts（及旧 Work Authority）、Domain Intent Binding 属于 derived working-memory，不是第二 SOT；digest 必须可复算。Install lock 的 `package_manifest_sha256` 绑定 PACKAGE-MANIFEST raw bytes；`package_version` 单一来源为 `core/manifest.json` bundle，见 [[install#Install Lock v2]] 与 [[governance-architecture-closure#Delivered Anchors]]。
 
 ## Risk Snapshot Tri-State
 
@@ -30,39 +30,39 @@ Core 只提供 [[engineeing-skills/domain-runtime/domain_table.py#validate_enum]
 
 ## Telemetry Dispatch Correlation
 
-每个 Harness dispatch 必须有 `dispatch_id`；result 必须回指同一 id；completeness 与 benchmark 共用该关联契约。
+每个 Harness dispatch 必须有 `dispatch_id`；result 必须唯一终态回指同一 id；completeness 与 benchmark 共用该关联契约。
 
-仅有 cache-hit 事件不得 `complete=true`；usage 缺失必须写 `usage_unavailable_reason`，禁止用 0 伪装。见 [[engineeing-skills/.agents/skills/smc-plan-delivery/scripts/runtime_metrics.py#summarize]] 与 schema `smc.execution.telemetry-completeness.v1`。
+Architecture Closure 起缺配对回 `TELEMETRY_DISPATCH_UNPAIRED`（旧 `TELEMETRY_ORPHAN_*` 只读兼容）、重复 result 回 `TELEMETRY_RESULT_DUPLICATE`；缺 provider/model 回 `TELEMETRY_MODEL_IDENTITY_MISSING`；缺 token 会计回 `TELEMETRY_TOKEN_ACCOUNTING_MISSING` 或显式 `TOKEN_ACCOUNTING_UNAVAILABLE`。仅 cache-hit 不得 `complete=true`。见 [[engineeing-skills/.agents/skills/smc-plan-delivery/scripts/runtime_metrics.py#summarize]]、[[engineeing-skills/.agents/skills/smc-plan-delivery/scripts/runtime_metrics.py#ingest]] 与 [[governance-architecture-closure#Naming Migration Map]]。
 
 ## Reused Error Codes
 
-Closure 复用既有稳定错误码，禁止改名：`PLAN_WRITE_OWNERSHIP_CONFLICT`、`DELIVERY_SCOPE_DRIFT`、`TDD_SCOPE_STALE`、`DEBUG_ARCHITECTURE_ESCALATION`、`LIVE_SUT_MISMATCH`、`PRD_STALE_OR_CONFLICTING`、`INSTALL_STALE_OWNED_FILE_MODIFIED`、`TELEMETRY_INCOMPLETE`。
+Acceptance Closure 起复用稳定错误码：`PLAN_WRITE_OWNERSHIP_CONFLICT`、`DELIVERY_SCOPE_DRIFT`、`TDD_SCOPE_STALE`、`DEBUG_ARCHITECTURE_ESCALATION`、`LIVE_SUT_MISMATCH`、`PRD_STALE_OR_CONFLICTING`、`INSTALL_STALE_OWNED_FILE_MODIFIED`、`TELEMETRY_INCOMPLETE`。
 
-新增码仅覆盖尚无能力：`WORK_AUTHORITY_*`、`DOMAIN_INTENT_BINDING_*`、`INSTALL_RECEIPT_*`、`TELEMETRY_ORPHAN_*`、`BENCHMARK_*`、`PILOT_EVIDENCE_INCOMPLETE`。
+Architecture Closure 起 canonical 新码见 [[governance-architecture-closure#Naming Migration Map]]（`WORK_FACTS_*`、`PLAN_SOURCE_PRD_*`、`PLAN_REVIEW_CURRENT_RISK_*`、`TELEMETRY_DISPATCH_UNPAIRED`、`BENCHMARK_THRESHOLD_*` 等）；旧名只读兼容一个 release。
 
 ## Plan Review Precedence
 
-Plan Review 深度按 R1–R7：当前 hard risk 高于 stale PASS→DELTA，避免把高风险变更误降为增量审查。
+Plan Review 深度按 Architecture Closure §8.2 九级序；主码为 `PLAN_REVIEW_CURRENT_RISK_FULL_REQUIRED`。
 
-顺序为 prior≠PASS → FRESH_PASS → **current hard risk** → STALE PASS→DELTA → acceptance first review → low-risk legacy → 兜底 FULL。`INVALID` snapshot 算 hard signal；`ABSENT` 保持非阻塞。见 [[engineeing-skills/.agents/skills/smc-plan-review/scripts/assess_plan_review.py#classify]] 与 [[runtime-cost#Adaptive Plan Review]]。
+实现顺序（freshness 回归约束）：prior≠PASS → **FRESH_PASS→NONE** → contradiction → hard risk → facts missing where required → STALE PASS+`delta_eligible`→DELTA → acceptance first → legacy low-risk → 兜底 FULL。`INVALID` 为 hard；STALE PASS 下 `ABSENT` 可 DELTA。见 [[engineeing-skills/.agents/skills/smc-plan-review/scripts/assess_plan_review.py#classify]]、[[engineeing-skills/.agents/skills/smc-plan-review/scripts/assess_plan_review.py#delta_eligible]] 与 [[runtime-cost#Adaptive Plan Review]]。
 
 ## Work Authority Binding
 
-生产 SPIKE/NONE 必须绑定可验证的 `smc.ges.work-authority.v1`，缺来源一律 `UNKNOWN`，不得默认 false。
+生产 SPIKE/NONE 必须绑定可验证权威；Architecture Closure 起 canonical 为 `smc.ges.work-facts.v1`。
 
-[[engineeing-skills/.agents/skills/using-superpowers/scripts/work_authority.py#build_authority]] 写入 `.smc/work/<id>/work-authority.json`（`sources[]` + `authority_sha256`）。[[engineeing-skills/.agents/skills/using-superpowers/scripts/work_router.py#route]] 输出 `authority_sha256` / `authority_status`；CLI 强制 `require_authority_for_none`，库接口 `route(facts)` 保持兼容。见 [[acceptance-hardening#Work Router Research Trust]]。
+[[engineeing-skills/.agents/skills/using-superpowers/scripts/work_facts.py#build_envelope]] 写入全量 facts、per-field provenance 与 `facts_digest`（落 `.smc/runs/<id>/routing/work-facts.json`）。[[engineeing-skills/.agents/skills/using-superpowers/scripts/work_router.py#route_bound]] 为 CLI 默认；仅 `--unsafe-raw-facts` 允许裸 facts。旧 [[engineeing-skills/.agents/skills/using-superpowers/scripts/work_authority.py#build_authority]] 为只读兼容 shim，不得单独宣称 bound。见 [[acceptance-hardening#Work Router Research Trust]] 与 [[governance-architecture-closure#Naming Migration Map]]。
 
 ## Domain Intent Binding
 
 已批准 PRD 的 Domain Intent 与 Plan Ledger 必须 content-bound，防止执行期静默漂移。
 
-[[engineeing-skills/domain-runtime/domain_intent.py#verify_bindings]] 重算 hash；缺失/陈旧分别回 `DOMAIN_INTENT_BINDING_MISSING` / `DOMAIN_INTENT_BINDING_STALE`，与 PRD 字节冲突回 `PRD_STALE_OR_CONFLICTING`。pack `intent_binding`（2.1.0）与 seed 表见 [[domain-packs#Intent Binding]]。
+[[engineeing-skills/domain-runtime/domain_intent.py#verify_bindings]] 重算 hash。Architecture Closure 起主码为 `PLAN_SOURCE_PRD_MISSING` / `PLAN_SOURCE_PRD_STALE` / `PLAN_DOMAIN_INTENT_STALE`（见 [[governance-architecture-closure#Naming Migration Map]]）；与 PRD 字节冲突仍回 `PRD_STALE_OR_CONFLICTING`。pack `intent_bindings`（2.2.0）见 [[domain-packs#Intent Binding]]。
 
 ## Install Receipt
 
-PASS transaction 之后写入非循环的 `smc.ges.install-receipt.v1`，绑定最终 lock 与 PASS manifest，而不是 PENDING 态。
+Architecture Closure 起顺序为 receipt → lock → journal PASS。
 
-[[engineeing-skills/install_v500.py#write_install_receipt]] 在 lock 写完且 transaction=`PASS` 后落盘；receipt 自身不入 transaction manifest 哈希。Rollback 在 transaction hash 匹配时显式删除 receipt，见 [[install#Install Receipt]]。
+[[engineeing-skills/install_v500.py#write_immutable_receipt]] 在 lock 之前落 `.smc/ges-install-receipts/<id>.json`；lock 携带 `install_receipt_path`/`install_receipt_sha256`。见 [[install#Install Receipt]] 与 [[governance-architecture-closure]]。
 
 ## Executable Acceptance Evidence
 
@@ -74,10 +74,10 @@ Acceptance harness 必须用真实行为断言 G16–G22，不得用 `callable()
 
 仓库保护校验器输出 protected / require_pr / required_checks / force_push_blocked / deletion_blocked / direct_update_restricted；token 只从 secret 读。
 
-[[engineeing-skills/acceptance/verify_repository_protection.py#from_api]] 与 [[engineeing-skills/acceptance/verify_repository_protection.py#from_evidence]] 支持 live API 或离线 evidence。Ruleset 实际启用以 `RULESET-ACTIVATION.md` 手工步骤为准，CI 连续绿后再执行。
+[[engineeing-skills/acceptance/verify_repository_protection.py#from_api]] 与 [[engineeing-skills/acceptance/verify_repository_protection.py#from_evidence]] 支持 live API 或离线 evidence。Desired-state 见 `governance/github/master-ruleset.json` 与 [[tools/check_repo_governance.py#main]]（`REPO_GOVERNANCE_PASS|DRIFT|UNAVAILABLE`）；C03-AC02 仍 OPEN。
 
 ## Benchmark and Pilot Layout
 
-Benchmark 实算 cohort A/B/C median 与 `reduction_pct`，并按全量 Safety/Quality/Efficiency/Stability 阈值裁决。
+Architecture Closure 起 Benchmark 为 paired A/B（按 `case_id`）计算器；本 slice 只用 synthetic fixture，不跑真实数据。
 
-[[engineeing-skills/acceptance/run_benchmark.py#score]] 产出 `BENCHMARK_PASS|COST_GAP|REJECT|TELEMETRY_INCOMPLETE|BASELINE_NOT_REPRODUCIBLE`；成本降但质量恶化不得 ACCEPT。Pilot 证据布局在 `audit/ges/acceptance/<candidate>/`，缺证据时 [[engineeing-skills/acceptance/verify_pilot_evidence.py#verify]] 确定性返回 `PILOT_EVIDENCE_INCOMPLETE`。
+[[engineeing-skills/acceptance/run_benchmark.py#score]] 产出 `BENCHMARK_READY|BENCHMARK_THRESHOLD_MET|BENCHMARK_THRESHOLD_NOT_MET|TELEMETRY_INCOMPLETE|UNPAIRED_CASES|BENCHMARK_INPUT_INVALID`；阈值 schema 为 `thresholds.v2`。Pilot 规格在 `acceptance/pilot/`（12 slot，状态 `NOT_EXECUTED`），由 [[engineeing-skills/acceptance/pilot/run_pilot.py#validate_matrix]] 校验；旧 [[engineeing-skills/acceptance/verify_pilot_evidence.py#verify]] 仅为兼容 shim。

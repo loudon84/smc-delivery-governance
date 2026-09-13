@@ -70,6 +70,18 @@ def semantic(row: dict[str, str], index: int) -> list[dict[str, str]]:
                 }
             )
         errors.extend(validate_na_with_reason(row, "Migration Order", "OPS_PREPLAN", index, allow_bare_na=False))
+    # Migration applies when impact implies migration / irreversible / topology change
+    if impact in {"IRREVERSIBLE", "TOPOLOGY_CHANGE", "ROLLING_CHANGE"}:
+        mig = row.get("Migration Order", "").strip()
+        if not mig or _token(mig) in {"N/A", "NA"}:
+            # N/A requires reason; bare N/A or empty when migration applies is invalid
+            if not mig or (":" not in mig and "(" not in mig):
+                errors.append(
+                    {
+                        "code": "OPS_PREPLAN_ENUM_INVALID",
+                        "detail": f"row={index} Migration Order must be structured non-N/A when migration applies",
+                    }
+                )
     return errors
 
 

@@ -447,6 +447,25 @@ def assert_policy(plan: Path, ges_root: Path | None = None, profile_path: Path |
     return resolved
 
 
+def normalize_domain_intent(domain: str, change_id: str, row: dict[str, str], fields: list[str]) -> dict[str, Any]:
+    """Thin wrapper — implementation lives in domain_intent.py."""
+    from domain_intent import normalize_domain_intent as _impl
+
+    return _impl(domain, change_id, row, fields)
+
+
+def domain_intent_digest(domain: str, change_id: str, normalized: dict[str, str]) -> str:
+    from domain_intent import domain_intent_digest as _impl
+
+    return _impl(domain, change_id, normalized)
+
+
+def validate_intent_binding(plan: Path, prd: Path, packs: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
+    from domain_intent import validate_intent_binding as _impl
+
+    return _impl(plan, prd, packs)
+
+
 def validate_preplan(prd, ges_root=None, profile_path=None):
     repo = find_repo_root(prd)
     context = load_context(repo, ges_root, profile_path)
@@ -474,7 +493,16 @@ def validate_preplan(prd, ges_root=None, profile_path=None):
             errors.append({'code': 'DOMAIN_PREPLAN_VALIDATOR_MISSING', 'detail': str(path)});continue
         result = subprocess.run([sys.executable, str(path), str(prd), '--json'], cwd=repo, capture_output=True, text=True, encoding='utf-8')
         if result.returncode:
-            errors.append({'code': 'DOMAIN_PREPLAN_FAILED', 'detail': result.stdout + result.stderr})
+            try:
+                payload = json.loads(result.stdout or '{}')
+                child_errors = payload.get('errors', [])
+            except json.JSONDecodeError:
+                child_errors = []
+            if child_errors:
+                for item in child_errors:
+                    errors.append({'code': str(item.get('code', 'DOMAIN_PREPLAN_FAILED')), 'detail': str(item.get('detail', ''))})
+            else:
+                errors.append({'code': 'DOMAIN_PREPLAN_FAILED', 'detail': result.stdout + result.stderr})
     return errors
 
 def main() -> int:

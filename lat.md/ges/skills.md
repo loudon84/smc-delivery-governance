@@ -38,7 +38,7 @@
 
 无论路由结果是 `NOT_REQUIRED` 还是实际 `PASS`，都必须留下绑定当前 semantic Plan hash 的 clearance。运行时 Todo `status` 变化不得使 Plan review stale。
 
-`DELTA` 仅可在已有绑定上次 PASS 的 semantic snapshot 且风险未升级时缩小读取范围；缺失或被改写的 snapshot、未关闭非 PASS 或高风险变更必须 `FULL`，详见 [[runtime-cost#Adaptive Plan Review]]。
+`DELTA` 仅在 stale prior PASS 且 `delta_eligible` 成立时缩小读取范围；contradiction、current hard risk、`PLAN_REVIEW_DELTA_INELIGIBLE`、缺失/被改写 snapshot 或未关闭非 PASS 必须 `FULL`，详见 [[runtime-cost#Adaptive Plan Review]]。
 
 ## Domain Provider Ownership
 

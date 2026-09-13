@@ -3,7 +3,8 @@
   "required": ["case_id", "cohort", "outcome"],
   "properties": {
     "case_id": {"type": "string"},
-    "cohort": {"enum": ["A", "B", "C"]},
+    "cohort": {"enum": ["A", "B"]},
+    "class": {"type": "string"},
     "ges_release": {"type": "string"},
     "consumer": {"type": "string"},
     "consumer_revision": {"type": "string"},
@@ -11,8 +12,16 @@
     "governance_profile": {"type": "string"},
     "acceptance_oracle": {"type": "string"},
     "outcome": {"enum": ["PASS", "FAIL", "BLOCKED", "TELEMETRY_INCOMPLETE"]},
+    "prompt_tokens": {"type": "integer"},
+    "completion_tokens": {"type": "integer"},
+    "cache_read_tokens": {"type": "integer"},
+    "cache_write_tokens": {"type": "integer"},
+    "reviewer_seats": {"type": "integer"},
+    "fix_rounds": {"type": "integer"},
+    "escaped_defect": {"type": "integer"},
     "metrics": {
       "type": "object",
+      "description": "legacy nested metrics (read-only compat)",
       "properties": {
         "prompt_tokens": {"type": "integer"},
         "completion_tokens": {"type": "integer"},

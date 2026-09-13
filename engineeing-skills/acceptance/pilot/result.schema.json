@@ -1,0 +1,12 @@
+{
+  "schema": "smc.ges.pilot.result.v1",
+  "required": ["slot_id", "consumer", "class", "status"],
+  "properties": {
+    "slot_id": {"type": "string"},
+    "consumer": {"enum": ["Frontend", "Backend", "Ops"]},
+    "class": {"enum": ["LEAN", "BEHAVIOR_CHANGE", "BUG_FIX", "HIGH_RISK"]},
+    "status": {"enum": ["NOT_EXECUTED", "NOT_PROVEN", "PASS", "FAIL", "BLOCKED"]},
+    "evidence_dir": {"type": "string"},
+    "notes": {"type": "string"}
+  }
+}

@@ -108,7 +108,44 @@ class AdaptivePlanReviewTest(unittest.TestCase):
         )
         result = classify(self.plan)
         self.assertEqual(result["depth"], "FULL")
+        self.assertIn("PLAN_REVIEW_CURRENT_RISK_FULL_REQUIRED", result["reasons"])
         self.assertIn("PLAN_REVIEW_HARD_RISK_FULL_REQUIRED", result["reasons"])
+
+    def _stale_pass_then_hard(self, flag: str):
+        self.plan.write_text(LOW_RISK, encoding="utf-8")
+        current = classify(self.plan)["plan_sha256"]
+        review = self.root / ".smc" / "reviews" / "demo-plan.jsonl"
+        review.parent.mkdir(parents=True, exist_ok=True)
+        review.write_text(json.dumps({"kind": "plan", "verdict": "PASS", "plan_sha256": current}) + "\n", encoding="utf-8")
+        facts = {
+            "new_owner": False,
+            "public_contract": False,
+            "security_boundary": False,
+            "schema_migration": False,
+            "protocol_change": False,
+            "external_dependency": False,
+            "lifecycle_change": False,
+            "cross_domain_ownership": False,
+            "live_acceptance": False,
+        }
+        facts[flag] = True
+        self.plan.write_text(
+            LOW_RISK.replace("adjust existing validation", f"adjust with {flag}")
+            + f"\n## Governance Profile\n\n- Risk Facts Snapshot: `{json.dumps(facts)}`\n",
+            encoding="utf-8",
+        )
+        result = classify(self.plan)
+        self.assertEqual(result["depth"], "FULL", msg=flag)
+        self.assertIn("PLAN_REVIEW_CURRENT_RISK_FULL_REQUIRED", result["reasons"])
+
+    def test_stale_pass_plus_public_contract_is_full(self):
+        self._stale_pass_then_hard("public_contract")
+
+    def test_stale_pass_plus_security_boundary_is_full(self):
+        self._stale_pass_then_hard("security_boundary")
+
+    def test_stale_pass_plus_live_acceptance_is_full(self):
+        self._stale_pass_then_hard("live_acceptance")
 
     def test_fresh_pass_high_risk_is_none(self):
         facts = {

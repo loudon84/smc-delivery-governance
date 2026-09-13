@@ -296,7 +296,7 @@ Acceptance Closure 测试证明 Remaining Findings 以真实行为关闭，而�
 
 ### Authority required for production none
 
-生产 CLI 在无 verified work-authority 时不得路由 NONE；绑定后的纯研究 authority 仍可 SPIKE/NONE。
+生产 CLI 在无 verified work-facts（或兼容 work-authority）时不得路由 NONE；绑定后的纯研究 facts 仍可 SPIKE/NONE。
 
 ### No fulltext blocking on negation
 

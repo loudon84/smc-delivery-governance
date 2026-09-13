@@ -2,13 +2,13 @@
 
 Acceptance Hardening 在不改 Frozen Invariants 的前提下加固路由信任、风险判定、Domain 语义、安装 provenance 与可观测性，使 NONE/LEAN/FULL 与安装身份可由工程证据复现。
 
-权威需求见仓库 `docs/prd/PRD-GES-v5.0.1-Acceptance-Hardening.md`。Candidate 变更摘要见 `engineeing-skills/CHANGES-v5.0.1.md`。v5.0.2 在其上关闭剩余 findings，见 [[acceptance-closure]]。
+权威需求见仓库 `docs/prd/PRD-GES-v5.0.1-Acceptance-Hardening.md`。Candidate 变更摘要见 `engineeing-skills/CHANGES-v5.0.1.md`。v5.0.2 Acceptance Closure 与 Architecture Closure 叠在其上，见 [[acceptance-closure]] 与 [[governance-architecture-closure]]。
 
 ## Work Router Research Trust
 
 `research_only` 只是 hint（`research_intent` 别名），不能单独产生 SPIKE/NONE。
 
-[[engineeing-skills/.agents/skills/using-superpowers/scripts/work_router.py#effective_research_only]] 仅在 authority 字段全部显式为 false、且 previous profile 为 None/NONE 时返回有效 research。缺字段、unknown、governed/production 冲突一律 fail-closed 到 FULL，并返回稳定 reason code。路由输出 schema 为 `smc.ges.work-route.v2`，见 [[engineeing-skills/.agents/skills/using-superpowers/scripts/work_router.py#route]]。Closure 增加可验证 work-authority 绑定，见 [[acceptance-closure#Work Authority Binding]]。
+[[engineeing-skills/.agents/skills/using-superpowers/scripts/work_router.py#effective_research_only]] 仅在 authority 字段全部显式为 false、且 previous profile 为 None/NONE 时返回有效 research。缺字段、unknown、governed/production 冲突一律 fail-closed 到 FULL。路由输出 schema 为 `smc.ges.work-route.v2`。Architecture Closure 起 CLI 默认 [[engineeing-skills/.agents/skills/using-superpowers/scripts/work_router.py#route_bound]]；权威 SOT 为 work-facts，见 [[acceptance-closure#Work Authority Binding]]。
 
 ## Structured Risk Runtime
 
@@ -26,22 +26,22 @@ PRD、Plan Validator 与 Plan Review 共用同一风险解析模块，禁止第�
 
 Core 只提供 enum/条件 primitives；Frontend/Backend/Ops validator 持有业务合法值。
 
-[[engineeing-skills/domain-runtime/domain_table.py#validate_enum]] 与条件 helpers 不硬编码 domain id。非法 Framework、Backend breaking+LEAN、Ops irreversible 无 rollback 必须确定性 FAIL/FULL_REQUIRED。Closure 去掉全文 blocking regex，改 row token；Intent Binding 见 [[acceptance-closure#Structured Domain Triggers]] 与 [[acceptance-closure#Domain Intent Binding]]。
+[[engineeing-skills/domain-runtime/domain_table.py#validate_enum]] 与条件 helpers 不硬编码 domain id。非法 Framework、Backend breaking+LEAN、Ops irreversible 无 rollback 必须确定性 FAIL/FULL_REQUIRED。Architecture Closure 起 FE token 以 PRD §11.2 为准（旧 token 为 alias），见 [[governance-architecture-closure#Frontend Token Canonical and Alias]]；Intent Binding 见 [[acceptance-closure#Domain Intent Binding]]。
 
 ## Install Lock v2
 
 Consumer install lock 证明 package bytes 身份，并安全清理未修改的 stale package-owned 文件。
 
-[[engineeing-skills/install_v500.py#build_install_lock]] 写入 `smc.ges.install-lock.v2`（release_identity + owned_files）。[[engineeing-skills/install_v500.py#reconcile_stale_owned_files]]：v1 skip destructive；v2 未改动 stale 删除并入 rollback；已改动 stale 阻断。Closure 追加 PASS 后 [[install#Install Receipt]]，lock 不再绑 PENDING transaction hash。
+[[engineeing-skills/install_v500.py#build_install_lock]] 写入 `smc.ges.install-lock.v2`（release_identity + owned_files + install_receipt_*）。[[engineeing-skills/install_v500.py#reconcile_stale_owned_files]]：v1 skip destructive；v2 未改动 stale 删除并入 rollback；已改动 stale 阻断。Architecture Closure 在 lock 前写 [[install#Install Receipt]]；`package_manifest_sha256` 仍为 PACKAGE-MANIFEST raw bytes digest。
 
 ## Runtime Telemetry
 
 Telemetry 记录 tier/token/retry/cache/reviewer 计数，不是 Final Evidence。
 
-[[engineeing-skills/.agents/skills/smc-plan-delivery/scripts/runtime_metrics.py#summarize]] 缺文件时返回 `TELEMETRY_INCOMPLETE`。正常 Delivery 不因缺 telemetry 阻塞；Benchmark 要求完整。Closure 增加 `dispatch_id` 关联与 completeness schema，见 [[acceptance-closure#Telemetry Dispatch Correlation]]。
+[[engineeing-skills/.agents/skills/smc-plan-delivery/scripts/runtime_metrics.py#summarize]] 缺文件或 unpaired/duplicate/model/token 缺口时返回 `TELEMETRY_INCOMPLETE` 及具体 code。Harness 可经 `ingest --event-json` 写入；正常 Delivery 不因缺 telemetry 阻塞；Benchmark 要求完整。契约见 [[acceptance-closure#Telemetry Dispatch Correlation]] 与 `smc-plan-delivery/references/harness-telemetry-contract.md`。
 
 ## Package Gate
 
 仓库 CI 提供稳定 status `GES Package Gate / validate-package`，在连续 PASS 后再设为 master required check。
 
-实现于 `.github/workflows/governance-ci.yml` 的 `ges-package-gate` job：manifest `--check`、`validate_package.py`、无未预期 mutation。
+实现于 `.github/workflows/governance-ci.yml` 的 `ges-package-gate` job：manifest `--check`、`validate_package.py`、无未预期 mutation。`validate` job 同时跑 `git diff --check` 与 `--exit-code`。`package_version` 读自 [[engineeing-skills/build_package_manifest.py#package_version]]（`core/manifest.json` bundle）。

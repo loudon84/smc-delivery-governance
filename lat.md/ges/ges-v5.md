@@ -30,7 +30,7 @@ v3.7 TDD 按实际命令、Plan 语义、不可复活的 method epoch 与当前�
 
 包测试证明治理运行时和安装事务，不证明具体 Consumer 的业务正确性、线上部署或 LIVE 验收。
 
-[[engineeing-skills/validate_package_v500.py#main]] 运行继承回归、v5 方法及领域校验、fixture 安装和回滚。包集成中的 legacy validator 替身只验证适配协议；真实 Consumer 仍保留并执行其自有 validator。测试资产复用与证据复用严格区分，源码变更后不得复用旧 PASS。
+[[engineeing-skills/validate_package_v500.py#main]] 运行继承回归、v5 方法及领域校验、fixture 安装和回滚，并按 Architecture Closure §24 纳入 work-facts / risk precedence / domain / telemetry / benchmark synthetic / acceptance G01–G30；禁止真实 Pilot/Benchmark/Harness。包集成中的 legacy validator 替身只验证适配协议；真实 Consumer 仍保留并执行其自有 validator。测试资产复用与证据复用严格区分，源码变更后不得复用旧 PASS。
 
 ## Acceptance Hardening Slice
 
@@ -43,3 +43,9 @@ See [[acceptance-hardening]] and `engineeing-skills/CHANGES-v5.0.1.md`. Bundle S
 v5.0.2 closes remaining findings: CI byte identity, hard-risk review precedence, work authority, domain intent binding, install receipt, and executable acceptance evidence.
 
 Shared contracts and landed pointers are in [[acceptance-closure]]. Package/install/runtime/domain/test docs cross-link the same slice. `BASELINE.md` stays on the accepted production baseline until Release Verdict ACCEPT.
+
+## Governance Architecture Closure Slice
+
+v5.0.2 Architecture Closure migrates naming to PRD-canonical schemas and closes C01–C07 control-plane gaps without effect validation.
+
+See [[governance-architecture-closure]]. Pilot and Benchmark remain `NOT_EXECUTED`; master Ruleset actual enable stays Admin-manual after CI green.

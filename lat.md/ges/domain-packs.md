@@ -89,10 +89,10 @@ Conflicting same-level MUST rules require architecture resolution; agents must n
 
 v2 provider 在 PRD 审查前把领域设计意图写入同一 PRD；已批准后生成 Plan 时再次校验，避免设计在执行中漂移。
 
-[[engineeing-skills/domain-runtime/domain_runtime.py#validate_preplan]] 要求领域行与激活 Change ID 一一对应。[[engineeing-skills/domain-runtime/domain_table.py#validate_table]] 拒绝错列、重复 ID、空值及未决占位符。Frontend 覆盖 React/Vue；Backend 和 Ops 由各自数据包接入。Profile v3 的项目策略文件内容纳入 policy digest，v2/v1 绑定算法保留，以保护在途 Plan。Closure 起 blocking 只读 row prefix token，见 [[acceptance-closure#Structured Domain Triggers]]。
+[[engineeing-skills/domain-runtime/domain_runtime.py#validate_preplan]] 要求领域行与激活 Change ID 一一对应，并向上传播子 validator JSON errors（不得整块吞为 `DOMAIN_PREPLAN_FAILED`）。[[engineeing-skills/domain-runtime/domain_table.py#validate_table]] 拒绝错列、重复 ID、空值及未决占位符。Frontend 覆盖 React/Vue；Backend 和 Ops 由各自数据包接入。Profile v3 的项目策略文件内容纳入 policy digest，v2/v1 绑定算法保留，以保护在途 Plan。Closure 起 blocking 只读 row prefix token，见 [[acceptance-closure#Structured Domain Triggers]]。
 
 ## Intent Binding
 
-pack `2.1.0` 增加 `intent_binding.fields`，把 PRD Preplan 列映射到 Plan Ledger，并写入可复算 intent hash。
+pack `2.2.0` 使用 `intent_bindings`（per-field `{plan_column, mode}`）；旧 `intent_binding.fields`（2.1.0）仍可读。
 
-Seed 在 `## Domain Intent Binding` 表与 `source_prd_sha256` 中投影绑定；validator 重算比对。FE 共有列保真 Framework / State Ownership / Design System / Visual Verification；Ops 兼容 `Live Verification`↔`Verification`。实现见 [[engineeing-skills/domain-runtime/domain_intent.py#build_bindings]]、[[engineeing-skills/domain-runtime/domain_intent.py#verify_bindings]] 与 [[acceptance-closure#Domain Intent Binding]]。pack 版本变更会改 `policy_digest`，须同步既有 digest 期望。
+Seed 写 `source_prd`、`source_prd_sha256`、`domain_intent_digest` 与 `## Domain Intent Binding`；validator 主码为 `PLAN_SOURCE_PRD_*` / `PLAN_DOMAIN_INTENT_STALE`。实现见 [[engineeing-skills/domain-runtime/domain_intent.py#build_bindings]]、[[engineeing-skills/domain-runtime/domain_intent.py#verify_bindings]] 与 [[governance-architecture-closure#Naming Migration Map]]。pack 版本变更会改 `policy_digest`，须同步既有 digest 期望。

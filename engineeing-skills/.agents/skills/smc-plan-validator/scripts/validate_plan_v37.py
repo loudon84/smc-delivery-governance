@@ -97,20 +97,17 @@ def intent_binding_errors(plan: Path) -> list[dict[str, str]]:
     text = plan.read_text(encoding="utf-8")
     meta = parse_top_level_frontmatter(text)
     prd_ref = meta.get("source_prd") or meta.get("prd_path")
-    # Prefer adjacent discovery via source_prd_sha256 + repo search is too heavy;
-    # when binding table exists, require source file via frontmatter source_prd.
-    if "Domain Intent Binding" not in text and "source_prd_sha256" not in meta:
+    if "Domain Intent Binding" not in text and "source_prd_sha256" not in meta and "domain_intent_digest" not in meta:
         return []
     if not prd_ref:
-        # binding present without resolvable PRD path → missing
-        if "Domain Intent Binding" in text:
-            return [{"code": "DOMAIN_INTENT_BINDING_MISSING", "detail": "source_prd path"}]
+        if "Domain Intent Binding" in text or "domain_intent_digest" in meta:
+            return [{"code": "PLAN_SOURCE_PRD_MISSING", "detail": "source_prd path"}]
         return []
     prd = Path(prd_ref)
     if not prd.is_file():
         prd = repo_root(plan) / prd_ref
     if not prd.is_file():
-        return [{"code": "DOMAIN_INTENT_BINDING_STALE", "detail": f"prd missing: {prd_ref}"}]
+        return [{"code": "PLAN_SOURCE_PRD_STALE", "detail": f"prd missing: {prd_ref}"}]
     sys.path.insert(0, str(RUNTIME))
     from domain_intent import verify_bindings  # noqa: E402
     from domain_runtime import load_context  # noqa: E402

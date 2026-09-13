@@ -1,0 +1,18 @@
+{
+  "schema": "smc.ges.pilot.matrix.v1",
+  "status": "NOT_EXECUTED",
+  "slots": [
+    {"slot_id": "P-FE-LEAN", "consumer": "Frontend", "class": "LEAN", "status": "NOT_EXECUTED"},
+    {"slot_id": "P-FE-BEHAVIOR", "consumer": "Frontend", "class": "BEHAVIOR_CHANGE", "status": "NOT_EXECUTED"},
+    {"slot_id": "P-FE-BUG", "consumer": "Frontend", "class": "BUG_FIX", "status": "NOT_EXECUTED"},
+    {"slot_id": "P-FE-HIGH", "consumer": "Frontend", "class": "HIGH_RISK", "status": "NOT_EXECUTED"},
+    {"slot_id": "P-BE-LEAN", "consumer": "Backend", "class": "LEAN", "status": "NOT_EXECUTED"},
+    {"slot_id": "P-BE-BEHAVIOR", "consumer": "Backend", "class": "BEHAVIOR_CHANGE", "status": "NOT_EXECUTED"},
+    {"slot_id": "P-BE-BUG", "consumer": "Backend", "class": "BUG_FIX", "status": "NOT_EXECUTED"},
+    {"slot_id": "P-BE-HIGH", "consumer": "Backend", "class": "HIGH_RISK", "status": "NOT_EXECUTED"},
+    {"slot_id": "P-OPS-LEAN", "consumer": "Ops", "class": "LEAN", "status": "NOT_EXECUTED"},
+    {"slot_id": "P-OPS-BEHAVIOR", "consumer": "Ops", "class": "BEHAVIOR_CHANGE", "status": "NOT_EXECUTED"},
+    {"slot_id": "P-OPS-BUG", "consumer": "Ops", "class": "BUG_FIX", "status": "NOT_EXECUTED"},
+    {"slot_id": "P-OPS-HIGH", "consumer": "Ops", "class": "HIGH_RISK", "status": "NOT_EXECUTED"}
+  ]
+}

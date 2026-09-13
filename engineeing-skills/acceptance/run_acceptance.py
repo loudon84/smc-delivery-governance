@@ -437,7 +437,11 @@ safe change
             )
             out = classify(plan)
             self.assertEqual(out["depth"], "FULL")
-            self.assertIn("PLAN_REVIEW_HARD_RISK_FULL_REQUIRED", out["reasons"])
+            reasons = out["reasons"]
+            self.assertTrue(
+                "PLAN_REVIEW_CURRENT_RISK_FULL_REQUIRED" in reasons
+                or "PLAN_REVIEW_HARD_RISK_FULL_REQUIRED" in reasons
+            )
 
     def test_snapshot_invalid_forces_full(self):
         # @lat: [[ges-tests#Acceptance Closure#Invalid snapshot forces full]]

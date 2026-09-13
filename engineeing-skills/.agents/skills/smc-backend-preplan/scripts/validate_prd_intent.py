@@ -57,6 +57,12 @@ def validate(p: Path):
         return errors
     errors.extend(apply_row_rules(p, "Backend Design Intent", "BACKEND_PREPLAN", semantic))
     if _profile(p) == "LEAN":
+        text = p.read_text(encoding="utf-8")
+        # Structured Routing Facts may also force FULL (PRD §11.3).
+        for key in ("new_owner", "external_dependency", "protocol_change"):
+            if re.search(rf"{key}\s*[:=]\s*true", text, re.I):
+                errors.append({"code": "BACKEND_PREPLAN_FULL_REQUIRED", "detail": f"routing_fact:{key}"})
+                return errors
         for index, row in enumerate(rows, 1):
             if (
                 _token(row.get("Contract", "")) == "BREAKING_CHANGE"

@@ -33,15 +33,15 @@ Hardening 后的 install lock 证明 package bytes 身份，并安全清理未�
 
 ## Install Receipt
 
-PASS 之后写入 `smc.ges.install-receipt.v1`，把最终 lock 与 PASS transaction 钉死，且不进入 transaction manifest 哈希以免循环。
+Architecture Closure 将顺序改为 receipt → lock → journal PASS（PRD §16）。
 
-[[engineeing-skills/install_v500.py#write_install_receipt]] 仅在 transaction status=`PASS` 后落 `.smc/ges-install-receipt.json`。契约见 [[acceptance-closure#Install Receipt]]。
+[[engineeing-skills/install_v500.py#write_immutable_receipt]] 在 [[engineeing-skills/install_v500.py#build_install_lock]] 内先落 `.smc/ges-install-receipts/<install_id>.json`（§15 全字段）；lock 引用 `install_receipt_path` + `install_receipt_sha256`。兼容指针 `.smc/ges-install-receipt.json` 仍可写。dirty source → `release_eligible=false`。契约见 [[acceptance-closure#Install Receipt]] 与 [[governance-architecture-closure]]。
 
 ## Rollback
 
 手工回滚默认 dry-run，且在升级后又有人工修改时 fail-closed。
 
-只有复核后的 `--force` 允许覆盖安装后的新改动。实现入口：[[engineeing-skills/rollback.py#main]]。当 transaction hash 与 receipt 匹配时，rollback 必须显式删除 `.smc/ges-install-receipt.json`，避免 receipt 残留冒充仍已安装。
+只有复核后的 `--force` 允许覆盖安装后的新改动。实现入口：[[engineeing-skills/rollback.py#main]]。Rollback 清理 `.smc/ges-install-receipts/` 中匹配本次事务的条目，并兼容删除旧单文件 `.smc/ges-install-receipt.json`。
 
 ## Consumer Integration
 

@@ -87,6 +87,16 @@ class PackageV5Tests(unittest.TestCase):
   self.assertEqual('smc.ges.install-lock.v2',lock['schema'])
   self.assertIn('release_identity',lock);self.assertIn('owned_files',lock)
   self.assertIn('source_tree_dirty',lock['release_identity'])
+  self.assertIn('install_receipt_path',lock);self.assertIn('install_receipt_sha256',lock)
+  rp=self.r/lock['install_receipt_path']
+  self.assertTrue(rp.is_file())
+  self.assertEqual(lock['install_receipt_sha256'],'sha256:'+(installer.base.sha256(rp) or ''))
+  receipt=json.loads(rp.read_text(encoding='utf-8'))
+  self.assertEqual('smc.ges.install-receipt.v1',receipt['schema'])
+  for key in ('install_id','managed_file_set_sha256','policy_digest','validation','stale_reconciliation','finalized_at'):
+   self.assertIn(key,receipt)
+  if receipt['release_identity'].get('source_tree_dirty'):
+   self.assertIs(receipt['release_identity'].get('release_eligible'),False)
  def test_stale_reconciliation_v1_skip(self):
   write(self.r,'.smc/ges-install-lock.json',json.dumps({'schema':'smc.ges.install-lock.v1'}))
   notes=installer.reconcile_stale_owned_files(self.r,self.r/'.smc/backup',{},['x'])
