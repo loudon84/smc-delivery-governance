@@ -82,7 +82,7 @@ d31da7bdad743225264a9d7224220756fc3fb6d6b5005c7af11296db5ff5e0ae  .agents/skills
 a1d8397073bf821c9fcfdc1e6e740adfc4de2a2d244b88e55db62a744e95d2c6  .agents/skills/smc-plan-from-approved-prd-ponytail/references/plan-contract-v37.md
 b9ec88013bae6f14fbb89b7f261be89655f4bc31fb8d9a1cc25856b933cb2777  .agents/skills/smc-plan-from-approved-prd-ponytail/references/plan-template-v35.md
 c813c20721b55443c01009426b6b0853f031904e25b3eb166cf57ea9ab009bf3  .agents/skills/smc-plan-from-approved-prd-ponytail/references/plan-template-v36.md
-9d51799f38baccbe8bb55b777a552da9d89efdd8070d487a8bd5ac0457231e72  .agents/skills/smc-plan-from-approved-prd-ponytail/references/plan-template-v37.md
+d9b9649f57921b797bb2f08f878d848e51e3637e2bd7630c979f0dadf3a47f3c  .agents/skills/smc-plan-from-approved-prd-ponytail/references/plan-template-v37.md
 3c2e7754ae72801738dbefaba03d9e8fba8c2e8eab4a01f1cabd961198732401  .agents/skills/smc-plan-from-approved-prd-ponytail/references/plan-template.md
 2541177a9efe3d5205a62b2d65e95f8519463c79f0d62ad234596245091abb98  .agents/skills/smc-plan-from-approved-prd-ponytail/scripts/create_plan_seed.py
 c1f9636930178e39999432ea2500827633fb77798f4161ff0d8553db93864403  .agents/skills/smc-plan-from-approved-prd-ponytail/scripts/create_plan_seed_v33.py
@@ -198,4 +198,4 @@ b473f5fee588ab22ddfbc895505c75713578c90d1c58c9f5c322e3449323aac2  README.md
 381153e886615b8ebce552a351800ce32e8255e59966fcee3317ff42e604235d  validate_package_v441.py
 da7006376f921e121663a6ded8938a66ab887a7f54cecf58457750bd5ba0405e  validate_package_v500.py
 cab5f2d91766497dcf548e9e8dcc2aae598ccf694af92c30625ebe20a410aab2  VERSIONING.md
-7f73ddf1dda15337c23c4070f6d6245a07a07fb933cab77c9973e02d8d275427  PACKAGE-MANIFEST.json
+0d61fbccfef12b430a6517debcefacd3f9dde5c0be7d3bc0aa133b86cec744c8  PACKAGE-MANIFEST.json
