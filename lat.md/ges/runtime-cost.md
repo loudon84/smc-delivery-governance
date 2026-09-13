@@ -20,6 +20,12 @@ Delivery 为单个 Todo 生成 brief、report path 和 write-scoped review packa
 
 这些文件落在 `.smc/runs/<plan_id>/`，仅投影当前 Todo 的约束、写集与 diff。它们不得改写 canonical Plan、Cursor Todo、Review record 或 evidence，且仍受 [[plan-delivery#Plan Delivery#Workspace Scope]] 和 [[test-assets]] 约束。
 
+## Engineering Method Runtime
+
+Engineering Method Runtime 为已清场 Todo 派生 MECHANICAL、BEHAVIOR_CHANGE、BUG_FIX 或 HIGH_RISK 的执行方法，且不新增 artifact owner 或 delivery state。
+
+它将 TDD、systematic debugging、model tier 与 UNIFIED/INDEPENDENT task review 记录在 `.smc/runs/<plan_id>/engineering/`。artifact 必须绑定当前 semantic Plan hash；缺失时可重新分类，损坏或过期则必须阻断并显式重新分类。TDD RED 与 debug records 只是 execution working memory，最终 proof 仍由 [[plan-delivery#Plan Delivery#Evidence Freshness]] 建立。
+
 ## Implementation Dispatch
 
 同型且独立的 Todo 可以批处理，模型 tier 与 fix loop 可按风险调整，但不合并 Todo identity、write ownership、状态或最终验证。

@@ -215,3 +215,35 @@ task review package 只能包含当前 Todo 声明的写路径差异，不能泄
 ### Requires a fresh pass before snapshot
 
 semantic snapshot 只能在当前 Plan hash 对应的 PASS review record 之后保存。
+
+## Engineering Method Runtime
+
+Engineering Method Runtime 的测试验证它只约束 Todo 的执行方法，既不放宽 delivery gate，也不以过期 working memory 替代当前 Plan。
+
+### Classifies profiles and risk tiers
+
+Todo 的语义信号必须确定性映射到 mechanical、behavior、bug 或 high-risk profile，并给出相应的 model tier 与 review depth。
+
+### Requires a RED-GREEN cycle
+
+TDD_REQUIRED Todo 缺少确认 RED 或其后的 GREEN PASS 时必须阻断完成，防止测试记录被伪装成最终验证。
+
+### Requires root cause before a bug fix
+
+BUG_FIX Todo 在没有确认 ROOT_CAUSE 前必须阻断 debug gate，避免在没有解释失败机制时盲目修改生产代码。
+
+### Escalates three failed fixes
+
+同一 Todo 的第三次 failed FIX_ATTEMPT 必须触发 architecture escalation，禁止第四次盲修。
+
+### Persists explicit controller overrides
+
+controller 的 profile 与 model override 必须写入 method artifact，使执行策略可审计而非隐式继承。
+
+### Rejects a stale method artifact
+
+Plan 语义变化后，旧 method artifact 不得继续决定 TDD、debug 或审查策略，必须显式重新分类。
+
+### Rejects a malformed method artifact
+
+损坏或 schema 不匹配的 method artifact 必须 fail-closed，不能静默回退到更弱的 heuristic profile。

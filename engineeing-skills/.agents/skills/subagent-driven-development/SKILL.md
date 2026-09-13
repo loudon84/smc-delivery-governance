@@ -1,10 +1,10 @@
 ---
 name: subagent-driven-development
-description: Fresh-context multi-agent Plan implementation engine。v4.3 在既有 bounded write ownership / local review 上增加 plan-scoped task brief、file report、write-scoped review package、same-shape batching、model tier 与 bounded fix loop，降低长 Plan 的重复 token 成本。
-version: 4.3.0
+description: Fresh-context multi-agent Plan implementation engine。v4.4 在 v4.3 file-based handoff/batching/model-tier/fix-loop 上接入 Engineering Method Runtime，并以 Unified Task Reviewer 作为 normal-risk 默认，降低 reviewer seats 与重复 token。
+version: 4.4.0
 ---
 
-# Subagent Driven Development v4.3
+# Subagent Driven Development v4.4
 
 ## Core Principle
 
@@ -226,3 +226,36 @@ Plan Completion Audit (fresh context)
 ## Worker Ledger Contract
 
 Each worker owns only its assigned implementation slice and appends `.smc/runs/<plan-id>/ledger-<agent>.jsonl` events via `execution_context.py`. Workers MUST NOT rewrite canonical Plan specification or Cursor todo `content/status`; the controller alone advances todo runtime status after worker result review. Unrelated ambient dirty is read-only and must remain unchanged.
+
+## GES 4.4.1 Engineering Method + Review Seat Policy
+
+Controller 在生成 Worker dispatch 前先运行：
+
+```bash
+METHOD=$(python .agents/skills/smc-plan-delivery/scripts/engineering_method.py \
+  classify "$PLAN_PATH" --todo T1)
+```
+
+Dispatch 除 `BRIEF / REPORT / REVIEW_PACKAGE` 外只增加 method artifact/path；不要把 TDD/debugging 全部方法文本复制进 prompt。Worker 根据 profile：
+
+- `MECHANICAL`: FAST tier，直接最小实现；
+- `BEHAVIOR_CHANGE`: STANDARD tier，执行 RED-GREEN-REFACTOR；
+- `BUG_FIX`: STANDARD tier，先 systematic debugging/root cause，再 regression RED-GREEN；
+- `HIGH_RISK`: REASONING tier，并保留 independent review。
+
+### Unified Task Reviewer
+
+`review_depth=UNIFIED` 时只 dispatch **一个** fresh task reviewer，但必须返回两个独立 verdict：
+
+```text
+SPEC: PASS | FAIL
+QUALITY: PASS | FAIL
+```
+
+任一 FAIL 都进入现有 bounded fix loop。Implementer self-review 不能替代该 reviewer。`review_depth=INDEPENDENT`（默认 HIGH_RISK）才拆分 spec/quality reviewers。这样减少普通 Todo reviewer seats，但不合并两类判断语义。
+
+### TDD / Debug Gates
+
+Todo 标记 `completed` 前，Controller 按 method policy 调用 `tdd-check` / `debug-check`。TDD RED 与 debugging records 位于 `.smc/runs/<plan-id>/engineering/`，只作为 execution working memory；Final Verification/Evidence 仍由 `smc-plan-delivery` 重新建立。
+
+若 debugging 找到的 root cause 超出当前 Todo write ownership，立即停止 Worker，返回 `PLAN_REVISE_REQUIRED` / `RETURN_PRD`；不得让 fresh implementer 借机扩大 scope。三次 failed fix 进入 `DEBUG_ARCHITECTURE_ESCALATION`，优先重新判断 Plan/architecture，而不是启动第四轮盲修。

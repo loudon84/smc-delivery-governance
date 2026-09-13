@@ -19,8 +19,8 @@
 | Canonical Plan author | `smc-plan-from-approved-prd-ponytail` | 3.7.0 |
 | Plan static truth | `smc-plan-validator` | 1.6.0 |
 | Plan semantic truth | `smc-plan-review` | 1.2.0 |
-| Plan delivery sequencing | `smc-plan-delivery` | 1.3.0 |
-| Todo implementation | `executing-plans` / `subagent-driven-development` | 4.3.0 |
+| Plan delivery sequencing | `smc-plan-delivery` | 1.4.0 |
+| Todo implementation | `executing-plans` / `subagent-driven-development` | 4.3.0 / 4.4.0 |
 | Workflow router | `using-superpowers` | 4.4.0 |
 | Implementation semantic review | `code-review-and-quality` | consumer baseline |
 | Verification truthfulness | `verification-before-completion` + delivery evidence | inherited |

@@ -20,9 +20,13 @@ from pathlib import Path
 # Stable dispatcher. Prefer the newest installed bundle while retaining the
 # versioned entrypoints for explicit compatibility diagnostics.
 # @lat: [[install#Stable Entrypoint]]
+_GES_V441 = Path(__file__).resolve().with_name("install_v441.py")
 _GES_V440 = Path(__file__).resolve().with_name("install_v440.py")
 _GES_V430 = Path(__file__).resolve().with_name("install_v430.py")
 _GES_V420 = Path(__file__).resolve().with_name("install_v420.py")
+if __name__ == "__main__" and _GES_V441.is_file() and os.environ.get("GES_V441_NO_DISPATCH") != "1":
+    os.environ.setdefault("PYTHONUTF8", "1")
+    raise SystemExit(subprocess.call([sys.executable, str(_GES_V441), *sys.argv[1:]]))
 if __name__ == "__main__" and _GES_V440.is_file() and os.environ.get("GES_V440_NO_DISPATCH") != "1":
     os.environ.setdefault("PYTHONUTF8", "1")
     raise SystemExit(subprocess.call([sys.executable, str(_GES_V440), *sys.argv[1:]]))

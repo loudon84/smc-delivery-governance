@@ -1,10 +1,10 @@
 ---
 name: smc-plan-delivery
-description: SMC canonical Plan 后半程唯一交付编排器。v1.3 在 Test Asset 生命周期上增加 task brief、worker report 与 write-scoped review package，降低执行上下文成本，仍不拥有 Delivery state。
-version: 1.3.0
+description: SMC canonical Plan 后半程唯一交付编排器。v1.4 增加 Engineering Method Runtime，将 Implementation/TDD/Systematic Debugging 作为执行方法层接入，仍不改变 Plan/Review/Verification/Evidence/Commit/Roadmap truth owner。
+version: 1.4.0
 ---
 
-# SMC Plan Delivery v1.3
+# SMC Plan Delivery v1.4
 
 ## Role
 
@@ -61,6 +61,9 @@ Canonical Plan -> smc-plan-delivery
 7. [`references/recovery-contract.md`](references/recovery-contract.md)
 8. [`references/acceptance-governance-contract.md`](references/acceptance-governance-contract.md)
 9. [`references/test-asset-contract.md`](references/test-asset-contract.md)
+10. [`references/engineering-method-contract.md`](references/engineering-method-contract.md)
+11. [`references/tdd-method.md`](references/tdd-method.md)
+12. [`references/systematic-debugging.md`](references/systematic-debugging.md)
 
 ## Domain Pack Extension Contract (v1.2)
 
@@ -272,6 +275,42 @@ NOTE
 ```
 
 Error ledger 对 normalized failure signature 计数。相同失败不得无限执行同一个 action；重复失败应改变策略，达到 bounded retry 后进入 BLOCKED / escalate。
+
+## 3.1.1 Engineering Method Routing
+
+每个 Todo 在 Worker 写 production code 前生成一个 derived method artifact：
+
+```bash
+python .agents/skills/smc-plan-delivery/scripts/engineering_method.py \
+  classify "$PLAN_PATH" --todo T1
+```
+
+输出只写入 `.smc/runs/<plan-id>/engineering/`，不修改 canonical Plan。四种 profile：
+
+```text
+MECHANICAL
+BEHAVIOR_CHANGE
+BUG_FIX
+HIGH_RISK
+```
+
+规则：
+
+- `BUG_FIX`：production fix 前必须通过 `debug-check`，先证明 root cause，再建立 regression RED。
+- `BEHAVIOR_CHANGE`：默认 `TDD_REQUIRED`。
+- `HIGH_RISK`：使用 `REASONING` tier；默认独立 review，TDD required；bug-shaped work 还必须先 debug。
+- `MECHANICAL`：允许 `TDD_PREFERRED` / `TDD_NOT_APPLICABLE`，不得凭 profile 绕过 focused/final verification。
+
+Todo 标记 completed 前，若 method 要求 TDD/Debugging，implementation engine 必须运行：
+
+```bash
+python .agents/skills/smc-plan-delivery/scripts/engineering_method.py \
+  debug-check "$PLAN_PATH" --todo T1
+python .agents/skills/smc-plan-delivery/scripts/engineering_method.py \
+  tdd-check "$PLAN_PATH" --todo T1
+```
+
+method artifact 绑定生成时的 semantic Plan hash；损坏或过期时必须重新 `classify`，不得静默回退到较弱 profile。TDD RED、debug hypothesis/fix attempts 都是 execution working memory，不写入 final Verification ledger。若 root cause 超出 Todo write scope，必须 `PLAN_REVISE_REQUIRED`；若改变 Production Owner、contract、boundary 或 observable behaviour，则 `RETURN_PRD`。连续三次 failed fix 返回 `DEBUG_ARCHITECTURE_ESCALATION`，禁止盲目第四次重试。
 
 ## 3.2 Workspace guards during execution
 

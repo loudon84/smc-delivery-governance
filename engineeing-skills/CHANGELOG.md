@@ -1,5 +1,21 @@
 # Changelog
 
+## v4.4.1 Candidate — 2026-09-13
+
+### Added
+
+- Engineering Method Runtime with deterministic `MECHANICAL / BEHAVIOR_CHANGE / BUG_FIX / HIGH_RISK` Todo profiles.
+- TDD runtime policy and RED/GREEN gate recording without conflating expected RED with final Verification failure.
+- Systematic debugging root-cause gate plus three-failed-fix architecture escalation.
+- Default unified task reviewer for normal-risk SDD work, with independent review retained for high-risk work.
+- Stable `install.py` / `validate_package.py` dispatch to v4.4.1 wrappers; Consumer Profile v2, Domain Pack v1 and `smc.plan.v3.6` remain unchanged.
+
+### Compatibility
+
+- Engineering method records stay under `.smc/runs/<plan-id>/engineering/` and are working memory only.
+- No new Plan/PRD/Roadmap contract and no new delivery state is introduced.
+- `post_review`, Single Writer, Completion Audit, final Verification, Evidence Freshness and Roadmap DONE semantics are unchanged.
+
 ## v4.4.0 Candidate — 2026-09-13
 
 ### Added

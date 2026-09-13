@@ -12,9 +12,13 @@ from pathlib import Path
 
 # Stable dispatcher. Prefer the newest validator while retaining versioned
 # entrypoints for explicit compatibility diagnostics.
+_GES_V441 = Path(__file__).resolve().with_name("validate_package_v441.py")
 _GES_V440 = Path(__file__).resolve().with_name("validate_package_v440.py")
 _GES_V430 = Path(__file__).resolve().with_name("validate_package_v430.py")
 _GES_V420 = Path(__file__).resolve().with_name("validate_package_v420.py")
+if __name__ == "__main__" and _GES_V441.is_file() and os.environ.get("GES_V441_NO_DISPATCH") != "1":
+    os.environ.setdefault("PYTHONUTF8", "1")
+    raise SystemExit(subprocess.call([sys.executable, str(_GES_V441), *sys.argv[1:]]))
 if __name__ == "__main__" and _GES_V440.is_file() and os.environ.get("GES_V440_NO_DISPATCH") != "1":
     os.environ.setdefault("PYTHONUTF8", "1")
     raise SystemExit(subprocess.call([sys.executable, str(_GES_V440), *sys.argv[1:]]))

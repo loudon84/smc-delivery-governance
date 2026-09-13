@@ -77,6 +77,8 @@ Workers 只追加自己的 ledger；canonical Todo `status` 仍由 controller �
 
 v4.4 的 task brief、worker report 与 write-scoped review package 都是 `.smc/runs/<plan_id>/` 下的派生产物：它们把单个 Todo 的必要输入交给 worker/reviewer，不能成为第二 Plan、Review 或 Evidence SOT，详见 [[runtime-cost#Task Context Artifacts]]。
 
+v4.4.1 的 Engineering Method artifact 也只位于该 working-memory 范围。它按 Todo 派生 TDD、debug、model tier 与局部 review 策略，并绑定 semantic Plan hash；损坏或过期时必须重新分类，详见 [[runtime-cost#Engineering Method Runtime]]。
+
 ## post_review Commit
 
 允许 implementation commit 的充要条件是全部当前 proof FRESH，而不是 Todo 全 completed。

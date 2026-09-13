@@ -2,7 +2,7 @@
 
 GES 是项目仓库内的 AI 工程治理工作流，不是跨仓控制面。它把 Architecture → PRD → Plan → Delivery 收成可 fail-closed 的 Skill 流水线。
 
-当前分析快照以工作区 `engineeing-skills/` 为准：已接受基线仍由 `BASELINE.md` 裁决；树内新增 **Bundle 4.4.0 candidate**，在 `smc.plan.v3.6`、Test Asset Contract v1 与 Domain Pack Framework v1 之上优化路由、审查与执行上下文成本。
+当前分析快照以工作区 `engineeing-skills/` 为准：已接受基线仍由 `BASELINE.md` 裁决；树内新增 **Bundle 4.4.1 candidate**，在 `smc.plan.v3.6`、Test Asset Contract v1 与 Domain Pack Framework v1 之上优化路由、审查、执行上下文与工程方法成本。
 
 - [[identity]] — 权威源、路径冻结、与 Governance Kit 的边界
 - [[pipeline]] — 流水线阶段与 Artifact 路由

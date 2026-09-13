@@ -1,10 +1,10 @@
 ---
 name: executing-plans
-description: Plan implementation engine。SMC governed Plan 由 smc-plan-delivery 调用；本 Skill 只按 Write Ownership/Depends On 实施 Todo、执行 focused checks、更新 canonical Cursor todo status，不负责 Final Review/Verification/Commit/Roadmap。
-version: 4.2.0
+description: Plan implementation engine。v4.3 在现有 Write Ownership/focused-check 边界内接入 Engineering Method Runtime：按 Todo profile 选择直接实现、TDD 或 systematic debugging，不取得 Final Review/Verification/Commit/Roadmap ownership。
+version: 4.3.0
 ---
 
-# Executing Plans v4.2
+# Executing Plans v4.3
 
 ## Mode Detection
 
@@ -152,3 +152,37 @@ When invoked by `smc-plan-delivery`:
 - never mutate unrelated ambient dirty;
 - never modify governance tooling unless that path is explicitly in the Plan Change Matrix;
 - do not commit.
+
+## GES 4.4.1 Engineering Method Runtime
+
+在 Todo status 进入 `in_progress` 后、任何 production write 前：
+
+```bash
+python .agents/skills/smc-plan-delivery/scripts/engineering_method.py \
+  classify "$PLAN_PATH" --todo T1
+```
+
+按 method artifact 执行：
+
+```text
+MECHANICAL      -> direct minimal implementation; TDD preferred/not-applicable
+BEHAVIOR_CHANGE -> RED -> GREEN -> optional REFACTOR
+BUG_FIX         -> systematic debug -> root cause -> regression RED -> GREEN
+HIGH_RISK       -> reasoning-tier implementation + required TDD + independent review
+```
+
+`BUG_FIX` 在 production fix 前必须：
+
+```bash
+python .agents/skills/smc-plan-delivery/scripts/engineering_method.py \
+  debug-check "$PLAN_PATH" --todo T1
+```
+
+需要 TDD 的 Todo 在 `completed` 前必须：
+
+```bash
+python .agents/skills/smc-plan-delivery/scripts/engineering_method.py \
+  tdd-check "$PLAN_PATH" --todo T1
+```
+
+TDD RED 是预期 execution state，不得写成 final Verification FAIL。Debugging 发现 scope/owner/contract/boundary drift 时，按 SMC governance 返回 Plan revision/PRD，而不是扩大 write set。三次 failed fix 触发 `DEBUG_ARCHITECTURE_ESCALATION`。
