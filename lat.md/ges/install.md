@@ -25,6 +25,12 @@ Windows 上禁止用 `os.execv` 派发：它不会覆盖当前控制台进程，
 
 实现入口：[[engineeing-skills/install_v500.py#main]]、[[engineeing-skills/install_v500.py#preflight]]。省略 profile 选择时保留已安装元数据；显式迁移 profile 需要重新绑定受影响 Plan。
 
+## Install Lock v2
+
+Hardening 后的 install lock 证明 package bytes 身份，并安全清理未修改的 stale package-owned 文件。
+
+见 [[acceptance-hardening#Install Lock v2]]：`smc.ges.install-lock.v2` 含 `release_identity` 与 `owned_files`；v1 lock 跳过破坏性清理。
+
 ## Rollback
 
 手工回滚默认 dry-run，且在升级后又有人工修改时 fail-closed。

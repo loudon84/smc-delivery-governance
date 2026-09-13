@@ -204,7 +204,11 @@ task review package 只能包含当前 Todo 声明的写路径差异，不能泄
 
 ### Escalates acceptance review to full
 
-声明 acceptance contract 的 Plan 必须路由到 `REQUIRED/FULL`，不得因成本优化跳过真实语义审查。
+声明 acceptance contract 且无法通过确定性结构 clearance（或缺 structured risk snapshot）的 Plan 必须路由到 `REQUIRED/FULL`，不得因成本优化跳过真实语义审查。
+
+### Allows lean light first review
+
+LEAN + structured 无高风险且 acceptance 结构 clearance 通过时，首次审查可路由为 `REQUIRED/DELTA`（LIGHT_FIRST_REVIEW），仍保留 blocking acceptance 检查。
 
 ### Routes a reviewed semantic delta
 
@@ -217,6 +221,34 @@ task review package 只能包含当前 Todo 声明的写路径差异，不能泄
 ### Requires a fresh pass before snapshot
 
 semantic snapshot 只能在当前 Plan hash 对应的 PASS review record 之后保存。
+
+## Work Router Research Trust
+
+Work Router 测试验证 research 自报不能绕过 governed/production 工作，且纯研究仍可低成本 NONE。
+
+### Research only alone cannot none
+
+仅设置 `research_only=true` 而缺少 authority 字段时不得路由 NONE，必须 fail-closed。
+
+### Governed research forces full
+
+`research_intent` 与 `governed=true` 冲突时必须 FULL，并返回 `RESEARCH_ONLY_CONTRADICTS_GOVERNED_WORK`。
+
+### Pure research may spike none
+
+authority 字段全部显式 false 的纯研究请求可路由 SPIKE/NONE。
+
+## Structured Risk Runtime
+
+风险解析测试验证否定句不假 FULL，以及 structured/text contradiction fail-closed。
+
+### Negated schema migration is not high risk
+
+文本 “No schema migration” 在 structured `schema_migration=false` 时不得单独升级 FULL。
+
+### Affirmative contradiction fails closed
+
+structured false 但文本肯定高风险时必须返回 `RISK_FACT_CONTRADICTION` 并 fail-closed。
 
 ## Engineering Method Runtime
 

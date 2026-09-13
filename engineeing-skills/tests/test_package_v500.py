@@ -79,4 +79,22 @@ class PackageV5Tests(unittest.TestCase):
    self.assertEqual(1,installer.main())
   after={p.relative_to(self.r).as_posix():p.read_bytes() for p in self.r.rglob('*') if p.is_file() and '.git' not in p.parts and '.smc' not in p.parts}
   self.assertEqual(before,after)
+ def test_install_lock_v2_fields(self):
+  install_fixture(self.r)
+  _,loaded=installer.resolve_profile(self.r,None);_,packs=installer.pack_context(loaded)
+  backup=self.r/'.smc/backup';backup.mkdir(parents=True)
+  lock=installer.build_install_lock(self.r,loaded,packs,{},backup)
+  self.assertEqual('smc.ges.install-lock.v2',lock['schema'])
+  self.assertIn('release_identity',lock);self.assertIn('owned_files',lock)
+  self.assertIn('source_tree_dirty',lock['release_identity'])
+ def test_stale_reconciliation_v1_skip(self):
+  write(self.r,'.smc/ges-install-lock.json',json.dumps({'schema':'smc.ges.install-lock.v1'}))
+  notes=installer.reconcile_stale_owned_files(self.r,self.r/'.smc/backup',{},['x'])
+  self.assertEqual(['INSTALL_LEGACY_RECONCILIATION_SKIPPED'],notes)
+ def test_stale_reconciliation_modified_blocks(self):
+  path='.agents/skills/smc-plan-delivery/SKILL.md'
+  write(self.r,path,'local-edit\n')
+  write(self.r,'.smc/ges-install-lock.json',json.dumps({'schema':'smc.ges.install-lock.v2','owned_files':[{'path':path,'installed_sha256':'00'}]}))
+  with self.assertRaisesRegex(RuntimeError,'INSTALL_STALE_OWNED_FILE_MODIFIED'):
+   installer.reconcile_stale_owned_files(self.r,self.r/'.smc/backup',{},['other'])
 if __name__=='__main__':unittest.main()

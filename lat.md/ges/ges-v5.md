@@ -31,3 +31,9 @@ v3.7 TDD 按实际命令、Plan 语义、不可复活的 method epoch 与当前�
 包测试证明治理运行时和安装事务，不证明具体 Consumer 的业务正确性、线上部署或 LIVE 验收。
 
 [[engineeing-skills/validate_package_v500.py#main]] 运行继承回归、v5 方法及领域校验、fixture 安装和回滚。包集成中的 legacy validator 替身只验证适配协议；真实 Consumer 仍保留并执行其自有 validator。测试资产复用与证据复用严格区分，源码变更后不得复用旧 PASS。
+
+## Acceptance Hardening Slice
+
+v5.0.1 Hardening lands routing trust, structured risk, domain semantics, install-lock.v2, telemetry hooks, CI package gate, and acceptance tooling.
+
+See [[acceptance-hardening]] and `engineeing-skills/CHANGES-v5.0.1.md`. Bundle SemVer and Baseline promotion remain Release Review decisions; Candidate evidence must not claim cost optimization until Benchmark thresholds pass.

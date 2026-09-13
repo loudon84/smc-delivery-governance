@@ -18,10 +18,24 @@ def capture(plan,path,symbol='',summary=''):
  out=capsule_path(plan,rel,symbol);atomic_write(out,json.dumps(cap,ensure_ascii=False,indent=2,sort_keys=True)+'\n');return out,cap
 def get(plan,path,symbol=''):
  repo=find_repo_root(plan);rel=Path(path).as_posix();out=capsule_path(plan,rel,symbol)
- if not out.is_file():raise ValueError('SOURCE_CONTEXT_MISSING')
- cap=json.loads(out.read_text(encoding='utf-8'));cur=content_sha(repo/rel)
- if cap.get('content_sha256')!=cur:raise ValueError('SOURCE_CONTEXT_STALE')
- return out,cap
+ path_key=key(rel,symbol)
+ try:
+  if not out.is_file():raise ValueError('SOURCE_CONTEXT_MISSING')
+  cap=json.loads(out.read_text(encoding='utf-8'));cur=content_sha(repo/rel)
+  if cap.get('content_sha256')!=cur:raise ValueError('SOURCE_CONTEXT_STALE')
+  try:
+   from runtime_metrics import cache_hit
+   cache_hit(plan,path_key)
+  except Exception:
+   pass
+  return out,cap
+ except ValueError:
+  try:
+   from runtime_metrics import cache_miss
+   cache_miss(plan,path_key)
+  except Exception:
+   pass
+  raise
 def main():
  ap=argparse.ArgumentParser();sub=ap.add_subparsers(dest='cmd',required=True)
  for n in ('capture','get'):

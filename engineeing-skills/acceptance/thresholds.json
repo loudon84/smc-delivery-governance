@@ -1,0 +1,13 @@
+{
+  "schema": "smc.ges.acceptance.thresholds.v1",
+  "safety": {
+    "high_risk_false_lean": 0,
+    "governed_production_false_spike": 0,
+    "ownership_escape": 0,
+    "package_integrity_bypass": 0
+  },
+  "efficiency": {
+    "bounded_median_token_reduction_pct": 30,
+    "normal_risk_reviewer_seat_reduction_pct": 25
+  }
+}

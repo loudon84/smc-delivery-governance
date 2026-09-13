@@ -29,3 +29,23 @@ jobs:
       - run: pytest -q
       - name: Tests must not mutate central SOT
         run: git diff --exit-code
+
+  ges-package-gate:
+    name: GES Package Gate / validate-package
+    runs-on: ubuntu-latest
+    env:
+      PYTHONUTF8: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Package integrity check
+        run: python engineeing-skills/build_package_manifest.py --check
+      - name: Full GES package validation
+        run: python engineeing-skills/validate_package.py
+      - name: No unexpected mutation after package validation
+        run: |
+          git diff --check
+          git diff --exit-code

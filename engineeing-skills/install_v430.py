@@ -48,6 +48,13 @@ def run(cmd:list[str],cwd:Path,capture=False):
     print('+',' '.join(str(x) for x in cmd));env=os.environ.copy();env['PYTHONDONTWRITEBYTECODE']='1';env.setdefault('PYTHONUTF8','1')
     return subprocess.run(cmd,cwd=cwd,text=True,encoding='utf-8',errors='replace',capture_output=capture,env=env)
 
+def build_install_lock(project:Path,profile:dict[str,Any],selected:dict[str,tuple[Path,dict[str,Any]]],records:dict[str,dict],backup:Path)->dict[str,Any]:
+    return {'schema':'smc.ges.install-lock.v1','bundle':PACKAGE_VERSION,'profile':f"{profile.get('id')}@{profile.get('version')}",'domains':{k:v[1].get('version') for k,v in selected.items()}}
+
+def reconcile_stale_owned_files(project:Path,backup:Path,records:dict[str,dict],names:list[str])->list[str]:
+    """Default installer lineage skips destructive reconciliation (v1 lock)."""
+    return ['INSTALL_LEGACY_RECONCILIATION_SKIPPED']
+
 def resolve_profile(project:Path,selector:str|None)->tuple[Path,dict[str,Any]]:
     installed=project/'.agents/ges/profile.json'
     if selector:
@@ -201,7 +208,8 @@ def main():
         for label,cmd in validation_commands(project,profile,selected,a.skip_project_validator):
             result=run(cmd,project)
             if result.returncode:raise RuntimeError(f'INSTALL_VALIDATION_FAILED: {label}')
-        lock={'schema':'smc.ges.install-lock.v1','bundle':PACKAGE_VERSION,'profile':f"{profile.get('id')}@{profile.get('version')}",'domains':{k:v[1].get('version') for k,v in selected.items()}}
+        reconcile_stale_owned_files(project,backup,records,names)
+        lock=build_install_lock(project,profile,selected,records,backup)
         write_text(project,project/'.smc/ges-install-lock.json',json.dumps(lock,ensure_ascii=False,indent=2,sort_keys=True)+'\n',backup,records)
         manifest=transaction_manifest(project,backup,profile,selected,records,'PASS')
     except Exception as exc:

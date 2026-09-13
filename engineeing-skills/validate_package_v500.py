@@ -35,6 +35,8 @@ def main():
    run('consumer actual install',[sys.executable,str(ROOT/'install.py'),str(project),'--profile','generic','--apply'])
    lock=json.loads((project/'.smc/ges-install-lock.json').read_text(encoding='utf-8'))
    if lock['bundle']!='5.0.0':raise ValueError('INSTALL_LOCK_VERSION_INVALID')
+   if lock.get('schema')!='smc.ges.install-lock.v2':raise ValueError('INSTALL_LOCK_V2_INVALID')
+   if 'release_identity' not in lock or 'owned_files' not in lock:raise ValueError('INSTALL_RELEASE_IDENTITY_INVALID')
    for p in (project/'.agents/skills').rglob('*'):
     if p.is_file() and '__pycache__' not in p.parts:
      mirror=project/'.cursor/skills'/p.relative_to(project/'.agents/skills')

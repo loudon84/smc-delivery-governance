@@ -1,0 +1,12 @@
+{
+  "schema": "smc.ges.acceptance.metrics.v1",
+  "required": ["case_id", "outcome"],
+  "properties": {
+    "case_id": {"type": "string"},
+    "outcome": {"enum": ["PASS", "FAIL", "BLOCKED", "TELEMETRY_INCOMPLETE"]},
+    "prompt_tokens": {"type": "integer"},
+    "completion_tokens": {"type": "integer"},
+    "reviewer_seats": {"type": "integer"},
+    "governance_profile": {"type": "string"}
+  }
+}
