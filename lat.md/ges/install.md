@@ -29,13 +29,19 @@ Windows 上禁止用 `os.execv` 派发：它不会覆盖当前控制台进程，
 
 Hardening 后的 install lock 证明 package bytes 身份，并安全清理未修改的 stale package-owned 文件。
 
-见 [[acceptance-hardening#Install Lock v2]]：`smc.ges.install-lock.v2` 含 `release_identity` 与 `owned_files`；v1 lock 跳过破坏性清理。
+见 [[acceptance-hardening#Install Lock v2]]：`smc.ges.install-lock.v2` 含 `release_identity` 与 `owned_files`；v1 lock 跳过破坏性清理。Closure 起 `package_manifest_sha256` 必须是 PACKAGE-MANIFEST **raw bytes** digest，lock 不再绑定 PENDING `transaction_manifest_sha256`（改由 receipt 绑定最终 PASS），见 [[acceptance-closure#Canonical Digests]]。
+
+## Install Receipt
+
+PASS 之后写入 `smc.ges.install-receipt.v1`，把最终 lock 与 PASS transaction 钉死，且不进入 transaction manifest 哈希以免循环。
+
+[[engineeing-skills/install_v500.py#write_install_receipt]] 仅在 transaction status=`PASS` 后落 `.smc/ges-install-receipt.json`。契约见 [[acceptance-closure#Install Receipt]]。
 
 ## Rollback
 
 手工回滚默认 dry-run，且在升级后又有人工修改时 fail-closed。
 
-只有复核后的 `--force` 允许覆盖安装后的新改动。实现入口：[[engineeing-skills/rollback.py#main]]。
+只有复核后的 `--force` 允许覆盖安装后的新改动。实现入口：[[engineeing-skills/rollback.py#main]]。当 transaction hash 与 receipt 匹配时，rollback 必须显式删除 `.smc/ges-install-receipt.json`，避免 receipt 残留冒充仍已安装。
 
 ## Consumer Integration
 

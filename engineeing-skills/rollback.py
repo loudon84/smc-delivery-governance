@@ -79,6 +79,17 @@ def main() -> int:
         elif target.is_file() or target.is_symlink():
             target.unlink()
 
+    # Remove install receipt when it points at this transaction (not in files list).
+    receipt = project / ".smc" / "ges-install-receipt.json"
+    if receipt.is_file():
+        try:
+            rec = json.loads(receipt.read_text(encoding="utf-8"))
+            tx_sha = "sha256:" + (sha256(manifest_path) or "")
+            if rec.get("transaction_manifest_sha256") == tx_sha:
+                receipt.unlink()
+        except (OSError, json.JSONDecodeError):
+            pass
+
     data["rollback_status"] = "ROLLED_BACK_MANUALLY"
     manifest_path.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print("ROLLBACK PASS")

@@ -1,12 +1,31 @@
 {
   "schema": "smc.ges.acceptance.metrics.v1",
-  "required": ["case_id", "outcome"],
+  "required": ["case_id", "cohort", "outcome"],
   "properties": {
     "case_id": {"type": "string"},
+    "cohort": {"enum": ["A", "B", "C"]},
+    "ges_release": {"type": "string"},
+    "consumer": {"type": "string"},
+    "consumer_revision": {"type": "string"},
+    "work_class": {"type": "string"},
+    "governance_profile": {"type": "string"},
+    "acceptance_oracle": {"type": "string"},
     "outcome": {"enum": ["PASS", "FAIL", "BLOCKED", "TELEMETRY_INCOMPLETE"]},
-    "prompt_tokens": {"type": "integer"},
-    "completion_tokens": {"type": "integer"},
-    "reviewer_seats": {"type": "integer"},
-    "governance_profile": {"type": "string"}
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "prompt_tokens": {"type": "integer"},
+        "completion_tokens": {"type": "integer"},
+        "cache_read_tokens": {"type": "integer"},
+        "cache_write_tokens": {"type": "integer"},
+        "reviewer_seats": {"type": "integer"},
+        "dispatch_count": {"type": "integer"},
+        "source_context_hits": {"type": "integer"},
+        "source_context_misses": {"type": "integer"},
+        "fix_rounds": {"type": "integer"},
+        "wall_time_ms": {"type": "integer"},
+        "escaped_defects": {"type": "integer"}
+      }
+    }
   }
 }

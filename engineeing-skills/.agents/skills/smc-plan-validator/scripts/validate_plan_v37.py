@@ -40,6 +40,85 @@ def domain_module(plan: Path):
     return m
 
 
+def ownership_errors(plan: Path) -> list[dict[str, str]]:
+    # @lat: [[acceptance-closure#Executable Acceptance Evidence]]
+    """FI-04: one production path#symbol has one Todo WRITE_OWNER."""
+    from common import parse_first_table, section, strip_md
+
+    text = plan.read_text(encoding="utf-8")
+    errors: list[dict[str, str]] = []
+    owners: dict[str, list[str]] = {}
+    # Ownership Map table if present
+    header, rows = parse_first_table(section(text, "Ownership Map"))
+    if "Path / Symbol" in header and "WRITE_OWNER" in header:
+        for row in rows:
+            target = strip_md(row.get("Path / Symbol", "")).replace("\\", "/")
+            owner = strip_md(row.get("WRITE_OWNER", ""))
+            if not target or target.lower() in {"-", "none", "n/a"}:
+                continue
+            owners.setdefault(target, []).append(owner or "?")
+    # Todo Writes scopes
+    import re
+
+    for m in re.finditer(r"^##\s+Todo\s+(T\d+)\b.*$", text, re.M | re.I):
+        tid = m.group(1).upper()
+        start = m.end()
+        nxt = re.search(r"^##\s+Todo\s+T\d+\b", text[start:], re.M | re.I)
+        body = text[start : start + nxt.start()] if nxt else text[start:]
+        wm = re.search(
+            r"^\*\*Writes(?::\*\*|\*\*:?)\s*([^\n]*)(.*?)(?=^\*\*|^##|\Z)",
+            body,
+            re.M | re.S | re.I,
+        )
+        if not wm:
+            continue
+        for raw in re.split(r"[,;\n]", wm.group(1) + wm.group(2)):
+            x = re.sub(r"^\s*[-*]\s+", "", raw).strip().strip("`")
+            x = x.split("#", 1)
+            path = x[0].strip().replace("\\", "/")
+            sym = x[1].strip() if len(x) > 1 else ""
+            if not path or path.lower() in {"-", "none", "n/a"}:
+                continue
+            key = f"{path}#{sym}" if sym else path
+            owners.setdefault(key, []).append(tid)
+    for target, tids in owners.items():
+        uniq = sorted(set(tids))
+        if len(uniq) > 1:
+            errors.append(
+                {
+                    "code": "PLAN_WRITE_OWNERSHIP_CONFLICT",
+                    "detail": f"{target} owners={uniq}",
+                }
+            )
+    return errors
+
+
+def intent_binding_errors(plan: Path) -> list[dict[str, str]]:
+    text = plan.read_text(encoding="utf-8")
+    meta = parse_top_level_frontmatter(text)
+    prd_ref = meta.get("source_prd") or meta.get("prd_path")
+    # Prefer adjacent discovery via source_prd_sha256 + repo search is too heavy;
+    # when binding table exists, require source file via frontmatter source_prd.
+    if "Domain Intent Binding" not in text and "source_prd_sha256" not in meta:
+        return []
+    if not prd_ref:
+        # binding present without resolvable PRD path → missing
+        if "Domain Intent Binding" in text:
+            return [{"code": "DOMAIN_INTENT_BINDING_MISSING", "detail": "source_prd path"}]
+        return []
+    prd = Path(prd_ref)
+    if not prd.is_file():
+        prd = repo_root(plan) / prd_ref
+    if not prd.is_file():
+        return [{"code": "DOMAIN_INTENT_BINDING_STALE", "detail": f"prd missing: {prd_ref}"}]
+    sys.path.insert(0, str(RUNTIME))
+    from domain_intent import verify_bindings  # noqa: E402
+    from domain_runtime import load_context  # noqa: E402
+
+    packs = load_context(repo_root(plan))["packs"]
+    return verify_bindings(plan, prd, packs)
+
+
 def profile_errors(plan: Path) -> list[dict[str, str]]:
     text = plan.read_text(encoding="utf-8")
     meta = parse_top_level_frontmatter(text)
@@ -56,7 +135,6 @@ def profile_errors(plan: Path) -> list[dict[str, str]]:
         if err["code"] in {"RISK_FACT_CONTRADICTION", "RISK_TEXT_AMBIGUOUS"}:
             errs.append(err)
         if snapshot is None and profile == "LEAN":
-            # Old plans without snapshot: conservative legacy fallback already sets high_risk.
             pass
     return errs
 
@@ -75,6 +153,8 @@ def main() -> int:
     errors.extend(validate_acceptance(p))
     errors.extend(validate_test_assets(p))
     errors.extend(profile_errors(p))
+    errors.extend(ownership_errors(p))
+    errors.extend(intent_binding_errors(p))
     try:
         errors.extend(domain_module(p).validate_plan(p))
     except ValueError as e:

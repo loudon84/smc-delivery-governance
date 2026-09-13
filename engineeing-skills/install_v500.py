@@ -166,14 +166,20 @@ def _owned_paths(project: Path, names: list[str], records: dict) -> list[dict]:
 
 def build_install_lock(project, profile, selected, records, backup):
     # @lat: [[acceptance-hardening#Install Lock v2]]
+    # @lat: [[acceptance-closure#Canonical Digests]]
     names = base.managed_skills(profile, selected)
-    manifest = build_manifest(PACKAGE_ROOT)
+    manifest_path = PACKAGE_ROOT / "PACKAGE-MANIFEST.json"
     head, dirty = _git_head(PACKAGE_ROOT)
-    tx = backup / "upgrade-manifest.json"
     policy = {
         "profile": f"{profile.get('id')}@{profile.get('version')}",
         "domains": {k: v[1].get("version") for k, v in selected.items()},
     }
+    file_count = 0
+    if manifest_path.is_file():
+        try:
+            file_count = json.loads(manifest_path.read_text(encoding="utf-8")).get("file_count", 0)
+        except json.JSONDecodeError:
+            file_count = 0
     return {
         "schema": "smc.ges.install-lock.v2",
         "bundle": base.PACKAGE_VERSION,
@@ -191,18 +197,44 @@ def build_install_lock(project, profile, selected, records, backup):
         "release_identity": {
             "source_commit": head,
             "source_tree_dirty": dirty,
-            "package_manifest_sha256": hashlib.sha256(
-                json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()
-            ).hexdigest(),
-            "package_file_count": manifest.get("file_count"),
+            # raw bytes of PACKAGE-MANIFEST.json — never reserialize
+            "package_manifest_sha256": base.sha256(manifest_path) or "",
+            "package_file_count": file_count,
             "installer_sha256": base.sha256(Path(__file__).resolve()) or "",
         },
         "policy_digest": "sha256:"
         + hashlib.sha256(json.dumps(policy, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
-        "transaction_manifest_sha256": base.sha256(tx) if tx.is_file() else "",
         "installed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "owned_files": _owned_paths(project, names, records),
     }
+
+
+def write_install_receipt(project, backup, lock_path, tx_path):
+    """Final non-circular receipt after PASS transaction manifest is written."""
+    # @lat: [[acceptance-closure#Install Receipt]]
+    # @lat: [[install#Install Receipt]]
+    if not tx_path.is_file() or not lock_path.is_file():
+        raise RuntimeError("INSTALL_RECEIPT_INVALID: missing lock or transaction")
+    tx = json.loads(tx_path.read_text(encoding="utf-8"))
+    if tx.get("status") != "PASS":
+        raise RuntimeError("INSTALL_RECEIPT_TRANSACTION_MISMATCH")
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    release = lock.get("release_identity") or {}
+    release_identity_sha = hashlib.sha256(
+        json.dumps(release, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    receipt = {
+        "schema": "smc.ges.install-receipt.v1",
+        "bundle": lock.get("bundle"),
+        "release_identity_sha256": "sha256:" + release_identity_sha,
+        "install_lock_sha256": "sha256:" + (base.sha256(lock_path) or ""),
+        "transaction_manifest_sha256": "sha256:" + (base.sha256(tx_path) or ""),
+        "transaction_status": "PASS",
+        "installed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    out = project / ".smc" / "ges-install-receipt.json"
+    out.write_text(json.dumps(receipt, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return out
 
 
 def reconcile_stale_owned_files(project, backup, records, names):
@@ -255,7 +287,26 @@ def main():
         print("INSTALL_INTEGRITY_BLOCKED:", exc)
         return 2
     os.environ.setdefault("PYTHONUTF8", "1")
-    return base.main()
+    orig_tm = base.transaction_manifest
+    state = {}
+
+    def wrapped_tm(project, backup, profile, selected, records, status):
+        path = orig_tm(project, backup, profile, selected, records, status)
+        if status == "PASS":
+            state["project"] = project
+            state["backup"] = backup
+            state["tx"] = path
+        return path
+
+    base.transaction_manifest = wrapped_tm
+    try:
+        code = base.main()
+    finally:
+        base.transaction_manifest = orig_tm
+    if code == 0 and state.get("tx"):
+        lock_path = state["project"] / ".smc" / "ges-install-lock.json"
+        write_install_receipt(state["project"], state["backup"], lock_path, state["tx"])
+    return code
 
 
 if __name__ == "__main__":

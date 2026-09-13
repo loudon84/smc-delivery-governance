@@ -8,5 +8,9 @@ dependencies = [
   "jsonschema>=4.23,<5"
 ]
 
+[tool.setuptools]
+packages = []
+py-modules = []
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

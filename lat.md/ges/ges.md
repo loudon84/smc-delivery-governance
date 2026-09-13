@@ -18,5 +18,6 @@ GES 是项目仓库内的 AI 工程治理工作流，不是跨仓控制面。它
 - [[runtime-cost]] — 复杂度路由、增量审查与任务级上下文的成本优化边界
 - [[ges-v5]] — v5 升级边界、兼容链、证据新鲜度与清单验收
 - [[acceptance-hardening]] — 路由信任、结构化风险、Domain 语义、install-lock.v2、telemetry 与 package gate
+- [[acceptance-closure]] — v5.0.2 闭环：字节身份、R1–R7 审查、authority、intent binding、install receipt、可执行验收与保护校验
 
 GES 产出的是项目本地 Architecture / Stage PRD / Plan / evidence；跨仓 Feature / Work Package / Attestation 仍由中央控制面裁决，见 [[architecture]]、[[ADR-001-central-local-boundary]]。

@@ -11,7 +11,9 @@ if not RUNTIME.is_dir():
     RUNTIME = ROOT / "domain-runtime"
 sys.path.insert(0, str(RUNTIME))
 from domain_table import (  # noqa: E402
+    _token,
     apply_row_rules,
+    parse_table,
     validate_enum_or_na,
     validate_table,
 )
@@ -29,13 +31,13 @@ REQ = [
     "Visual Verification",
 ]
 FRAMEWORKS = {"REACT", "VUE", "GENERIC", "N/A", "NA"}
+LAYOUT = {"UNCHANGED", "EXTEND_EXISTING", "NEW_HIERARCHY", "NAVIGATION_CHANGE", "MULTI_PANEL", "N/A", "NA"}
+COMPONENT = {"REUSE", "EXTEND", "NEW", "REMOVE", "N/A", "NA"}
+STATE = {"UNCHANGED", "LOCAL_EXISTING", "EXTEND_OWNER", "NEW_OWNER", "STORE_CHANGE", "N/A", "NA"}
+RESPONSIVE = {"UNCHANGED", "EXTEND", "ARCHITECTURE_CHANGE", "N/A", "NA"}
 VISUAL = {"STATIC", "COMPONENT", "INTERACTION", "LIVE_VISUAL", "N/A", "NA"}
-ACTION = re.compile(r"\b(REUSE|EXTEND|NEW|REMOVE|N/A|NA)\b", re.I)
-FULL_TRIGGERS = re.compile(
-    r"new\s+page|layout\s+hierarchy|navigation\s+change|state\s+owner|responsive\s+architecture|"
-    r"design-system\s+primitive|multi-panel|workspace\s+structure",
-    re.I,
-)
+FULL_LAYOUT = {"NEW_HIERARCHY", "NAVIGATION_CHANGE", "MULTI_PANEL"}
+FULL_STATE = {"NEW_OWNER", "STORE_CHANGE"}
 
 
 def _profile(path: Path) -> str:
@@ -43,16 +45,30 @@ def _profile(path: Path) -> str:
     return (m.group(1) if m else "FULL").upper()
 
 
+def _component_token(raw: str) -> str:
+    return _token(raw.split()[0] if raw.strip() else "")
+
+
 def semantic(row: dict[str, str], index: int) -> list[dict[str, str]]:
     errors = []
     errors.extend(validate_enum_or_na(row, "Framework", FRAMEWORKS, "FRONTEND_PREPLAN", index))
+    errors.extend(validate_enum_or_na(row, "Layout", LAYOUT, "FRONTEND_PREPLAN", index))
+    errors.extend(validate_enum_or_na(row, "State Ownership", STATE, "FRONTEND_PREPLAN", index))
+    errors.extend(validate_enum_or_na(row, "Responsive", RESPONSIVE, "FRONTEND_PREPLAN", index))
     errors.extend(validate_enum_or_na(row, "Visual Verification", VISUAL, "FRONTEND_PREPLAN", index))
     cmap = row.get("Component Map", "")
-    if not ACTION.search(cmap):
-        errors.append(
-            {"code": "FRONTEND_PREPLAN_ENUM_INVALID", "detail": f"row={index} Component Map missing action token"}
-        )
-    if re.search(r"\bNEW\b", cmap, re.I):
+    ctok = _component_token(cmap)
+    if ctok not in COMPONENT:
+        # distinguish free-text new artifacts vs missing token
+        if cmap.strip() and ctok not in {"", "N/A", "NA"}:
+            errors.append(
+                {"code": "DOMAIN_SEMANTIC_TOKEN_INVALID", "detail": f"row={index} Component Map={cmap}"}
+            )
+        else:
+            errors.append(
+                {"code": "FRONTEND_PREPLAN_ENUM_INVALID", "detail": f"row={index} Component Map missing action token"}
+            )
+    if ctok == "NEW":
         ds = row.get("Design System", "").strip()
         if not ds or ds.upper() in {"N/A", "NA", "-", "NONE"}:
             errors.append(
@@ -66,10 +82,22 @@ def semantic(row: dict[str, str], index: int) -> list[dict[str, str]]:
 
 def validate(p: Path):
     errors = validate_table(p, "Frontend Design Intent", list(REQ), "FRONTEND_PREPLAN")
+    _, rows = parse_table(p, "Frontend Design Intent")
+    if not rows and errors:
+        # legacy free-text section without structured rows → fail closed
+        text = p.read_text(encoding="utf-8")
+        if "## Frontend Design Intent" in text:
+            errors.append({"code": "DOMAIN_SEMANTIC_LEGACY_FULL_REQUIRED", "detail": "unstructured frontend intent"})
+        return errors
     errors.extend(apply_row_rules(p, "Frontend Design Intent", "FRONTEND_PREPLAN", semantic))
-    text = p.read_text(encoding="utf-8")
-    if _profile(p) == "LEAN" and FULL_TRIGGERS.search(text):
-        errors.append({"code": "FRONTEND_PREPLAN_FULL_REQUIRED", "detail": "layout/state/navigation trigger"})
+    if _profile(p) == "LEAN":
+        for index, row in enumerate(rows, 1):
+            layout = _token(row.get("Layout", ""))
+            state = _token(row.get("State Ownership", ""))
+            responsive = _token(row.get("Responsive", ""))
+            if layout in FULL_LAYOUT or state in FULL_STATE or responsive == "ARCHITECTURE_CHANGE":
+                errors.append({"code": "FRONTEND_PREPLAN_FULL_REQUIRED", "detail": f"row={index} structured FULL trigger"})
+                break
     return errors
 
 

@@ -4,7 +4,7 @@ GES 交付工具的关键测试规格。它们证明 Plan 投影、scoped worksp
 
 覆盖当前树内 `smc-plan-delivery` 与 Roadmap evidence 合同，而不是复述脚本实现。
 
-v5 补充回归覆盖 v3.7 Test Asset 复用与陈旧阻断、命令绑定 RED/GREEN、epoch 不复活、显式 v1 迁移、根因与 VERIFIED 顺序、Todo 完成门禁、STALE REVISE 和快照篡改。包集成验证 Profile v2 策略保留、v3 项目策略摘要、领域激活、seed/wrapper 兼容及事务回滚，见 [[ges-v5#Verification Boundary]]。
+v5 补充回归覆盖 v3.7 Test Asset 复用与陈旧阻断、命令绑定 RED/GREEN、epoch 不复活、显式 v1 迁移、根因与 VERIFIED 顺序、Todo 完成门禁、STALE REVISE 和快照篡改。包集成验证 Profile v2 策略保留、v3 项目策略摘要、领域激活、seed/wrapper 兼容及事务回滚，见 [[ges-v5#Verification Boundary]]。v5.0.2 Closure 真行为规格见下方 Acceptance Closure。
 
 ## Plan contract
 
@@ -281,3 +281,51 @@ Plan 语义变化后，旧 method artifact 不得继续决定 TDD、debug 或审
 ### Rejects a malformed method artifact
 
 损坏或 schema 不匹配的 method artifact 必须 fail-closed，不能静默回退到更弱的 heuristic profile。
+
+## Acceptance Closure
+
+Acceptance Closure 测试证明 Remaining Findings 以真实行为关闭，而不是文档或 grep 断言。
+
+### Hard risk beats stale pass
+
+当前 hard risk（如 schema migration）必须把审查深度升为 FULL，即使 prior PASS 已因语义变更变为 STALE 且本可走 DELTA。
+
+### Invalid snapshot forces full
+
+存在但被篡改的 Risk Facts Snapshot（`INVALID`）必须 fail-closed 为 FULL；旧 Plan 完全缺 snapshot（`ABSENT`）仍可走低风险 NONE。
+
+### Authority required for production none
+
+生产 CLI 在无 verified work-authority 时不得路由 NONE；绑定后的纯研究 authority 仍可 SPIKE/NONE。
+
+### No fulltext blocking on negation
+
+Domain Preplan 在 structured row 完整且否定高风险时，不得因全文 regex 误触发 blocking FULL。
+
+### Duplicate write owner is blocked
+
+两个 Todo 争同一 `path#symbol` WRITE_OWNER 必须回 `PLAN_WRITE_OWNERSHIP_CONFLICT`（FI-04）。
+
+### Worker out of scope drifts
+
+Delivery workspace 在写集外修改 production 路径时必须回 `DELIVERY_SCOPE_DRIFT`。
+
+### TDD scope becomes stale
+
+真实 RED/GREEN receipt 之后改绑定源码必须回 `TDD_SCOPE_STALE`。
+
+### Review becomes stale after semantic change
+
+Implementation review PASS 后改 semantic Plan 必须使 review 状态变为 `STALE`。
+
+### Evidence becomes stale after production change
+
+Blocking evidence 绑定后改 production 内容必须使 evidence 变为 `STALE`。
+
+### Live candidate mismatch
+
+Live acceptance candidate 与声明 SUT 不一致时必须回 `LIVE_SUT_MISMATCH`。
+
+### Debug escalates after three failed fixes
+
+REPRODUCTION + ROOT_CAUSE 后连续三次 FIX_ATTEMPT FAIL 必须回 `DEBUG_ARCHITECTURE_ESCALATION`。

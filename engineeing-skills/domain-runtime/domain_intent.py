@@ -1,0 +1,167 @@
+#!/usr/bin/env python3
+"""Domain Intent Binding: Approved PRD projection hashed into Plan (not a second SOT)."""
+from __future__ import annotations
+
+import hashlib
+import re
+from pathlib import Path
+from typing import Any
+
+from domain_runtime import markdown_table, section, sha256_json
+from domain_table import _token, parse_table
+
+BINDING_SCHEMA = "smc.ges.domain-intent-binding.v1"
+BINDING_VERSION = "1"
+
+
+def normalize_row(row: dict[str, str], fields: list[str]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for field in fields:
+        raw = row.get(field, "")
+        out[field] = _token(raw) if field != "Change ID" else row.get("Change ID", "").strip().upper()
+    return out
+
+
+def intent_hash(domain: str, change_id: str, normalized: dict[str, str]) -> str:
+    payload = {"domain": domain, "change_id": change_id, "fields": normalized}
+    return sha256_json(payload)
+
+
+def source_prd_sha256(prd: Path) -> str:
+    return "sha256:" + hashlib.sha256(prd.read_bytes()).hexdigest()
+
+
+def extract_intent_rows(prd: Path, preplan_section: str, fields: list[str]) -> list[dict[str, str]]:
+    _, rows = parse_table(prd, preplan_section)
+    out = []
+    for row in rows:
+        cid = row.get("Change ID", "").strip().upper()
+        if not cid:
+            continue
+        out.append({"change_id": cid, **normalize_row(row, fields)})
+    return out
+
+
+def binding_table(rows: list[dict[str, str]]) -> str:
+    lines = [
+        "## Domain Intent Binding",
+        "",
+        "| Domain | Change ID | Intent SHA256 | Source PRD SHA256 |",
+        "|---|---|---|---|",
+    ]
+    for row in rows:
+        lines.append(
+            f"| {row['domain']} | {row['change_id']} | `{row['intent_sha256']}` | `{row['source_prd_sha256']}` |"
+        )
+    return "\n".join(lines) + "\n"
+
+
+def build_bindings(prd: Path, packs: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
+    # @lat: [[acceptance-closure#Canonical Digests]]
+    prd_sha = source_prd_sha256(prd)
+    out: list[dict[str, str]] = []
+    for domain_id, pack in sorted(packs.items()):
+        binding = pack.get("intent_binding") or {}
+        section_name = binding.get("preplan_section") or pack.get("preplan_section")
+        fields = list((binding.get("fields") or {}).keys()) or []
+        if not section_name or not fields:
+            continue
+        for row in extract_intent_rows(prd, str(section_name), fields):
+            cid = row.pop("change_id")
+            out.append(
+                {
+                    "domain": domain_id,
+                    "change_id": cid,
+                    "intent_sha256": intent_hash(domain_id, cid, row),
+                    "source_prd_sha256": prd_sha,
+                }
+            )
+    return out
+
+
+def parse_binding_table(plan_text: str) -> list[dict[str, str]]:
+    rows = markdown_table(section(plan_text, "Domain Intent Binding"))
+    out = []
+    for row in rows:
+        out.append(
+            {
+                "domain": row.get("Domain", "").strip(),
+                "change_id": row.get("Change ID", "").strip().upper(),
+                "intent_sha256": row.get("Intent SHA256", "").strip().strip("`"),
+                "source_prd_sha256": row.get("Source PRD SHA256", "").strip().strip("`"),
+            }
+        )
+    return out
+
+
+def map_ledger_value(domain: str, field: str, value: str, binding: dict[str, Any]) -> str:
+    """Normalize Plan ledger field; Ops Live Verification may map to Verification."""
+    aliases = binding.get("plan_field_aliases") or {}
+    if field in aliases:
+        field = aliases[field]
+    return _token(value)
+
+
+def verify_bindings(
+    plan: Path,
+    prd: Path,
+    packs: dict[str, dict[str, Any]],
+) -> list[dict[str, str]]:
+    # @lat: [[acceptance-closure#Domain Intent Binding]]
+    # @lat: [[domain-packs#Intent Binding]]
+    errors: list[dict[str, str]] = []
+    text = plan.read_text(encoding="utf-8")
+    meta_m = re.search(r"^source_prd_sha256:\s*(.+)$", text, re.M)
+    expected_prd_sha = source_prd_sha256(prd)
+    if not meta_m:
+        errors.append({"code": "DOMAIN_INTENT_BINDING_MISSING", "detail": "source_prd_sha256"})
+    elif meta_m.group(1).strip().strip('"') != expected_prd_sha:
+        errors.append({"code": "DOMAIN_INTENT_BINDING_STALE", "detail": "source_prd_sha256 mismatch"})
+    elif expected_prd_sha != ("sha256:" + hashlib.sha256(prd.read_bytes()).hexdigest()):
+        errors.append({"code": "PRD_STALE_OR_CONFLICTING", "detail": "source PRD bytes changed"})
+
+    recorded = {(r["domain"], r["change_id"]): r for r in parse_binding_table(text)}
+    expected = {(r["domain"], r["change_id"]): r for r in build_bindings(prd, packs)}
+    if not recorded and expected:
+        errors.append({"code": "DOMAIN_INTENT_BINDING_MISSING", "detail": "Domain Intent Binding"})
+        return errors
+    for key, exp in expected.items():
+        act = recorded.get(key)
+        if not act:
+            errors.append({"code": "DOMAIN_INTENT_BINDING_MISSING", "detail": f"{key[0]}/{key[1]}"})
+            continue
+        if act["intent_sha256"] != exp["intent_sha256"] or act["source_prd_sha256"] != exp["source_prd_sha256"]:
+            errors.append({"code": "PRD_STALE_OR_CONFLICTING", "detail": f"intent hash {key[0]}/{key[1]}"})
+
+    # Compare mapped Plan ledger fields against PRD intent tokens
+    for domain_id, pack in packs.items():
+        binding = pack.get("intent_binding") or {}
+        plan_section = binding.get("plan_section") or (pack.get("plan_extension") or {}).get("section")
+        field_map: dict[str, str] = binding.get("fields") or {}
+        if not plan_section or not field_map:
+            continue
+        preplan = binding.get("preplan_section") or pack.get("preplan_section")
+        _, prd_rows = parse_table(prd, str(preplan))
+        prd_by_id = {r.get("Change ID", "").strip().upper(): r for r in prd_rows}
+        _, plan_rows = parse_table(plan, str(plan_section))
+        for prow in plan_rows:
+            cid = prow.get("Change ID", "").strip().upper()
+            prow_src = prd_by_id.get(cid)
+            if not prow_src:
+                continue
+            for prd_field, plan_field in field_map.items():
+                actual_field = plan_field
+                if actual_field not in prow and actual_field == "Live Verification" and "Verification" in prow:
+                    actual_field = "Verification"
+                if actual_field not in prow:
+                    continue
+                left = _token(prow_src.get(prd_field, ""))
+                right = _token(prow.get(actual_field, ""))
+                if left and right and left != right and left not in {"N/A", "NA"} and right not in {"N/A", "NA"}:
+                    errors.append(
+                        {
+                            "code": "PRD_STALE_OR_CONFLICTING",
+                            "detail": f"{domain_id}/{cid} {prd_field}:{left} vs {actual_field}:{right}",
+                        }
+                    )
+    return errors

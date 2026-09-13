@@ -77,30 +77,40 @@ def parse_routing_facts(section_text: str) -> dict[str, Any] | None:
     return value if isinstance(value, dict) else None
 
 
-def extract_risk_snapshot(text: str) -> dict[str, Any] | None:
-    """Read Plan Risk Facts Snapshot JSON if present."""
+def parse_risk_snapshot(text: str) -> tuple[str, dict[str, Any] | None]:
+    # @lat: [[acceptance-closure#Risk Snapshot Tri-State]]
+    """Return (ABSENT|VALID|INVALID, facts_or_none)."""
     m = re.search(
         r"Risk Facts Snapshot:\s*`?(\{.*?\})`?",
         text,
         re.S,
     )
     if not m:
-        # also accept fenced block under Governance Profile
         m2 = re.search(
             r"##\s+Governance Profile\s*\n.*?Risk Facts Snapshot:\s*\n```json\s*(\{.*?\})\s*```",
             text,
             re.S | re.I,
         )
         if not m2:
-            return None
+            if re.search(r"Risk Facts Snapshot:", text, re.I):
+                return "INVALID", None
+            return "ABSENT", None
         blob = m2.group(1)
     else:
         blob = m.group(1)
     try:
         value = json.loads(blob)
     except json.JSONDecodeError:
-        return None
-    return value if isinstance(value, dict) else None
+        return "INVALID", None
+    if not isinstance(value, dict):
+        return "INVALID", None
+    return "VALID", value
+
+
+def extract_risk_snapshot(text: str) -> dict[str, Any] | None:
+    """Read Plan Risk Facts Snapshot JSON if present and valid."""
+    status, facts = parse_risk_snapshot(text)
+    return facts if status == "VALID" else None
 
 
 def structured_high_risk(facts: dict[str, Any] | None) -> tuple[bool, list[str]]:

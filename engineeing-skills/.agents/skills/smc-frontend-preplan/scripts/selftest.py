@@ -12,7 +12,7 @@ governance_profile: FULL
 
 | Change ID | Surface | Framework | Layout | Component Map | State Ownership | Interaction States | Design System | Responsive | Visual Verification |
 |---|---|---|---|---|---|---|---|---|---|
-| C01 | Settings | Vue | split | REUSE Settings + NEW Editor | Panel | default/loading/error | existing tokens | stacked narrow | LIVE_VISUAL |
+| C01 | Settings | VUE | EXTEND_EXISTING | REUSE SettingsPanel | LOCAL_EXISTING | default/loading/error | existing tokens | EXTEND | LIVE_VISUAL |
 """
 with tempfile.TemporaryDirectory() as d:
     p = pathlib.Path(d) / "p.md"

@@ -10,7 +10,7 @@ RUNTIME = ROOT / ".agents/ges/domain-runtime"
 if not RUNTIME.is_dir():
     RUNTIME = ROOT / "domain-runtime"
 sys.path.insert(0, str(RUNTIME))
-from domain_table import apply_row_rules, validate_enum_or_na, validate_table  # noqa: E402
+from domain_table import _token, apply_row_rules, parse_table, validate_enum_or_na, validate_table  # noqa: E402
 
 REQ = [
     "Change ID",
@@ -35,25 +35,36 @@ def _profile(path: Path) -> str:
 
 def semantic(row: dict[str, str], index: int) -> list[dict[str, str]]:
     errors = []
-    errors.extend(validate_enum_or_na(row, "Contract", CONTRACT, "BACKEND_PREPLAN", index))
-    errors.extend(validate_enum_or_na(row, "Auth", AUTH, "BACKEND_PREPLAN", index))
-    errors.extend(validate_enum_or_na(row, "Data/Transaction", DATA, "BACKEND_PREPLAN", index))
-    errors.extend(validate_enum_or_na(row, "Idempotency/Concurrency", IDEMP, "BACKEND_PREPLAN", index))
+    for field, allowed in (
+        ("Contract", CONTRACT),
+        ("Auth", AUTH),
+        ("Data/Transaction", DATA),
+        ("Idempotency/Concurrency", IDEMP),
+    ):
+        before = len(errors)
+        errors.extend(validate_enum_or_na(row, field, allowed, "BACKEND_PREPLAN", index))
+        if len(errors) > before and row.get(field, "").strip() and _token(row.get(field, "")) not in allowed:
+            # free-text token on new artifact
+            errors[-1] = {"code": "DOMAIN_SEMANTIC_TOKEN_INVALID", "detail": f"row={index} {field}={row.get(field)}"}
     return errors
 
 
 def validate(p: Path):
     errors = validate_table(p, "Backend Design Intent", list(REQ), "BACKEND_PREPLAN")
+    _, rows = parse_table(p, "Backend Design Intent")
+    if not rows and "## Backend Design Intent" in p.read_text(encoding="utf-8"):
+        errors.append({"code": "DOMAIN_SEMANTIC_LEGACY_FULL_REQUIRED", "detail": "unstructured backend intent"})
+        return errors
     errors.extend(apply_row_rules(p, "Backend Design Intent", "BACKEND_PREPLAN", semantic))
-    profile = _profile(p)
-    hard = False
-    for err in list(errors):
-        pass
-    text = p.read_text(encoding="utf-8")
-    if re.search(r"\b(BREAKING_CHANGE|NEW_BOUNDARY|MIGRATION)\b", text, re.I):
-        hard = True
-    if profile == "LEAN" and hard:
-        errors.append({"code": "BACKEND_PREPLAN_FULL_REQUIRED", "detail": "breaking/auth/migration signal"})
+    if _profile(p) == "LEAN":
+        for index, row in enumerate(rows, 1):
+            if (
+                _token(row.get("Contract", "")) == "BREAKING_CHANGE"
+                or _token(row.get("Auth", "")) == "NEW_BOUNDARY"
+                or _token(row.get("Data/Transaction", "")) == "MIGRATION"
+            ):
+                errors.append({"code": "BACKEND_PREPLAN_FULL_REQUIRED", "detail": f"row={index} structured FULL trigger"})
+                break
     return errors
 
 

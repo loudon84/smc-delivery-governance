@@ -17,6 +17,8 @@ if not RUNTIME.is_dir():
     RUNTIME = HERE.parents[3] / ".agents" / "ges" / "domain-runtime"
 sys.path.insert(0, str(RUNTIME))
 from risk_signals import parse_routing_facts, snapshot_json  # noqa: E402
+from domain_intent import binding_table, build_bindings, source_prd_sha256  # noqa: E402
+from domain_runtime import load_context  # noqa: E402
 
 
 def fm(text):
@@ -140,6 +142,11 @@ def main():
         )
         if "governance_profile:" not in text.split("---", 2)[1]:
             text = insert_frontmatter(text, f"governance_profile: {profile}")
+        prd_sha = source_prd_sha256(prd)
+        if "source_prd_sha256:" not in text.split("---", 2)[1]:
+            text = insert_frontmatter(text, f"source_prd_sha256: {prd_sha}")
+        if "domain_intent_binding_version:" not in text.split("---", 2)[1]:
+            text = insert_frontmatter(text, "domain_intent_binding_version: 1")
         marker = "## Requirement Coverage Ledger"
         block = (
             f"## Governance Profile\n\n"
@@ -150,6 +157,18 @@ def main():
         )
         if marker in text and "## Governance Profile" not in text:
             text = text.replace(marker, block + marker, 1)
+        try:
+            ctx = load_context(repo_root(prd))
+            packs = {k: v for k, v in ctx["packs"].items()}
+            bindings = build_bindings(prd, packs)
+            if bindings and "## Domain Intent Binding" not in text:
+                text = text.replace(
+                    "## Governance Profile\n",
+                    binding_table(bindings) + "\n## Governance Profile\n",
+                    1,
+                )
+        except Exception:
+            pass
         out.write_text(text, encoding="utf-8")
     finally:
         tmp.unlink(missing_ok=True)

@@ -37,3 +37,9 @@ v3.7 TDD 按实际命令、Plan 语义、不可复活的 method epoch 与当前�
 v5.0.1 Hardening lands routing trust, structured risk, domain semantics, install-lock.v2, telemetry hooks, CI package gate, and acceptance tooling.
 
 See [[acceptance-hardening]] and `engineeing-skills/CHANGES-v5.0.1.md`. Bundle SemVer and Baseline promotion remain Release Review decisions; Candidate evidence must not claim cost optimization until Benchmark thresholds pass.
+
+## Acceptance Closure Slice
+
+v5.0.2 closes remaining findings: CI byte identity, hard-risk review precedence, work authority, domain intent binding, install receipt, and executable acceptance evidence.
+
+Shared contracts and landed pointers are in [[acceptance-closure]]. Package/install/runtime/domain/test docs cross-link the same slice. `BASELINE.md` stays on the accepted production baseline until Release Verdict ACCEPT.

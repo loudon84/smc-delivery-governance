@@ -8,6 +8,15 @@ def inventory(root=ROOT):
 def build(root=ROOT):
  rows=inventory(root)
  return {'schema':'smc.skills.package.manifest.v1','package':'SMC-Governed-Engineering-Skills','package_version':'5.0.0','file_count':len(rows),'files':rows}
+def explain_diff(root=ROOT):
+ # @lat: [[acceptance-closure#Byte Identity and EOL]]
+ expected=build(root);actual=json.loads((root/'PACKAGE-MANIFEST.json').read_text(encoding='utf-8'))
+ exp={f['path']:f for f in expected['files']};act={f['path']:f for f in actual.get('files',[])}
+ added=sorted(set(exp)-set(act));removed=sorted(set(act)-set(exp))
+ content_changed=sorted(p for p in set(exp)&set(act) if exp[p]['sha256']!=act[p]['sha256'])
+ size_changed=sorted(p for p in set(exp)&set(act) if exp[p]['size']!=act[p]['size'] and p not in content_changed)
+ return {'added':added,'removed':removed,'content_changed':content_changed,'size_changed':size_changed,
+         'expected_file_count':expected['file_count'],'actual_file_count':actual.get('file_count')}
 def verify(root=ROOT):
  expected=build(root);actual=json.loads((root/'PACKAGE-MANIFEST.json').read_text(encoding='utf-8'))
  if actual!=expected:raise ValueError('PACKAGE_MANIFEST_MISMATCH')
@@ -16,7 +25,9 @@ def verify(root=ROOT):
  if (root/'SHA256SUMS').read_text(encoding='utf-8')!=sums:raise ValueError('PACKAGE_CHECKSUM_MISMATCH')
  return len(expected['files'])
 def main():
- ap=argparse.ArgumentParser();ap.add_argument('--check',action='store_true');a=ap.parse_args()
+ ap=argparse.ArgumentParser();ap.add_argument('--check',action='store_true');ap.add_argument('--explain-diff',action='store_true');a=ap.parse_args()
+ if a.explain_diff:
+  print(json.dumps(explain_diff(),indent=2,ensure_ascii=False));return
  if a.check:print('PACKAGE INTEGRITY PASS:',verify());return
  value=build();(ROOT/'PACKAGE-MANIFEST.json').write_text(json.dumps(value,ensure_ascii=False,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
  sums=''.join(r['sha256']+'  '+r['path']+'\n' for r in value['files'])

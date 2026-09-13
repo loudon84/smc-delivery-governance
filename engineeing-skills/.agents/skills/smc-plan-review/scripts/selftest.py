@@ -84,6 +84,66 @@ class AdaptivePlanReviewTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "REQUIRES_REVIEW_RECORD"):
             accept(self.plan)
 
+    def test_stale_pass_plus_schema_migration_is_full(self):
+        self.plan.write_text(LOW_RISK, encoding="utf-8")
+        current = classify(self.plan)["plan_sha256"]
+        review = self.root / ".smc" / "reviews" / "demo-plan.jsonl"
+        review.parent.mkdir(parents=True, exist_ok=True)
+        review.write_text(json.dumps({"kind": "plan", "verdict": "PASS", "plan_sha256": current}) + "\n", encoding="utf-8")
+        facts = {
+            "new_owner": False,
+            "public_contract": False,
+            "security_boundary": False,
+            "schema_migration": True,
+            "protocol_change": False,
+            "external_dependency": False,
+            "lifecycle_change": False,
+            "cross_domain_ownership": False,
+            "live_acceptance": False,
+        }
+        self.plan.write_text(
+            LOW_RISK.replace("adjust existing validation", "adjust with migration")
+            + f"\n## Governance Profile\n\n- Risk Facts Snapshot: `{json.dumps(facts)}`\n",
+            encoding="utf-8",
+        )
+        result = classify(self.plan)
+        self.assertEqual(result["depth"], "FULL")
+        self.assertIn("PLAN_REVIEW_HARD_RISK_FULL_REQUIRED", result["reasons"])
+
+    def test_fresh_pass_high_risk_is_none(self):
+        facts = {
+            "new_owner": False,
+            "public_contract": True,
+            "security_boundary": False,
+            "schema_migration": False,
+            "protocol_change": False,
+            "external_dependency": False,
+            "lifecycle_change": False,
+            "cross_domain_ownership": False,
+            "live_acceptance": False,
+        }
+        text = (
+            LOW_RISK
+            + f"\n## Governance Profile\n\n- Risk Facts Snapshot: `{json.dumps(facts)}`\n"
+        )
+        self.plan.write_text(text, encoding="utf-8")
+        current = classify(self.plan)["plan_sha256"]
+        review = self.root / ".smc" / "reviews" / "demo-plan.jsonl"
+        review.parent.mkdir(parents=True, exist_ok=True)
+        review.write_text(json.dumps({"kind": "plan", "verdict": "PASS", "plan_sha256": current}) + "\n", encoding="utf-8")
+        result = classify(self.plan)
+        self.assertEqual((result["route"], result["depth"]), ("NOT_REQUIRED", "NONE"))
+
+    def test_stale_revise_is_full(self):
+        self.plan.write_text(LOW_RISK, encoding="utf-8")
+        current = classify(self.plan)["plan_sha256"]
+        review = self.root / ".smc" / "reviews" / "demo-plan.jsonl"
+        review.parent.mkdir(parents=True, exist_ok=True)
+        review.write_text(json.dumps({"kind": "plan", "verdict": "REVISE", "plan_sha256": current}) + "\n", encoding="utf-8")
+        self.plan.write_text(LOW_RISK.replace("adjust existing validation", "adjust again"), encoding="utf-8")
+        result = classify(self.plan)
+        self.assertEqual(result["depth"], "FULL")
+
 
 if __name__ == "__main__":
     unittest.main()

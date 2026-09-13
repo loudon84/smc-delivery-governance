@@ -13,8 +13,8 @@ sys.path.insert(0, str(RUNTIME))
 from domain_table import (  # noqa: E402
     _token,
     apply_row_rules,
+    parse_table,
     validate_enum,
-    validate_enum_or_na,
     validate_na_with_reason,
     validate_table,
 )
@@ -41,9 +41,15 @@ def _profile(path: Path) -> str:
 
 def semantic(row: dict[str, str], index: int) -> list[dict[str, str]]:
     errors = []
-    errors.extend(validate_enum(row, "Deployment Impact", IMPACT, "OPS_PREPLAN", index))
-    errors.extend(validate_enum(row, "Compatibility", COMPAT, "OPS_PREPLAN", index))
-    errors.extend(validate_enum(row, "Live Verification", LIVE, "OPS_PREPLAN", index))
+    for field, allowed, fn in (
+        ("Deployment Impact", IMPACT, validate_enum),
+        ("Compatibility", COMPAT, validate_enum),
+        ("Live Verification", LIVE, validate_enum),
+    ):
+        before = len(errors)
+        errors.extend(fn(row, field, allowed, "OPS_PREPLAN", index))
+        if len(errors) > before and row.get(field, "").strip() and _token(row.get(field, "")) not in allowed:
+            errors[-1] = {"code": "DOMAIN_SEMANTIC_TOKEN_INVALID", "detail": f"row={index} {field}={row.get(field)}"}
     impact = _token(row.get("Deployment Impact", ""))
     rollback = row.get("Rollback", "").strip()
     if impact != "NONE":
@@ -69,11 +75,19 @@ def semantic(row: dict[str, str], index: int) -> list[dict[str, str]]:
 
 def validate(p: Path):
     errors = validate_table(p, "Ops Design Intent", list(REQ), "OPS_PREPLAN")
+    _, rows = parse_table(p, "Ops Design Intent")
+    if not rows and "## Ops Design Intent" in p.read_text(encoding="utf-8"):
+        errors.append({"code": "DOMAIN_SEMANTIC_LEGACY_FULL_REQUIRED", "detail": "unstructured ops intent"})
+        return errors
     errors.extend(apply_row_rules(p, "Ops Design Intent", "OPS_PREPLAN", semantic))
-    profile = _profile(p)
-    text = p.read_text(encoding="utf-8")
-    if profile == "LEAN" and re.search(r"\b(TOPOLOGY_CHANGE|IRREVERSIBLE|BREAKING|LIVE|EXTERNAL)\b", text, re.I):
-        errors.append({"code": "OPS_PREPLAN_FULL_REQUIRED", "detail": "topology/irreversible/live signal"})
+    if _profile(p) == "LEAN":
+        for index, row in enumerate(rows, 1):
+            impact = _token(row.get("Deployment Impact", ""))
+            compat = _token(row.get("Compatibility", ""))
+            live = _token(row.get("Live Verification", ""))
+            if impact in {"TOPOLOGY_CHANGE", "IRREVERSIBLE"} or compat == "BREAKING" or live in {"LIVE", "EXTERNAL"}:
+                errors.append({"code": "OPS_PREPLAN_FULL_REQUIRED", "detail": f"row={index} structured FULL trigger"})
+                break
     return errors
 
 

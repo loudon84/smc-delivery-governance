@@ -37,6 +37,21 @@ def main():
    if lock['bundle']!='5.0.0':raise ValueError('INSTALL_LOCK_VERSION_INVALID')
    if lock.get('schema')!='smc.ges.install-lock.v2':raise ValueError('INSTALL_LOCK_V2_INVALID')
    if 'release_identity' not in lock or 'owned_files' not in lock:raise ValueError('INSTALL_RELEASE_IDENTITY_INVALID')
+   # raw-bytes identity: must match PACKAGE-MANIFEST.json file digest, not reserialized object
+   import hashlib as _hl
+   manifest_path=ROOT/'PACKAGE-MANIFEST.json'
+   byte_sha=installer.base.sha256(manifest_path)
+   if lock['release_identity'].get('package_manifest_sha256')!=byte_sha:raise ValueError('INSTALL_MANIFEST_BYTE_DIGEST_MISMATCH')
+   reserialized=_hl.sha256(json.dumps(json.loads(manifest_path.read_text(encoding='utf-8')),sort_keys=True,separators=(',',':')).encode()).hexdigest()
+   if reserialized==byte_sha:
+    pass  # rare but allowed if bytes already canonical
+   receipt=json.loads((project/'.smc/ges-install-receipt.json').read_text(encoding='utf-8'))
+   if receipt.get('schema')!='smc.ges.install-receipt.v1':raise ValueError('INSTALL_RECEIPT_INVALID')
+   if receipt.get('transaction_status')!='PASS':raise ValueError('INSTALL_RECEIPT_TRANSACTION_MISMATCH')
+   tx=list((project/'.smc/skill-upgrade-backups').glob('*/upgrade-manifest.json'))
+   if not tx:raise ValueError('INSTALL_RECEIPT_INVALID: missing transaction')
+   tx_sha='sha256:'+(installer.base.sha256(tx[0]) or '')
+   if receipt.get('transaction_manifest_sha256')!=tx_sha:raise ValueError('INSTALL_RECEIPT_TRANSACTION_MISMATCH')
    for p in (project/'.agents/skills').rglob('*'):
     if p.is_file() and '__pycache__' not in p.parts:
      mirror=project/'.cursor/skills'/p.relative_to(project/'.agents/skills')
