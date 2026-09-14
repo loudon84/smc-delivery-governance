@@ -78,11 +78,18 @@ class RuntimeV5Tests(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'MIGRATION_REQUIRED'):m.load_method(self.p,'T1')
   m.migrate(self.p,'T1','approved v37 migration')
   self.assertTrue(list((m.edir(self.p)/'history').glob('*.json')))
+  loaded=m.load_method(self.p,'T1')
+  self.assertEqual(loaded['schema'],'smc.execution.engineering-method.v3')
+  self.assertEqual(loaded['profile'],'BOUNDED_BEHAVIOR')
+  # BOUNDED_BEHAVIOR uses TDD_PREFERRED (empty ok); force required cycle for gate check.
+  m.classify(self.p,'T1',profile_override='BUG_FIX',write=True)
   self.assertNotEqual(0,m.tdd_check(self.p,'T1')[0])
  def test_empty_scope_fails_closed(self):
   self.p.write_text(PLAN.replace('**Writes**','**Reads**'),encoding='utf-8')
   with self.assertRaisesRegex(ValueError,'SCOPE_MISSING'):m.tdd_run(self.p,'T1','RED',self.cmd)
  def test_completion_state_interlock(self):
+  # Require focused TDD cycle; keep debug ON_FAILURE so empty debug does not block.
+  m.classify(self.p,'T1',profile_override='SENSITIVE_BOUNDED',write=True)
   before=self.p.read_bytes()
   with self.assertRaises(ValueError):plan_state.set_status(self.p,'T1','completed')
   self.assertEqual(before,self.p.read_bytes())

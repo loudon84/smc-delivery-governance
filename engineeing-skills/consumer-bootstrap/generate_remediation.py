@@ -136,6 +136,56 @@ def generate(project: Path, gap: dict[str, Any], audit_report: dict[str, Any] | 
             )
         )
 
+    # Frontend Context System (v5.0.6)
+    registry_rel = f"{C.FRONTEND_ROOT}/apps-registry.json"
+    if not C.exists_file(project, registry_rel):
+        actions.append(
+            _action(
+                next_id("FE"),
+                "WRITE_TEMPLATE",
+                registry_rel,
+                "Frontend apps-registry.json missing",
+                template="frontend/apps-registry.json",
+                claim="GES_NATIVE",
+            )
+        )
+        shared_rel = f"{C.FRONTEND_ROOT}/shared/shared-ui-registry.json"
+        if not C.exists_file(project, shared_rel):
+            actions.append(
+                _action(
+                    next_id("FE"),
+                    "WRITE_TEMPLATE",
+                    shared_rel,
+                    "Shared UI registry missing",
+                    template="frontend/shared-ui-registry.json",
+                    claim="GES_NATIVE",
+                )
+            )
+        # Seed per-app template stubs under apps/_template/ for guided adoption.
+        for name in C.FRONTEND_APP_LEVEL_TEMPLATES:
+            target = f"{C.FRONTEND_ROOT}/apps/_template/{name}"
+            if not C.exists_file(project, target):
+                actions.append(
+                    _action(
+                        next_id("FE"),
+                        "WRITE_TEMPLATE",
+                        target,
+                        f"Frontend template stub missing: {name}",
+                        template=f"frontend/{name}",
+                        claim="GES_NATIVE",
+                    )
+                )
+        actions.append(
+            _action(
+                next_id("FE"),
+                "RUN_COMMAND",
+                ".",
+                "Run frontend audit --apply to discover apps and write baselines",
+                command="python consumer-bootstrap/frontend_audit.py <project> --apply",
+                claim="GES_NATIVE",
+            )
+        )
+
     return {
         "schema": "smc.ges.consumer-remediation-plan.v1",
         "project": str(project),

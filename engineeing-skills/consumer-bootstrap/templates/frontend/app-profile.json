@@ -1,0 +1,8 @@
+{
+  "schema": "smc.ges.app-profile.v1",
+  "app_id": "_template",
+  "root": ".",
+  "runtime": "web",
+  "framework": "unknown",
+  "stack_adapter": "generic"
+}

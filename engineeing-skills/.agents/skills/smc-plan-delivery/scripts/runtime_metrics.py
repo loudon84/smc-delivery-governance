@@ -9,9 +9,22 @@ from pathlib import Path
 
 from common import find_repo_root, plan_id, utc_now
 
-SCHEMA = "smc.execution.telemetry.v1"
-COMPLETENESS_SCHEMA = "smc.execution.telemetry-completeness.v1"
+SCHEMA = "smc.execution.telemetry.v2"
+SCHEMA_LEGACY = "smc.execution.telemetry.v1"
+COMPLETENESS_SCHEMA = "smc.execution.telemetry-completeness.v2"
 FORBIDDEN = ("prompt", "source", "secret", "token_value", "api_key", "password")
+COST_BUCKETS = (
+    "ROUTING",
+    "BASELINE_LOOKUP",
+    "GROUNDING",
+    "PRD",
+    "PLAN",
+    "IMPLEMENT",
+    "TDD",
+    "DEBUG",
+    "REVIEW",
+    "DELIVERY",
+)
 DISPATCH_REQUIRED = ("plan_id", "todo", "phase", "requested_tier", "dispatch_id", "agent")
 RESULT_REQUIRED = (
     "dispatch_id",
@@ -25,6 +38,19 @@ RESULT_REQUIRED = (
     "completion_tokens",
     "cache_read_tokens",
     "cache_write_tokens",
+)
+V2_OPTIONAL = (
+    "cost_bucket",
+    "context_files_read",
+    "unique_context_files",
+    "repeated_context_reads",
+    "target_app_ids",
+    "surface_candidates",
+    "selected_surface",
+    "governance_profile",
+    "engineering_method",
+    "review_mode",
+    "tdd_mode",
 )
 
 
@@ -46,6 +72,7 @@ def _append(plan: Path, event: dict) -> Path:
 
 
 def dispatch(plan: Path, **fields) -> Path:
+    # @lat: [[frontend-context#Telemetry v2]]
     did = fields.get("dispatch_id") or uuid.uuid4().hex
     payload = {
         "kind": "dispatch",
@@ -55,6 +82,24 @@ def dispatch(plan: Path, **fields) -> Path:
         "dispatch_id": did,
         "agent": fields.get("agent", ""),
     }
+    for key in V2_OPTIONAL:
+        if key in fields and fields[key] is not None:
+            payload[key] = fields[key]
+    if "cost_bucket" not in payload:
+        phase = str(payload.get("phase") or "").upper()
+        mapping = {
+            "ROUTING": "ROUTING",
+            "GROUNDING": "GROUNDING",
+            "PRD": "PRD",
+            "PLAN": "PLAN",
+            "IMPLEMENT": "IMPLEMENT",
+            "TDD": "TDD",
+            "DEBUG": "DEBUG",
+            "REVIEW": "REVIEW",
+            "DELIVERY": "DELIVERY",
+            "BASELINE": "BASELINE_LOOKUP",
+        }
+        payload["cost_bucket"] = mapping.get(phase, "IMPLEMENT")
     return _append(plan, payload)
 
 
@@ -73,6 +118,9 @@ def result(plan: Path, **fields) -> Path:
             raise ValueError("TELEMETRY_TOKEN_ACCOUNTING_MISSING")
     if fields.get("usage_unavailable_reason") in {"TOKEN_ACCOUNTING_UNAVAILABLE", "unavailable"}:
         payload["usage_unavailable_reason"] = fields.get("usage_unavailable_reason") or "TOKEN_ACCOUNTING_UNAVAILABLE"
+    for key in V2_OPTIONAL:
+        if key in fields and fields[key] is not None:
+            payload[key] = fields[key]
     return _append(plan, payload)
 
 
@@ -183,6 +231,16 @@ def summarize(plan: Path) -> dict:
         if missing:
             errors.append({"code": "TELEMETRY_REQUIRED_FIELD_MISSING", "detail": ",".join(missing)})
     kinds = {e.get("kind") for e in events}
+    cost_buckets: dict[str, int] = {b: 0 for b in COST_BUCKETS}
+    for e in events:
+        bucket = str(e.get("cost_bucket") or "").upper()
+        if bucket in cost_buckets:
+            cost_buckets[bucket] += int(e.get("prompt_tokens") or 0) + int(e.get("completion_tokens") or 0)
+            if e.get("kind") == "dispatch" and not any(k.endswith("_tokens") for k in e):
+                cost_buckets[bucket] += 1  # count events when tokens absent
+    context_files_read = sum(int(e.get("context_files_read") or 0) for e in events)
+    unique_context_files = sum(int(e.get("unique_context_files") or 0) for e in events)
+    repeated_context_reads = sum(int(e.get("repeated_context_reads") or 0) for e in events)
     if kinds <= {"cache-hit", "cache-miss", "reviewer-seat"} or not dispatches:
         return {
             "schema": COMPLETENESS_SCHEMA,
@@ -190,6 +248,7 @@ def summarize(plan: Path) -> dict:
             "status": "TELEMETRY_INCOMPLETE",
             "code": "TELEMETRY_INCOMPLETE",
             "events": len(events),
+            "cost_buckets": cost_buckets,
             **totals,
         }
     if errors:
@@ -200,6 +259,7 @@ def summarize(plan: Path) -> dict:
             "code": errors[0]["code"],
             "errors": errors,
             "events": len(events),
+            "cost_buckets": cost_buckets,
             **totals,
         }
     return {
@@ -208,6 +268,10 @@ def summarize(plan: Path) -> dict:
         "status": "COMPLETE",
         "events": len(events),
         "dispatch_count": len(dispatches),
+        "cost_buckets": cost_buckets,
+        "context_files_read": context_files_read,
+        "unique_context_files": unique_context_files,
+        "repeated_context_reads": repeated_context_reads,
         **totals,
     }
 

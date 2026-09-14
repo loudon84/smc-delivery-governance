@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic Acceptance Closure golden + chaos cases (G01–G30 real behavior)."""
+"""Deterministic Acceptance Closure golden + chaos cases (G01–G42 real behavior)."""
 from __future__ import annotations
 
 import hashlib
@@ -15,9 +15,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DELIVERY = ROOT / ".agents/skills/smc-plan-delivery/scripts"
+CONTEXT_ENGINE = ROOT / "context-engine"
 sys.path.insert(0, str(ROOT / ".agents/skills/smc-work-router/scripts"))
 sys.path.insert(0, str(ROOT / "domain-runtime"))
 sys.path.insert(0, str(DELIVERY))
+sys.path.insert(0, str(CONTEXT_ENGINE))
 sys.path.insert(0, str(ROOT))
 from risk_signals import classify_text_hint, parse_risk_snapshot, resolve_risk  # noqa: E402
 from work_router import REQUIRED, RISKS, route  # noqa: E402
@@ -27,6 +29,10 @@ import review_record  # noqa: E402
 import evidence  # noqa: E402
 import workspace  # noqa: E402
 import acceptance as acc  # noqa: E402
+import commit_guard  # noqa: E402
+import runtime_metrics as telemetry  # noqa: E402
+import frontend_app_registry as registry_mod  # noqa: E402
+import ux_context_resolver as ux_mod  # noqa: E402
 
 
 def safe_facts(**extra):
@@ -405,6 +411,276 @@ class GoldenCorpus(unittest.TestCase):
             self.assertEqual(notes, ["INSTALL_LEGACY_RECONCILIATION_SKIPPED"])
             self.assertTrue(stale.exists())
 
+    def test_g31_existing_auth_read_lean(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G31 Existing Auth Read]]
+        f = safe_facts(
+            governed=True,
+            security_sensitive_touch=True,
+            security_boundary_change=False,
+        )
+        out = route(f)
+        self.assertEqual(out["work_class"], "BOUNDED")
+        self.assertEqual(out["governance_profile"], "LEAN")
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(
+                root,
+                "p.plan.md",
+                MIN_PLAN.replace(
+                    "## Todo T1 — change app\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\nfix app\n",
+                    "## Todo T1 — display email from existing auth\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\n"
+                    "read existing DesktopAuthState and display email; no auth contract change\n",
+                ),
+            )
+            _write(root, "app.py", "def main():\n    return 1\n")
+            classified = em.classify(plan, "T1", write=True)
+            self.assertIn(classified["profile"], {"SENSITIVE_BOUNDED", "BOUNDED_BEHAVIOR"})
+            self.assertEqual(classified["model_tier"], "STANDARD")
+            self.assertEqual(classified["review_depth"], "UNIFIED")
+
+    def test_g32_existing_logout_wiring(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G32 Existing Logout Wiring]]
+        f = safe_facts(
+            governed=True,
+            security_sensitive_touch=True,
+            existing_lifecycle_wiring=True,
+            security_boundary_change=False,
+        )
+        out = route(f)
+        self.assertEqual(out["work_class"], "BOUNDED")
+        self.assertEqual(out["governance_profile"], "LEAN")
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(
+                root,
+                "p.plan.md",
+                MIN_PLAN.replace(
+                    "## Todo T1 — change app\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\nfix app\n",
+                    "## Todo T1 — wire existing logout\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\n"
+                    "call existing logout; session clear without auth contract change\n",
+                ),
+            )
+            _write(root, "app.py", "def main():\n    return 1\n")
+            classified = em.classify(plan, "T1", write=True)
+            self.assertEqual(classified["profile"], "SENSITIVE_BOUNDED")
+            self.assertEqual(classified["tdd_policy"], "TDD_FOCUSED_REQUIRED")
+
+    def test_g33_security_boundary_change_full(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G33 Security Boundary Change]]
+        f = safe_facts(governed=True, security_boundary_change=True)
+        out = route(f)
+        self.assertEqual(out["work_class"], "ARCHITECTURAL")
+        self.assertEqual(out["governance_profile"], "FULL")
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(
+                root,
+                "p.plan.md",
+                MIN_PLAN.replace(
+                    "## Todo T1 — change app\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\nfix app\n",
+                    "## Todo T1 — change token ownership\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\n"
+                    "security boundary change: transfer token ownership and auth protocol\n",
+                ),
+            )
+            _write(root, "app.py", "def main():\n    return 1\n")
+            classified = em.classify(
+                plan,
+                "T1",
+                write=True,
+                risk_facts={"security_boundary_change": True},
+            )
+            self.assertEqual(classified["profile"], "HIGH_RISK")
+            self.assertEqual(classified["model_tier"], "REASONING")
+            self.assertEqual(classified["review_depth"], "INDEPENDENT")
+
+    def test_g34_reuse_gate_add_new_blocked(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G34 Existing Surface Candidate]]
+        blocked = ux_mod.reuse_gate(
+            {
+                "decision": "ADD_NEW",
+                "existing_surface": {"surface_id": "desktop:sidebar.footer.identity"},
+            }
+        )
+        self.assertFalse(blocked["ok"])
+        self.assertEqual(blocked["code"], "UX_SURFACE_REUSE_REQUIRED")
+
+    def test_g35_extend_existing_surface(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G35 Extend Surface]]
+        gate = ux_mod.reuse_gate(
+            {
+                "same_ux_role": True,
+                "decision": "EXTEND",
+                "existing_surface": {"surface_id": "desktop:sidebar.footer.identity"},
+            }
+        )
+        self.assertTrue(gate["ok"])
+        self.assertEqual(gate["decision"], "EXTEND")
+
+    def test_g36_cross_app_surface_isolation(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G36 Different App Isolation]]
+        self.assertFalse(registry_mod.cross_app_surface_allowed("desktop", "web"))
+
+    def test_g37_different_stack_component_reuse(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G37 Different Stack Isolation]]
+        result = registry_mod.component_reuse_automatic("react-electron", "vue3-web")
+        self.assertFalse(result["component_reuse"])
+        self.assertTrue(result["ux_pattern_reuse"])
+        self.assertEqual(result["reason"], "DIFFERENT_STACK")
+
+    def test_g38_shared_ui_profile_avatar(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G38 Shared UI Reuse]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            _write(
+                root,
+                "apps/desktop/package.json",
+                json.dumps({"name": "desktop", "dependencies": {"react": "18.0.0"}}) + "\n",
+            )
+            _write(root, "apps/desktop/src/App.tsx", "export default function App(){return null}\n")
+            _write(root, "packages/ui/package.json", json.dumps({"name": "@smc/ui"}) + "\n")
+            _write(root, "packages/ui/ProfileAvatar.tsx", "export function ProfileAvatar(){return null}\n")
+            registry_mod.discover(root)
+            decision = registry_mod.shared_ui_reuse_decision(root, "ProfileAvatar")
+            self.assertEqual(decision["decision"], "REUSE")
+
+    def test_g39_incremental_refresh_desktop_only(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G39 Incremental Refresh]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            _write(
+                root,
+                "apps/desktop/package.json",
+                json.dumps({"name": "desktop", "dependencies": {"react": "18.0.0"}}) + "\n",
+            )
+            _write(root, "apps/desktop/src/Layout.tsx", "export function Layout(){return null}\n")
+            _write(
+                root,
+                "apps/desktop/src/ProfileSwitcher.tsx",
+                "export function ProfileSwitcher(){return null}\n",
+            )
+            _write(
+                root,
+                "apps/web/package.json",
+                json.dumps({"name": "web", "dependencies": {"vue": "3.4.0"}}) + "\n",
+            )
+            _write(root, "apps/web/src/App.vue", "<template><div/></template>\n")
+            registry_mod.discover(root)
+            ux_mod.generate_baseline(root, "desktop")
+            ux_mod.generate_baseline(root, "web")
+            result = ux_mod.incremental_refresh(root, ["apps/desktop/src/ProfileSwitcher.tsx"])
+            self.assertIn("desktop", result["refreshed_apps"])
+            self.assertIn("web", result["untouched_apps"])
+            self.assertNotIn("web", result["refreshed_apps"])
+            web_lock = json.loads(
+                (root / ".agents/ges/frontend/apps/web/baseline.lock").read_text(encoding="utf-8")
+            )
+            self.assertEqual(web_lock.get("status"), "FRESH")
+
+    def test_g40_sensitive_bounded_tdd_policy(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G40 Sensitive Bounded TDD]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(
+                root,
+                "p.plan.md",
+                MIN_PLAN.replace(
+                    "## Todo T1 — change app\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\nfix app\n",
+                    "## Todo T1 — logout side effect\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\n"
+                    "existing logout side effect focused RED/GREEN\n",
+                ),
+            )
+            _write(root, "app.py", "def main():\n    return 1\n")
+            classified = em.classify(plan, "T1", write=True)
+            self.assertEqual(classified["profile"], "SENSITIVE_BOUNDED")
+            self.assertEqual(classified["tdd_policy"], "TDD_FOCUSED_REQUIRED")
+
+    def test_g41_final_commit_pending_todo_blocked(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G41 Final Commit Pending Todo]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            _write(root, "app.py", "def main():\n    return 1\n")
+            subprocess.run(["git", "-C", str(root), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(root), "commit", "-qm", "init"], check=True)
+            rc = commit_guard.capture(plan, commit_kind="FINAL")
+            self.assertEqual(rc, 1)
+
+    def test_g42_telemetry_cost_buckets(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G42 Telemetry Cost Buckets]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            _write(root, "app.py", "def main():\n    return 1\n")
+            buckets = (
+                "ROUTING",
+                "BASELINE_LOOKUP",
+                "GROUNDING",
+                "PLAN",
+                "IMPLEMENT",
+                "TDD",
+                "REVIEW",
+                "DELIVERY",
+            )
+            for bucket in buckets:
+                did = f"d-{bucket.lower()}"
+                telemetry.dispatch(
+                    plan,
+                    phase=bucket if bucket != "BASELINE_LOOKUP" else "BASELINE",
+                    todo="T1",
+                    requested_tier="STANDARD",
+                    dispatch_id=did,
+                    agent="acc",
+                    cost_bucket=bucket,
+                )
+                telemetry.result(
+                    plan,
+                    dispatch_id=did,
+                    actual_tier="STANDARD",
+                    provider="test",
+                    model="test-model",
+                    outcome="ok",
+                    retry_count=0,
+                    latency_ms=1,
+                    prompt_tokens=1,
+                    completion_tokens=1,
+                    cache_read_tokens=0,
+                    cache_write_tokens=0,
+                    cost_bucket=bucket,
+                )
+            summary = telemetry.summarize(plan)
+            self.assertIn("cost_buckets", summary)
+            for key in buckets:
+                self.assertIn(key, summary["cost_buckets"])
+
+    def test_uc_profile_gov_golden(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#UC-PROFILE-GOV Golden]]
+        out = route(
+            safe_facts(
+                governed=True,
+                security_sensitive_touch=True,
+                security_boundary_change=False,
+            )
+        )
+        self.assertEqual(out["work_class"], "BOUNDED")
+        self.assertEqual(out["governance_profile"], "LEAN")
+        gate = ux_mod.reuse_gate(
+            {
+                "same_ux_role": True,
+                "existing_surface": {"surface_id": "desktop:sidebar.footer.identity"},
+                "decision": "EXTEND",
+            }
+        )
+        self.assertTrue(gate["ok"])
+        self.assertEqual(gate["decision"], "EXTEND")
+
 
 class ChaosAndClosure(unittest.TestCase):
     def test_hard_risk_beats_stale_pass(self):
@@ -495,7 +771,7 @@ def main() -> int:
         "passed": result.wasSuccessful(),
         "tests": result.testsRun,
         "failures": len(result.failures) + len(result.errors),
-        "golden": "G01-G30",
+        "golden": "G01-G42",
         "chaos": True,
     }
     print(json.dumps(report, indent=2))

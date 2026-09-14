@@ -27,6 +27,7 @@
 | Frontend preplan / engineering providers | `smc-frontend-preplan` / `smc-frontend-engineering` | 2.0.0 / 2.0.0 |
 | Frontend review provider | `smc-frontend-review` -> canonical review owner | 2.0.0 |
 | Frontend verification provider | `smc-frontend-visual-verification` -> delivery evidence | 2.0.0 |
+| Frontend Context Engine | `context-engine/` + `frontend-adapters/` (registry/baseline/surface gate; not an artifact owner) | 5.0.6 |
 | Backend providers | `smc-backend-preplan` / `smc-backend-engineering` / `smc-backend-review` / `smc-backend-verification` | 1.0.0 |
 | Ops providers | `smc-ops-preplan` / `smc-ops-engineering` / `smc-ops-review` / `smc-ops-verification` | 1.0.0 |
 

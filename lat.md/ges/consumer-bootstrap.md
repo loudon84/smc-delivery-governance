@@ -16,6 +16,12 @@ Consumer Bootstrap 把 GES 从 Skill Package 升级为可审计、可补齐、�
 
 报告落点：`.smc/consumer-bootstrap/`；apply receipt：`.smc/ges-bootstrap-receipts/<id>.json`。
 
+## Frontend Audit
+
+Frontend Audit 用 context-engine 静态扫描 App / Stack / Surface，并按 OBSERVE / GUIDED / ENFORCED 采纳模式写入 `.agents/ges/frontend/`。
+
+CLI：[[engineeing-skills/consumer-bootstrap/frontend_audit.py]]。默认 dry-run；`--apply` 写 registry 与 per-app baseline。报告：`.smc/consumer-bootstrap/frontend-audit.{json,md}`。Validate 仅在 ENFORCED 且缺 registry 时失败；OBSERVE 对旧 fixture 非阻断。
+
 ## Consumer Audit
 
 Audit 证明 Consumer 是否具备 GES Runtime、Spec Kit 脚手架与方法 skill 面，不修改任何文件（报告写入除外）。

@@ -1,4 +1,8 @@
-"""Deterministic risk routing from explicit, reviewable work facts."""
+"""Deterministic risk routing from explicit, reviewable work facts.
+
+v5.0.6 Work Router v3: Sensitive Touch signals allow LEAN; Hard Boundary Change
+forces FULL. Keyword presence alone never upgrades governance.
+"""
 from __future__ import annotations
 
 import argparse
@@ -12,6 +16,8 @@ REQUIRED = (
     "bounded_writes",
     "deterministic_verification",
 )
+
+# Legacy v1 risk list (any non-False blocks LEAN when v2 facts are absent).
 RISKS = (
     "new_owner",
     "public_contract",
@@ -23,6 +29,40 @@ RISKS = (
     "cross_domain_ownership",
     "live_acceptance",
 )
+
+# @lat: [[frontend-context#Work Router v3]]
+SENSITIVE_TOUCH = (
+    "security_sensitive_touch",
+    "existing_lifecycle_wiring",
+    "cross_layer_existing_contract",
+    "local_ui_acceptance",
+    "existing_public_contract_use",
+    "existing_external_dependency_use",
+)
+
+HARD_BOUNDARY = (
+    "new_owner",
+    "public_contract_change",
+    "security_boundary_change",
+    "schema_migration",
+    "protocol_change",
+    "external_dependency_change",
+    "lifecycle_contract_change",
+    "ownership_transfer",
+    "cross_domain_contract_change",
+    "external_live_acceptance",
+)
+
+# Map v1 risk names onto hard-boundary equivalents for fail-safe routing.
+V1_HARD_MAP = {
+    "public_contract": "public_contract_change",
+    "security_boundary": "security_boundary_change",
+    "external_dependency": "external_dependency_change",
+    "lifecycle_change": "lifecycle_contract_change",
+    "cross_domain_ownership": "cross_domain_contract_change",
+    "live_acceptance": "external_live_acceptance",
+}
+
 RESEARCH_AUTHORITY = (
     "governed",
     "retained_production_change",
@@ -47,6 +87,52 @@ def _research_intent(facts: dict[str, Any]) -> bool | None:
     return None
 
 
+def _has_v2_signals(facts: dict[str, Any]) -> bool:
+    markers = set(SENSITIVE_TOUCH) | (set(HARD_BOUNDARY) - set(RISKS))
+    return any(k in facts for k in markers)
+
+
+def _hard_boundary_active(facts: dict[str, Any]) -> list[str]:
+    """Return hard-boundary keys that are True (or v1 fail-safe equivalents)."""
+    active: list[str] = []
+    v2 = _has_v2_signals(facts)
+
+    if v2:
+        for key in HARD_BOUNDARY:
+            if facts.get(key) is True:
+                active.append(key)
+            elif key not in facts:
+                # Map from v1 when present and not overridden false.
+                for v1, hard in V1_HARD_MAP.items():
+                    if hard == key and facts.get(v1) is True and facts.get(key) is not False:
+                        # Explicit v2 override: security_sensitive_touch with boundary_change=false
+                        if key == "security_boundary_change" and facts.get("security_boundary_change") is False:
+                            continue
+                        if key == "security_boundary_change" and facts.get("security_sensitive_touch") is True:
+                            if facts.get("security_boundary_change") is False:
+                                continue
+                            # If only security_boundary (v1) true but sensitive_touch true and
+                            # boundary_change explicitly false — skip. If boundary_change absent,
+                            # sensitive_touch alone does not force FULL.
+                            if facts.get("security_boundary") is True and "security_boundary_change" not in facts:
+                                continue
+                        if facts.get(v1) is True and key not in facts:
+                            if key == "security_boundary_change" and facts.get("security_sensitive_touch") is True:
+                                continue
+                            active.append(key)
+        # new_owner / schema_migration / protocol_change shared names
+        for key in ("new_owner", "schema_migration", "protocol_change"):
+            if facts.get(key) is True and key not in active:
+                active.append(key)
+        return list(dict.fromkeys(active))
+
+    # Legacy: any RISKS non-False is hard.
+    for key in RISKS:
+        if facts.get(key) is not False:
+            active.append(key)
+    return active
+
+
 def effective_research_only(facts: dict[str, Any], previous: str | None) -> tuple[bool, list[str]]:
     # @lat: [[acceptance-hardening#Work Router Research Trust]]
     """research_only is a hint; authority facts decide SPIKE/NONE eligibility."""
@@ -63,7 +149,6 @@ def effective_research_only(facts: dict[str, Any], previous: str | None) -> tupl
     write_req = _tri(facts.get("production_write_requested"))
     durable = _tri(facts.get("durable_product_artifact_requested"))
 
-    # Legacy callers that only set research_only without authority facts fail closed.
     authority_present = any(k in facts for k in RESEARCH_AUTHORITY)
     if not authority_present and "research_intent" not in facts:
         reasons.append("WORK_RESEARCH_AUTHORITY_MISSING")
@@ -114,6 +199,7 @@ def route(
     merge_decisions: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Library-compatible router. Production orchestrators must call route_bound()."""
+    # @lat: [[frontend-context#Work Router v3]]
     if not isinstance(facts, dict):
         raise ValueError("WORK_FACTS_INVALID")
     if previous is not None and previous not in {"NONE", "LEAN", "FULL"}:
@@ -164,12 +250,16 @@ def route(
                 merged.pop(k, None)
             research_block = legacy_reasons or ["WORK_AUTHORITY_MISSING"]
             auth_status = legacy_status
-    else:
-        pass
+
     known = all(merged.get(k) is True for k in REQUIRED)
-    safe = all(merged.get(k) is False for k in RISKS)
-    reasons = [k for k in RISKS if merged.get(k) is not False]
+    hard_active = _hard_boundary_active(merged)
+    safe = len(hard_active) == 0
+    reasons = list(hard_active)
     reasons += [k for k in REQUIRED if merged.get(k) is not True]
+    # Surface sensitive touches as informational (do not force FULL).
+    for k in SENSITIVE_TOUCH:
+        if merged.get(k) is True:
+            reasons.append(f"sensitive:{k}")
 
     research_ok, research_reasons = effective_research_only(merged, previous)
     reasons.extend(research_reasons)
@@ -208,7 +298,7 @@ def route(
 
     receipt_eligible = work_facts is not None and auth_status == "VERIFIED" and profile == "NONE"
     return {
-        "schema": "smc.ges.work-route.v2",
+        "schema": "smc.ges.work-route.v3",
         "work_class": work,
         "governance_profile": profile,
         "reasons": reasons,
@@ -222,6 +312,8 @@ def route(
         "source_digest_set": sorted(set(source_digest_set)),
         "merge_decisions": decisions,
         "receipt_eligible": receipt_eligible,
+        "hard_boundary": hard_active,
+        "sensitive_touch": [k for k in SENSITIVE_TOUCH if merged.get(k) is True],
     }
 
 
@@ -232,7 +324,7 @@ def route_bound(
     *,
     caller_facts: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Production entry: requires verified smc.ges.work-facts.v1 envelope + repo."""
+    """Production entry: requires verified work-facts envelope + repo."""
     # @lat: [[safety-runtime-closure-v503]]
     from work_facts import conservative_merge, envelope_facts
 
@@ -274,7 +366,7 @@ def main() -> None:
     p.add_argument("facts", type=Path, nargs="?", help="raw facts JSON (requires --unsafe-raw-facts) or work-facts envelope")
     p.add_argument("--previous-profile", choices=("NONE", "LEAN", "FULL"))
     p.add_argument("--authority", type=Path, help="legacy smc.ges.work-authority.v1 (compat)")
-    p.add_argument("--work-facts", type=Path, help="smc.ges.work-facts.v1 envelope (production default)")
+    p.add_argument("--work-facts", type=Path, help="smc.ges.work-facts.v1|v2 envelope (production default)")
     p.add_argument("--repo", type=Path, help="canonical repo root for source freshness")
     p.add_argument(
         "--unsafe-raw-facts",
@@ -306,7 +398,7 @@ def main() -> None:
     if not a.facts:
         raise SystemExit("facts path or --work-facts required")
     raw = json.loads(a.facts.read_text(encoding="utf-8"))
-    if raw.get("schema") == "smc.ges.work-facts.v1":
+    if raw.get("schema") in {"smc.ges.work-facts.v1", "smc.ges.work-facts.v2"}:
         print(json.dumps(route_bound(a.repo, raw, a.previous_profile), indent=2, ensure_ascii=False))
         return
     if not a.unsafe_raw_facts:

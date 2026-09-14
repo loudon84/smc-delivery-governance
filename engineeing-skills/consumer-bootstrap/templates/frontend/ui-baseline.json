@@ -1,0 +1,7 @@
+{
+  "schema": "smc.ges.per-app-baseline.v1",
+  "app_id": "_template",
+  "surface_count": 0,
+  "component_count": 0,
+  "adoption_mode": "OBSERVE"
+}

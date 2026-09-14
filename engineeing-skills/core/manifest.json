@@ -23,5 +23,8 @@
   ],
   "domain_contract": "smc.ges.domain-pack.v2",
   "domain_activation_contract": "smc.ges.domain-activation.v2",
-  "consumer_profile_contract": "smc.ges.consumer-profile.v3"
+  "consumer_profile_contract": "smc.ges.consumer-profile.v3",
+  "context_engine": "context-engine/",
+  "frontend_adapters": "frontend-adapters/",
+  "frontend_context_root": ".agents/ges/frontend"
 }

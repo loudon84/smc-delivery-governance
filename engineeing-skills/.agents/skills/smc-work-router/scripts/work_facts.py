@@ -11,6 +11,8 @@ from typing import Any
 from path_containment import PathContainmentError, safe_repo_relative
 
 SCHEMA = "smc.ges.work-facts.v1"
+SCHEMA_V2 = "smc.ges.work-facts.v2"
+ALLOWED_SCHEMAS = frozenset({SCHEMA, SCHEMA_V2})
 ALLOWED_KINDS = frozenset(
     {"ROADMAP", "FEATURE", "PRD", "PLAN", "ORCHESTRATOR_REQUEST", "DERIVED"}
 )
@@ -20,6 +22,23 @@ AUTHORITY_FACTS = (
     "retained_production_change",
     "production_write_requested",
     "durable_product_artifact_requested",
+)
+SENSITIVE_TOUCH_FACTS = (
+    "security_sensitive_touch",
+    "existing_lifecycle_wiring",
+    "cross_layer_existing_contract",
+    "local_ui_acceptance",
+    "existing_public_contract_use",
+    "existing_external_dependency_use",
+)
+HARD_BOUNDARY_FACTS = (
+    "public_contract_change",
+    "security_boundary_change",
+    "external_dependency_change",
+    "lifecycle_contract_change",
+    "ownership_transfer",
+    "cross_domain_contract_change",
+    "external_live_acceptance",
 )
 ALL_FACTS = (
     "existing_owner",
@@ -38,6 +57,11 @@ ALL_FACTS = (
     "research_intent",
     *AUTHORITY_FACTS,
 )
+ALL_FACTS_V2 = (
+    *ALL_FACTS,
+    *SENSITIVE_TOUCH_FACTS,
+    *HARD_BOUNDARY_FACTS,
+)
 RISK_OR_PRODUCTION = frozenset(
     {
         "new_owner",
@@ -49,6 +73,7 @@ RISK_OR_PRODUCTION = frozenset(
         "lifecycle_change",
         "cross_domain_ownership",
         "live_acceptance",
+        *HARD_BOUNDARY_FACTS,
         "retained_production_change",
         "production_write_requested",
         "durable_product_artifact_requested",
@@ -71,22 +96,36 @@ def facts_path(repo: Path, work_item_id: str) -> Path:
     return repo / ".smc" / "runs" / work_item_id / "routing" / "work-facts.json"
 
 
-def compute_facts_digest(work_item_id: str, facts: dict[str, Any], provenance: dict[str, Any]) -> str:
-    body = {"schema": SCHEMA, "work_item_id": work_item_id, "facts": facts, "provenance": provenance}
+def compute_facts_digest(work_item_id: str, facts: dict[str, Any], provenance: dict[str, Any], schema: str = SCHEMA) -> str:
+    body = {"schema": schema, "work_item_id": work_item_id, "facts": facts, "provenance": provenance}
     return _sha_payload(body)
+
+
+def _fact_keys_for(schema: str) -> tuple[str, ...]:
+    return ALL_FACTS_V2 if schema == SCHEMA_V2 else ALL_FACTS
 
 
 def build_envelope(
     work_item_id: str,
     facts: dict[str, Any],
     provenance: dict[str, Any] | None = None,
+    *,
+    schema: str = SCHEMA,
 ) -> dict[str, Any]:
     # @lat: [[governance-architecture-closure]]
-    normalized = {k: facts.get(k) for k in ALL_FACTS}
+    # @lat: [[frontend-context#Work Router v3]]
+    if schema not in ALLOWED_SCHEMAS:
+        raise ValueError("WORK_FACTS_INVALID")
+    keys = _fact_keys_for(schema)
+    # Auto-promote to v2 when v2-only keys are supplied.
+    if schema == SCHEMA and any(k in facts for k in (*SENSITIVE_TOUCH_FACTS, *HARD_BOUNDARY_FACTS)):
+        schema = SCHEMA_V2
+        keys = ALL_FACTS_V2
+    normalized = {k: facts.get(k) for k in keys}
     prov = provenance or {}
-    digest = compute_facts_digest(work_item_id, normalized, prov)
+    digest = compute_facts_digest(work_item_id, normalized, prov, schema)
     return {
-        "schema": SCHEMA,
+        "schema": schema,
         "work_item_id": work_item_id,
         "facts": normalized,
         "provenance": prov,
@@ -163,8 +202,11 @@ def _validate_provenance_entry(key: str, prov: dict[str, Any], facts: dict[str, 
 def verify_envelope(data: dict[str, Any], repo: Path | None = None) -> tuple[str, list[str]]:
     """Return (VERIFIED|UNBOUND|STALE|INVALID|CONFLICT, reasons) with WORK_FACTS_* codes."""
     # @lat: [[safety-runtime-closure-v503]]
-    if not isinstance(data, dict) or data.get("schema") != SCHEMA:
+    # @lat: [[frontend-context#Work Router v3]]
+    if not isinstance(data, dict) or data.get("schema") not in ALLOWED_SCHEMAS:
         return "INVALID", ["WORK_FACTS_INVALID"]
+    schema = str(data.get("schema"))
+    keys = _fact_keys_for(schema)
     facts = data.get("facts")
     provenance = data.get("provenance")
     if not isinstance(facts, dict):
@@ -173,7 +215,7 @@ def verify_envelope(data: dict[str, Any], repo: Path | None = None) -> tuple[str
         return "UNBOUND", ["WORK_FACTS_UNBOUND"]
 
     fact_keys = set(facts)
-    required = set(ALL_FACTS)
+    required = set(keys)
     if fact_keys - required:
         return "INVALID", ["WORK_FACTS_INVALID"]
     missing_facts = required - fact_keys
@@ -189,7 +231,7 @@ def verify_envelope(data: dict[str, Any], repo: Path | None = None) -> tuple[str
 
     reasons: list[str] = []
     non_derived_kinds: set[str] = set()
-    for key in ALL_FACTS:
+    for key in keys:
         prov = provenance.get(key)
         if not isinstance(prov, dict):
             return "UNBOUND", ["WORK_FACTS_PROVENANCE_MISSING"]
@@ -200,7 +242,6 @@ def verify_envelope(data: dict[str, Any], repo: Path | None = None) -> tuple[str
             non_derived_kinds.add(kind)
 
     if reasons:
-        # Prefer specific codes already collected.
         if any(r.startswith("WORK_FACTS_INVALID") for r in reasons):
             return "INVALID", list(dict.fromkeys(reasons))
         if "WORK_FACTS_AUTHORITY_MISSING" in reasons:
@@ -209,7 +250,6 @@ def verify_envelope(data: dict[str, Any], repo: Path | None = None) -> tuple[str
             return "UNBOUND", list(dict.fromkeys(reasons))
         return "INVALID", list(dict.fromkeys(reasons))
 
-    # DERIVED alone cannot authorize governed=false or all-false production risks.
     if facts.get("governed") is False:
         kinds = {
             str(provenance[k].get("source_kind", "")).upper()
@@ -222,8 +262,9 @@ def verify_envelope(data: dict[str, Any], repo: Path | None = None) -> tuple[str
 
     expected = compute_facts_digest(
         str(data.get("work_item_id") or ""),
-        {k: facts.get(k) for k in ALL_FACTS},
+        {k: facts.get(k) for k in keys},
         provenance,
+        schema,
     )
     if data.get("facts_digest") != expected:
         return "STALE", ["WORK_FACTS_STALE"]
@@ -240,7 +281,6 @@ def verify_envelope(data: dict[str, Any], repo: Path | None = None) -> tuple[str
             return "INVALID", ["WORK_FACTS_AUTHORITY_MISSING"]
 
     if repo is None:
-        # Production verify requires repo; cannot claim VERIFIED without freshness.
         return "UNBOUND", ["WORK_FACTS_REPO_REQUIRED"]
 
     for key, prov in provenance.items():
@@ -309,7 +349,7 @@ def load_envelope(path: Path) -> dict[str, Any]:
         raise ValueError("WORK_FACTS_INVALID") from exc
     if data.get("schema") == "smc.ges.work-authority.v1":
         return from_work_authority(data)
-    if data.get("schema") != SCHEMA:
+    if data.get("schema") not in ALLOWED_SCHEMAS:
         raise ValueError("WORK_FACTS_INVALID")
     return data
 

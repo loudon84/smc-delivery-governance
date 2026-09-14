@@ -37,6 +37,12 @@ Install 之后用 [[consumer-bootstrap]] 做平台级 Audit / Gap / Remediation 
 
 禁止写入 `.specify/spec.md` 与 `.agents/ges/profile.json`。详见 [[consumer-bootstrap#Automated Remediation]]。
 
+## Frontend Context Root
+
+v5.0.6 起 Consumer UX Baseline 落在 `.agents/ges/frontend/`（JSON only），由 `consumer-bootstrap/frontend_audit.py` 与 [[frontend-context]] 维护，不由 installer overlay 强制覆盖。
+
+路径约定：`apps-registry.json`、`apps/<app-id>/` baseline 文件集、`shared/shared-ui-registry.json`。默认 Adoption Mode 为 OBSERVE。
+
 ## Install Lock v2
 
 Hardening 后的 install lock 证明 package bytes 身份，并安全清理未修改的 stale package-owned 文件。

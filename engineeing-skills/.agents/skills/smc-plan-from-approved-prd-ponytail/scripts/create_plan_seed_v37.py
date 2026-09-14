@@ -28,6 +28,15 @@ from domain_intent import (  # noqa: E402
 from domain_runtime import load_context  # noqa: E402
 
 
+LEAN_OMIT_SECTIONS = (
+    "Lifecycle Closure Matrix",
+    "Contract / Data Flow Closure Matrix",
+    "Acceptance Claim Ledger",
+    "Live Scenario Matrix",
+    "Live Environment Matrix",
+)
+
+
 def fm(text):
     out = {}
     lines = text.splitlines()
@@ -40,6 +49,49 @@ def fm(text):
             k, v = line.split(":", 1)
             out[k.strip()] = v.strip().strip("\"'")
     return out
+
+
+def _omit_sections(text: str, headings: tuple[str, ...]) -> str:
+    """Remove named ## sections from a plan (LEAN compact contract)."""
+    import re as _re
+
+    for heading in headings:
+        text = _re.sub(
+            rf"^##\s+{_re.escape(heading)}\s*$.*?(?=^##\s+|\Z)",
+            "",
+            text,
+            count=1,
+            flags=_re.M | _re.S,
+        )
+    # Collapse excess blank lines
+    text = _re.sub(r"\n{3,}", "\n\n", text)
+    return text
+
+
+def _inject_lean_decisions(text: str) -> str:
+    """Ensure LEAN compact decision sections exist."""
+    extras = []
+    if "## Existing Capability Decision" not in text:
+        extras.append(
+            "## Existing Capability Decision\n\n"
+            "| Capability | Owner | Decision | Evidence |\n"
+            "|---|---|---|---|\n"
+            "| <GROUND> | <GROUND> | REUSE | <GROUND> |\n"
+        )
+    if "## UX Surface Decision" not in text:
+        extras.append(
+            "## UX Surface Decision\n\n"
+            "| App ID | UX Role | Surface ID | Decision | Justification |\n"
+            "|---|---|---|---|---|\n"
+            "| <GROUND> | <GROUND> | <GROUND> | EXTEND | <GROUND> |\n"
+        )
+    if not extras:
+        return text
+    marker = "## Change Matrix"
+    block = "\n".join(extras) + "\n"
+    if marker in text:
+        return text.replace(marker, block + marker, 1)
+    return text + "\n" + block
 
 
 def section(text, heading):
@@ -244,6 +296,15 @@ def main():
             text = apply_bindings(text, prd, profile, snapshot_line)
         except Exception as exc:
             return _binding_failed("seed", exc)
+        if profile == "LEAN":
+            # @lat: [[frontend-context#LEAN Compact Plan]]
+            text = _omit_sections(text, LEAN_OMIT_SECTIONS)
+            text = _inject_lean_decisions(text)
+            # Opt out of full acceptance contract for LEAN unless already declared with live modes.
+            if "acceptance_contract:" in text.split("---", 2)[1]:
+                text = _set_fm(text, "acceptance_contract", "")
+                # remove empty acceptance_contract line noise by rewriting to lean_compact
+            text = _set_fm(text, "plan_compact", "LEAN")
         out.write_text(text, encoding="utf-8", newline="\n")
     finally:
         tmp.unlink(missing_ok=True)

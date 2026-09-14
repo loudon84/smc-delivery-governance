@@ -70,6 +70,33 @@ FORBIDDEN_WRITE_RELS = frozenset(
 REPORT_DIR_REL = ".smc/consumer-bootstrap"
 RECEIPT_DIR_REL = ".smc/ges-bootstrap-receipts"
 
+# Frontend Context System (v5.0.6) — consumer data root under .agents/ges/frontend/
+FRONTEND_ROOT = ".agents/ges/frontend"
+FRONTEND_TEMPLATES = (
+    "apps-registry.json",
+    "app-profile.json",
+    "ui-baseline.json",
+    "surface-registry.json",
+    "layout-map.json",
+    "navigation-map.json",
+    "component-registry.json",
+    "state-owner-map.json",
+    "design-system.json",
+    "baseline.lock.json",
+    "shared-ui-registry.json",
+)
+FRONTEND_APP_LEVEL_TEMPLATES = (
+    "app-profile.json",
+    "ui-baseline.json",
+    "surface-registry.json",
+    "layout-map.json",
+    "navigation-map.json",
+    "component-registry.json",
+    "state-owner-map.json",
+    "design-system.json",
+    "baseline.lock.json",
+)
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")

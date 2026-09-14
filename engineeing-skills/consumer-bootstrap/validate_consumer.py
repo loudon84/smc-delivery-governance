@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 HERE = Path(__file__).resolve().parent
+PACKAGE = HERE.parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
@@ -18,6 +19,78 @@ from audit_consumer import audit  # noqa: E402
 
 def _row(cid: str, verdict: str, detail: str) -> dict[str, str]:
     return {"id": cid, "verdict": verdict, "detail": detail}
+
+
+def _adoption_mode(project: Path) -> str:
+    if C.exists_file(project, f"{C.FRONTEND_ROOT}/ENFORCED"):
+        return "ENFORCED"
+    path = project / C.FRONTEND_ROOT / "adoption-mode.json"
+    if path.is_file():
+        try:
+            data = C.read_json(path)
+            mode = str(data.get("mode") or "OBSERVE").upper()
+            if mode in {"OBSERVE", "GUIDED", "ENFORCED"}:
+                return mode
+        except Exception:
+            return "OBSERVE"
+    return "OBSERVE"
+
+
+def _frontend_adapters_available() -> bool:
+    adapters = PACKAGE / "frontend-adapters"
+    if not adapters.is_dir():
+        return False
+    required = ("react-web", "react-electron", "vue3-web", "generic")
+    return all((adapters / name / "adapter.json").is_file() for name in required)
+
+
+def _per_app_baseline_health(project: Path) -> tuple[bool, str]:
+    registry_path = project / C.FRONTEND_ROOT / "apps-registry.json"
+    if not registry_path.is_file():
+        return True, "no registry (OBSERVE ok)"
+    try:
+        data = C.read_json(registry_path)
+    except Exception as exc:
+        return False, str(exc)
+    apps = data.get("apps") or []
+    if not apps:
+        return True, "empty apps list"
+    missing: list[str] = []
+    for app in apps:
+        app_id = str(app.get("app_id") or "")
+        if not app_id:
+            continue
+        app_dir = project / C.FRONTEND_ROOT / "apps" / app_id
+        for name in ("app-profile.json", "ui-baseline.json", "surface-registry.json"):
+            if not (app_dir / name).is_file():
+                missing.append(f"{app_id}/{name}")
+    if missing:
+        return False, "missing: " + ", ".join(missing[:5])
+    return True, f"{len(apps)} app baseline(s) present"
+
+
+def _surface_registry_health(project: Path) -> tuple[bool, str]:
+    registry_path = project / C.FRONTEND_ROOT / "apps-registry.json"
+    if not registry_path.is_file():
+        return True, "no registry (OBSERVE ok)"
+    try:
+        data = C.read_json(registry_path)
+    except Exception as exc:
+        return False, str(exc)
+    for app in data.get("apps") or []:
+        app_id = str(app.get("app_id") or "")
+        if not app_id:
+            continue
+        surf = project / C.FRONTEND_ROOT / "apps" / app_id / "surface-registry.json"
+        if not surf.is_file():
+            return False, f"missing surface-registry for {app_id}"
+        try:
+            payload = C.read_json(surf)
+            if payload.get("schema") != "smc.ges.surface-registry.v1":
+                return False, f"bad schema for {app_id}"
+        except Exception as exc:
+            return False, str(exc)
+    return True, "surface registries healthy"
 
 
 def validate(project: Path) -> dict[str, Any]:
@@ -126,6 +199,96 @@ def validate(project: Path) -> dict[str, Any]:
             "Release Governance",
             "PASS" if release_ok else "FAIL",
             "install lock/receipt + governance-policy.json",
+        )
+    )
+
+    # --- v5.0.6 Frontend Context + runtime checks ---
+    adoption = _adoption_mode(project)
+    registry_ok = C.exists_file(project, f"{C.FRONTEND_ROOT}/apps-registry.json")
+    # PASS if registry exists OR adoption is OBSERVE (legacy fixtures non-blocking).
+    frontend_registry_pass = registry_ok or adoption == "OBSERVE"
+    checks.append(
+        _row(
+            "Frontend Application Registry",
+            "PASS" if frontend_registry_pass else "FAIL",
+            f"registry={registry_ok} adoption={adoption}",
+        )
+    )
+
+    adapters_ok = _frontend_adapters_available()
+    # Also accept consumer-installed copy under .agents/ges/frontend-adapters
+    if not adapters_ok:
+        local = project / ".agents" / "ges" / "frontend-adapters"
+        adapters_ok = local.is_dir() and any(local.glob("*/adapter.json"))
+    checks.append(
+        _row(
+            "Stack Adapter availability",
+            "PASS" if adapters_ok else "FAIL",
+            "engineeing-skills/frontend-adapters or installed copy",
+        )
+    )
+
+    if registry_ok:
+        baseline_ok, baseline_detail = _per_app_baseline_health(project)
+        surface_ok, surface_detail = _surface_registry_health(project)
+    else:
+        # OBSERVE without registry: non-blocking health
+        baseline_ok, baseline_detail = True, f"skipped (adoption={adoption})"
+        surface_ok, surface_detail = True, f"skipped (adoption={adoption})"
+    checks.append(
+        _row(
+            "Per-App baseline health",
+            "PASS" if baseline_ok else "FAIL",
+            baseline_detail,
+        )
+    )
+    checks.append(
+        _row(
+            "Surface registry health",
+            "PASS" if surface_ok else "FAIL",
+            surface_detail,
+        )
+    )
+
+    eng_ok = C.exists_file(
+        project, ".agents/skills/smc-plan-delivery/scripts/engineering_method.py"
+    )
+    checks.append(
+        _row(
+            "Engineering method runtime",
+            "PASS" if eng_ok else "FAIL",
+            "engineering_method.py",
+        )
+    )
+
+    tdd_ok = eng_ok  # TDD runtime lives in engineering_method.py
+    checks.append(
+        _row(
+            "TDD runtime",
+            "PASS" if tdd_ok else "FAIL",
+            "engineering_method.tdd_check",
+        )
+    )
+
+    telemetry_ok = C.exists_file(
+        project, ".agents/skills/smc-plan-delivery/scripts/runtime_metrics.py"
+    )
+    checks.append(
+        _row(
+            "Telemetry runtime",
+            "PASS" if telemetry_ok else "FAIL",
+            "runtime_metrics.py",
+        )
+    )
+
+    plan_bridge_ok = C.exists_file(
+        project, ".agents/skills/smc-plan-validator/scripts/validate_plan_v37.py"
+    )
+    checks.append(
+        _row(
+            "Plan validator bridge",
+            "PASS" if plan_bridge_ok else "FAIL",
+            "validate_plan_v37.py",
         )
     )
 

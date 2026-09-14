@@ -173,6 +173,10 @@ def validation_commands(project, profile, selected, skip):
         ("v5 runtime", "smc-plan-delivery/scripts/test_engineering_method_v2.py"),
     ]:
         commands.append((label, [sys.executable, str(scripts / relative)]))
+    # Context engine tests live in the package tree (not mirrored as a skill).
+    ctx_test = PACKAGE_ROOT / "tests" / "test_context_engine.py"
+    if ctx_test.is_file():
+        commands.append(("context engine", [sys.executable, str(ctx_test), "-v"]))
     validator = profile.get("project_validator")
     if validator and not skip:
         parts = shlex.split(str(validator), posix=True)

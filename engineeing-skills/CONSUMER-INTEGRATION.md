@@ -24,6 +24,27 @@ After GES install, use `consumer-bootstrap/` for platform onboarding:
 
 Hard rules: never write `.specify/spec.md` (second requirements SOT); never overwrite `.agents/ges/profile.json` (installer-owned); never claim `UPSTREAM_PINNED` for GES template shims. See `CHANGES-v5.0.5-consumer-bootstrap.md`.
 
+## Frontend Context Audit (v5.0.6)
+
+After Consumer Bootstrap, enable the Frontend Context System under `.agents/ges/frontend/` (JSON only):
+
+```text
+python consumer-bootstrap/frontend_audit.py <repo>                 # dry-run OBSERVE
+python consumer-bootstrap/frontend_audit.py <repo> --apply         # write registry + baselines
+python consumer-bootstrap/frontend_audit.py <repo> --mode GUIDED --apply
+python consumer-bootstrap/frontend_audit.py <repo> --mode ENFORCED --apply --json
+```
+
+Adoption modes:
+
+| Mode | Behavior |
+|---|---|
+| OBSERVE (default) | Scan + report; missing registry does not fail consumer validation |
+| GUIDED | Same scan; remediation may seed templates + recommend `--apply` |
+| ENFORCED | Validation fails when `apps-registry.json` is missing |
+
+Reports: `.smc/consumer-bootstrap/frontend-audit.{json,md}`. Consumer validation also checks stack adapters, per-app baseline health, surface registries, engineering/TDD/telemetry runtimes, and the plan validator bridge. See `CHANGES-v5.0.6-adaptive-governance-frontend-context.md` and [[frontend-context]].
+
 ## Test reuse and command evidence
 
 Use Test Asset Ledger REUSE/EXTEND/NEW with stable catalog IDs. Reuse drivers, never treat a stale test result as fresh. v3.7 Todo completion requires engineering method checks in addition to final evidence, semantic/implementation review and completion audit. A local receipt is auditable working memory, not tamper-resistant signed remote attestation.
