@@ -10,7 +10,7 @@ Omitting --profile in an existing installation preserves its installed profile a
 
 ## Installation and validation
 
-Run install.py in dry-run mode, then --apply. Full managed tests and the configured project validator run by default; --skip-project-validator is an explicit diagnostic escape only and is not production acceptance. Consumer-owned files are not stubbed by installation. Transactional failure restores touched bytes. Abstract FAST/STANDARD/REASONING are policy hints for the calling agent, not automatic model switching.
+Run install.py in dry-run mode, then --apply. Full managed tests and the configured project validator run by default; --skip-project-validator is an explicit diagnostic escape only and is not production acceptance. Consumer-owned files are not stubbed by default. For greenfield repos that lack `code-review-and-quality` / `verification-before-completion`, pass `--seed-consumer-skills` once: the installer copies missing skills from package templates (`consumer-baseline/` or packaged skill trees) and never overwrites existing consumer files. Managed skill paths (for example `smc-plan-validator`) are created by overlay and are not preflight-required. Transactional failure restores touched bytes. Abstract FAST/STANDARD/REASONING are policy hints for the calling agent, not automatic model switching.
 
 ## Test reuse and command evidence
 

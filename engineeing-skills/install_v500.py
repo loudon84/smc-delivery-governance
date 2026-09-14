@@ -87,6 +87,29 @@ def preflight(project, profile, selected, names):
     return errors
 
 
+def seed_consumer_skills(project, backup, records):
+    # @lat: [[install#Consumer Baseline Seed]]
+    """Copy missing consumer-required skills from package templates; never overwrite."""
+    if not getattr(base, "SEED_CONSUMER_SKILLS", False):
+        return 0
+    core = base.read_json(base.CORE_MANIFEST)
+    count = 0
+    for name in core.get("consumer_required_skills", []):
+        skill = str(name)
+        dst = project / ".agents/skills" / skill / "SKILL.md"
+        if dst.is_file():
+            continue
+        src = base.consumer_baseline_source(skill)
+        if src is None:
+            raise RuntimeError("CONSUMER_BASELINE_TEMPLATE_MISSING: " + skill)
+        bounded(project, ".agents/skills/" + skill)
+        count += base.copy_tree(project, src, project / ".agents/skills" / skill, backup, records)
+    return count
+
+
+base.pre_overlay = seed_consumer_skills
+
+
 _previous_record = base.record_before
 
 

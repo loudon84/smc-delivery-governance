@@ -1,5 +1,5 @@
 {
-  "file_count": 277,
+  "file_count": 279,
   "files": [
     {
       "path": ".agents/skills/executing-plans/SKILL.md",
@@ -987,24 +987,29 @@
       "size": 1688
     },
     {
+      "path": "consumer-baseline/code-review-and-quality/SKILL.md",
+      "sha256": "d75bcfe756341856099e17ea64205e16b5a82582c8dd40603796d4db69067f9b",
+      "size": 1063
+    },
+    {
       "path": "CONSUMER-INTEGRATION.md",
-      "sha256": "b18e4ead8c573ec03b014c24b7d1539897085f69dfefb9820113459edf20eae2",
-      "size": 1891
+      "sha256": "dd41904afdc7416e00d3622e614386b156fc4053a2f3ded9d8682af6d591b4c3",
+      "size": 2277
     },
     {
       "path": "consumers/generic.json",
-      "sha256": "3fe9d3377a8a1f8e5324250eb246e6ecddc48db36ede97a355de53e90ed1cec6",
-      "size": 791
+      "sha256": "7e86171e52ac35d1e3920aa60d4fdad78224b53b47f9fabc35206a13489562b4",
+      "size": 725
     },
     {
       "path": "consumers/nodeskclaw.json",
-      "sha256": "e14606a2dbd5ded71d0e02ef09a81a0f4b734d653d4ed5e3948ae7bf11180a8f",
-      "size": 911
+      "sha256": "fefd7a66f2db99284a77ff738441f96ec6c33648ba87426e7d571646feafd1d6",
+      "size": 845
     },
     {
       "path": "consumers/smc-copilot-work.json",
-      "sha256": "7305b937f748aea9748c565821064aa04883c41c7eb6b848d04e0da614d89056",
-      "size": 1224
+      "sha256": "deeb5d2cfbf9ede3be824c15f60df4cd643830bcf8b47033835ea92b3f730999",
+      "size": 1158
     },
     {
       "path": "CONTRIBUTING.md",
@@ -1173,8 +1178,8 @@
     },
     {
       "path": "install_v430.py",
-      "sha256": "e4090f9f9434c5fa679e57ac501b056669c99ecb09183b223b277cc53f2912c3",
-      "size": 14156
+      "sha256": "46d346d6be851b350116ae49fd2dff3a5a124d7a68331d902f6ada4895eeea54",
+      "size": 15889
     },
     {
       "path": "install_v440.py",
@@ -1188,8 +1193,8 @@
     },
     {
       "path": "install_v500.py",
-      "sha256": "b4a33f8729625744fdc4841844b2c829e8a80ec0331fb8d92779bb9dbe59f3a9",
-      "size": 16943
+      "sha256": "d92d8ddb40904239bb1b3e8307044f938d40f9dcc561ccdd5819e7f480e8f5c1",
+      "size": 17824
     },
     {
       "path": "integrations/spec-kit/fixtures/conflict-digest.json",
@@ -1310,6 +1315,11 @@
       "path": "tests/test_install_finalization.py",
       "sha256": "48ba5d399e53b08297b3cf9b559968d7d2ef7a939b56fef1466f95a7f7bdd3ff",
       "size": 8201
+    },
+    {
+      "path": "tests/test_install_greenfield.py",
+      "sha256": "39c4cf4eed0e1c71bc075907a9e7c071c796645ed7d16851f2c568ba8eaa8cc4",
+      "size": 3239
     },
     {
       "path": "tests/test_package_v500.py",

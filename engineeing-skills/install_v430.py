@@ -164,18 +164,48 @@ def transaction_manifest(project,backup,profile,selected,records,status):
     payload={'schema':'smc.ges.install.transaction.v2','bundle':PACKAGE_VERSION,'profile':f"{profile.get('id')}@{profile.get('version')}",'domains':{k:v[1].get('version') for k,v in selected.items()},'project':str(project),'created_at':dt.datetime.now(dt.timezone.utc).isoformat().replace('+00:00','Z'),'status':status,'files':[records[k] for k in sorted(records)]}
     path=backup/'upgrade-manifest.json';path.write_text(json.dumps(payload,ensure_ascii=False,indent=2,sort_keys=True)+'\n',encoding='utf-8');return path
 
+def _path_under_skill(rel:str,skill:str)->bool:
+    prefix=f'.agents/skills/{skill}'
+    return rel==prefix or rel.startswith(prefix+'/')
+
+def consumer_baseline_source(name:str)->Path|None:
+    """Package skill tree wins; else consumer-baseline template. Never invent empty stubs."""
+    pkg=SKILLS/str(name)
+    if (pkg/'SKILL.md').is_file():return pkg
+    baseline=PACKAGE/'consumer-baseline'/str(name)
+    if (baseline/'SKILL.md').is_file():return baseline
+    return None
+
 def preflight(project,profile,selected,names):
+    # @lat: [[install#Transactional Overlay]]
     errors=[]
     if not (project/'.git').exists():errors.append('TARGET_NOT_GIT_REPO: .git missing')
+    core=read_json(CORE_MANIFEST)
+    consumer_required=[str(n) for n in core.get('consumer_required_skills',[])]
     for rel in profile.get('required_paths',[]):
-        if not (project/rel).exists():errors.append(f'CONSUMER_REQUIRED_PATH_MISSING: {rel}')
+        if (project/rel).exists():continue
+        # Managed overlay creates these paths; requiring them pre-install is chicken-and-egg.
+        if any(_path_under_skill(rel,n) for n in names):continue
+        if SEED_CONSUMER_SKILLS and any(_path_under_skill(rel,n) for n in consumer_required):continue
+        errors.append(f'CONSUMER_REQUIRED_PATH_MISSING: {rel}')
     for name in names:
         if not (SKILLS/name/'SKILL.md').is_file():errors.append(f'PACKAGE_MANAGED_SKILL_MISSING: {name}')
-    core=read_json(CORE_MANIFEST)
-    for name in core.get('consumer_required_skills',[]):
-        if not (project/'.agents/skills'/str(name)/'SKILL.md').is_file():errors.append(f'CONSUMER_REQUIRED_SKILL_MISSING: {name}')
+    for name in consumer_required:
+        if (project/'.agents/skills'/name/'SKILL.md').is_file():continue
+        if SEED_CONSUMER_SKILLS:
+            if consumer_baseline_source(name) is None:
+                errors.append(f'CONSUMER_BASELINE_TEMPLATE_MISSING: {name}')
+            continue
+        errors.append(
+            f'CONSUMER_REQUIRED_SKILL_MISSING: {name} '
+            '(pass --seed-consumer-skills once for greenfield; never overwrites existing)'
+        )
     if not (DOMAIN_RUNTIME/'domain_runtime.py').is_file():errors.append('DOMAIN_RUNTIME_MISSING')
     return errors
+
+def pre_overlay(project:Path,backup:Path,records:dict[str,dict])->int:
+    """Optional hook: seed missing consumer-owned skills before managed overlay."""
+    return 0
 
 def validation_commands(project,profile,selected,skip):
     commands=[('delivery self-test',[sys.executable,str(project/'.agents/skills/smc-plan-delivery/scripts/run_selftest.py')]),('roadmap self-test',[sys.executable,str(project/'.agents/skills/smc-roadmap/scripts/test_roadmap_v11.py'),'-q'])]
@@ -188,17 +218,22 @@ def validation_commands(project,profile,selected,skip):
         if target.is_file():commands.append(('consumer project validator',[sys.executable,str(target)] if parts[0].lower().startswith('python') else parts))
     return commands
 
+SEED_CONSUMER_SKILLS=False
+
 def main():
-    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('project',nargs='?',default='.',type=Path);ap.add_argument('--profile');ap.add_argument('--apply',action='store_true');ap.add_argument('--skip-project-validator',action='store_true');a=ap.parse_args();project=a.project.resolve()
+    global SEED_CONSUMER_SKILLS
+    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('project',nargs='?',default='.',type=Path);ap.add_argument('--profile');ap.add_argument('--apply',action='store_true');ap.add_argument('--skip-project-validator',action='store_true');ap.add_argument('--seed-consumer-skills',action='store_true',help='Greenfield only: copy missing consumer-required skills from package templates; never overwrites');a=ap.parse_args();project=a.project.resolve();SEED_CONSUMER_SKILLS=bool(a.seed_consumer_skills)
     try:
         _,profile=resolve_profile(project,a.profile);registry,selected=pack_context(profile);names=managed_skills(profile,selected);errors=preflight(project,profile,selected,names)
     except Exception as exc:print(f'PRECHECK FAILED\n{exc}',file=sys.stderr);return 2
     print(f'GES v{PACKAGE_VERSION}');print('Target :',project);print('Profile:',f"{profile.get('id')}@{profile.get('version')}");print('Domains:',', '.join(selected) if selected else 'none');print('Managed skills:',len(names))
+    if SEED_CONSUMER_SKILLS:print('Consumer seed: enabled (missing only)')
     if errors:print('\nPRECHECK FAILED\n'+'\n'.join(errors),file=sys.stderr);return 2
     if not a.apply:print('\nDRY RUN PASS — no files written');return 0
     backup=project/'.smc/skill-upgrade-backups'/now_tag();backup.mkdir(parents=True,exist_ok=True);records={}
     try:
         count=0
+        count+=pre_overlay(project,backup,records)
         for name in names:count+=copy_tree(project,SKILLS/name,project/'.agents/skills'/name,backup,records)
         count+=copy_tree(project,INTEGRATION,project,backup,records)
         meta_count=install_ges_metadata(project,profile,selected,backup,records)

@@ -17,13 +17,19 @@ Windows 上禁止用 `os.execv` 派发：它不会覆盖当前控制台进程，
 顺序：
 
 1. 校验 `SHA256SUMS` / `PACKAGE-MANIFEST`；
-2. 确认目标已有 SMC skills baseline；
+2. 确认目标已有 SMC skills baseline（或显式 `--seed-consumer-skills`）；
 3. overlay `.agents/skills`，并按 consumer 声明同步 mirrors；
 4. 写入 gitignore（`.smc/evidence|reviews|runs|backups`）；
 5. 跑 delivery self-test、Roadmap tests、可选项目 validator；
 6. 任一 gate 失败 → [[engineeing-skills/install_v430.py#restore]]。
 
-实现入口：[[engineeing-skills/install_v500.py#main]]、[[engineeing-skills/install_v500.py#preflight]]。省略 profile 选择时保留已安装元数据；显式迁移 profile 需要重新绑定受影响 Plan。
+实现入口：[[engineeing-skills/install_v500.py#main]]、[[engineeing-skills/install_v500.py#preflight]]。省略 profile 选择时保留已安装元数据；显式迁移 profile 需要重新绑定受影响 Plan。Managed skill 路径（如 `smc-plan-validator`）由 overlay 写入，不得作为 preflight 硬依赖。
+
+## Consumer Baseline Seed
+
+Greenfield 仓库可缺少 consumer-owned skills；默认仍 fail-closed，避免静默 stub 污染已有项目。
+
+`--seed-consumer-skills` 仅复制**缺失**的 `consumer_required_skills`：优先包内 `.agents/skills/<name>`，否则 `consumer-baseline/<name>`；已存在文件永不覆盖。实现：[[engineeing-skills/install_v500.py#seed_consumer_skills]]、[[engineeing-skills/install_v430.py#preflight]]。
 
 ## Install Lock v2
 
