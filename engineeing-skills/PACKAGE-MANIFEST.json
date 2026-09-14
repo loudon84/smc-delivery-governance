@@ -668,28 +668,28 @@
     },
     {
       "path": "acceptance/cases/delivery-chaos/README.md",
-      "sha256": "5ff6692c60dd54b4396961e0017ca435d0806409a24768074779caeb024cc033",
-      "size": 52
+      "sha256": "a8e466d8419fe0f3bb047e34c281a98e0a26e32d69fabdfdbadf7344d8e52ce3",
+      "size": 51
     },
     {
       "path": "acceptance/cases/domain-semantics/README.md",
-      "sha256": "37a5a56f2aea2123bf2107a6f468286b22037e1f23831152c9187b708bfd92ed",
-      "size": 40
+      "sha256": "71beb23d123f76d8a8f61ed092858f108567941a39c7266d69a28421a67362ce",
+      "size": 39
     },
     {
       "path": "acceptance/cases/installer/README.md",
-      "sha256": "97c99bd16fb2083d34268f961e53ed3aa973fab70bd660fe0bfbd5d0d6b56632",
-      "size": 44
+      "sha256": "9b746993932ac946518f68e96ab156785fd0daea39182426624e20eebcba1d73",
+      "size": 43
     },
     {
       "path": "acceptance/cases/risk-routing/README.md",
-      "sha256": "935f34006a95960f851b5be7ca7cb1dd82162d029fd2ee5b51d07047b99841ad",
-      "size": 32
+      "sha256": "dac81cf1aa35b931e2f30f425109238834ba97591eaed060bf87bdd746f2229a",
+      "size": 31
     },
     {
       "path": "acceptance/cases/work-router/README.md",
-      "sha256": "c59d0863ddaccdd3282e8cd8631bd362b4fe885a85b3ee9029a58a072b181b36",
-      "size": 58
+      "sha256": "74d37586912b8cc6d11934d2d867873171401fc66f542846fdcca6c5442aeb90",
+      "size": 57
     },
     {
       "path": "acceptance/metrics.schema.json",
@@ -818,8 +818,8 @@
     },
     {
       "path": "build_package_manifest.py",
-      "sha256": "e34ad6548e13920a6dd34d074934fde3abd92207cb1a8984143f25f6d8c8077e",
-      "size": 3043
+      "sha256": "ca48833f0a0f13c0f385d4defe81c21e4f767608c24fa989e9b70c7289943346",
+      "size": 3600
     },
     {
       "path": "CHANGELOG.md",

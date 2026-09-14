@@ -3,14 +3,29 @@
 import argparse,hashlib,json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent
+BINARY_SUFFIXES={'.pyc','.pyo','.png','.jpg','.jpeg','.gif','.ico','.webp','.pdf','.zip','.gz','.whl'}
 def package_version(root=ROOT):
  # @lat: [[governance-architecture-closure]]
  core=root/'core'/'manifest.json'
  if core.is_file():
   return json.loads(core.read_text(encoding='utf-8')).get('bundle') or '5.0.0'
  return '5.0.0'
+def _package_files(root=ROOT):
+ return [p for p in sorted(root.rglob('*')) if p.is_file() and '__pycache__' not in p.parts and p.suffix not in {'.pyc','.pyo'} and p.relative_to(root).as_posix() not in {'PACKAGE-MANIFEST.json','SHA256SUMS'}]
+def assert_lf_eol(root=ROOT):
+ # @lat: [[acceptance-closure#Byte Identity and EOL]]
+ bad=[]
+ for p in _package_files(root):
+  if p.suffix.lower() in BINARY_SUFFIXES:
+   continue
+  raw=p.read_bytes()
+  if b'\r\n' in raw:
+   bad.append(p.relative_to(root).as_posix())
+ if bad:
+  raise ValueError('PACKAGE_EOL_INVALID: '+', '.join(bad[:20]))
 def inventory(root=ROOT):
- return [{'path':p.relative_to(root).as_posix(),'size':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in sorted(root.rglob('*')) if p.is_file() and '__pycache__' not in p.parts and p.suffix not in {'.pyc','.pyo'} and p.relative_to(root).as_posix() not in {'PACKAGE-MANIFEST.json','SHA256SUMS'}]
+ assert_lf_eol(root)
+ return [{'path':p.relative_to(root).as_posix(),'size':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in _package_files(root)]
 def build(root=ROOT):
  rows=inventory(root)
  return {'schema':'smc.skills.package.manifest.v1','package':'SMC-Governed-Engineering-Skills','package_version':package_version(root),'file_count':len(rows),'files':rows}
@@ -24,6 +39,7 @@ def explain_diff(root=ROOT):
  return {'added':added,'removed':removed,'content_changed':content_changed,'size_changed':size_changed,
          'expected_file_count':expected['file_count'],'actual_file_count':actual.get('file_count')}
 def verify(root=ROOT):
+ assert_lf_eol(root)
  expected=build(root);actual=json.loads((root/'PACKAGE-MANIFEST.json').read_text(encoding='utf-8'))
  if actual!=expected:raise ValueError('PACKAGE_MANIFEST_MISMATCH')
  sums=''.join(r['sha256']+'  '+r['path']+'\n' for r in expected['files'])
