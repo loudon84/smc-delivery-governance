@@ -207,6 +207,29 @@ def route(
         work, profile = "ARCHITECTURAL", "FULL"
 
     receipt_eligible = work_facts is not None and auth_status == "VERIFIED" and profile == "NONE"
+    prompt = str(merged.get("prompt") or merged.get("task_prompt") or "").lower()
+    production_locked = (
+        merged.get("retained_production_change") is True
+        or merged.get("production_write_requested") is True
+        or merged.get("durable_product_artifact_requested") is True
+    )
+    if ("just research" in prompt or "only research" in prompt or "low risk" in prompt) and (
+        merged.get("governed") is True or production_locked
+    ):
+        work, profile = "ARCHITECTURAL", "FULL"
+        reasons.append("PROMPT_CANNOT_OVERRIDE_GOVERNED")
+    if merged.get("governed") is False and production_locked:
+        merged["governed"] = True
+        work, profile = "ARCHITECTURAL", "FULL"
+        reasons.append("PROMPT_CANNOT_SET_GOVERNED_FALSE")
+    scope_suggestion = {
+        "scope_level": "PROJECT" if profile == "FULL" else "MODULE",
+        "modules": list(merged.get("modules") or []),
+        "components": list(merged.get("components") or []),
+        "confidence": "low" if not merged.get("modules") else "medium",
+        "upgrade_reasons": [r for r in reasons if "PROMPT" in r or "SCOPE" in r],
+        "risk_full": profile == "FULL",
+    }
     return {
         "schema": "smc.ges.work-route.v2",
         "work_class": work,
@@ -222,6 +245,7 @@ def route(
         "source_digest_set": sorted(set(source_digest_set)),
         "merge_decisions": decisions,
         "receipt_eligible": receipt_eligible,
+        "scope_suggestion": scope_suggestion,
     }
 
 

@@ -24,6 +24,8 @@ def install_fixture(root,legacy=False):
  else:shutil.copytree(ROOT/'domain-packs',root/'.agents/ges/domain-packs')
  write(root,'.agents/ges/profile.json',json.dumps(profile))
  shutil.copytree(ROOT/'domain-runtime',root/'.agents/ges/domain-runtime')
+ if (ROOT/'context-engine').is_dir():
+  shutil.copytree(ROOT/'context-engine',root/'.agents/ges/context-engine',dirs_exist_ok=True)
  shutil.copytree(ROOT/'.agents/skills',root/'.agents/skills',dirs_exist_ok=True)
  shutil.copytree(ROOT/'project-integration',root,dirs_exist_ok=True)
  return profile
@@ -64,7 +66,9 @@ class PackageV5Tests(unittest.TestCase):
   out=self.r/'.cursor/plans/rm02.plan.md'
   result=subprocess.run([sys.executable,str(seed),str(prd),str(out),'--plan-id','RM-02'],capture_output=True,text=True,encoding='utf-8')
   self.assertEqual(0,result.returncode,result.stdout+result.stderr)
-  self.assertIn('plan_contract: smc.plan.v3.7',out.read_text(encoding='utf-8'))
+  text=out.read_text(encoding='utf-8')
+  self.assertIn('plan_contract: smc.plan.v4.0',text)
+  self.assertIn('context_binding: required',text)
   # Seeds intentionally contain placeholders and must fail static gates.
   result=subprocess.run([sys.executable,str(self.r/'tools/agent-skills/validate_plan.py'),str(out),'--json'],capture_output=True,text=True,encoding='utf-8')
   self.assertNotEqual(0,result.returncode)
@@ -72,6 +76,11 @@ class PackageV5Tests(unittest.TestCase):
   self.assertNotIn('ModuleNotFoundError',result.stderr)
   payload=json.loads(result.stdout)
   self.assertFalse(payload['valid'])
+  # Compat path still emits v3.7 when explicitly requested.
+  out36=self.r/'.cursor/plans/rm02-v37.plan.md'
+  result=subprocess.run([sys.executable,str(seed),str(prd),str(out36),'--plan-id','RM-02-V37'],capture_output=True,text=True,encoding='utf-8',env={**os.environ,'GES_PLAN_V37_COMPAT':'1'})
+  self.assertEqual(0,result.returncode,result.stdout+result.stderr)
+  self.assertIn('plan_contract: smc.plan.v3.7',out36.read_text(encoding='utf-8'))
  def test_rollback_restores_files_after_failed_validation(self):
   fixture(self.r);before={p.relative_to(self.r).as_posix():p.read_bytes() for p in self.r.rglob('*') if p.is_file() and '.git' not in p.parts}
   # Fault injection specifically tests the real transaction writer/restore, not validation quality.

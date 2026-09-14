@@ -2,7 +2,7 @@
 
 GES 是项目仓库内的 AI 工程治理工作流，不是跨仓控制面。它把 Architecture → PRD → Plan → Delivery 收成可 fail-closed 的 Skill 流水线。
 
-当前工作区为 **Bundle 5.0.0 repaired candidate**：新工作采用 `smc.plan.v3.7`、Domain Pack v2 与命令绑定的 Engineering Method v2；在途 v3.6 保留兼容路径。已接受生产基线仍由 `BASELINE.md` 裁决，安装 candidate 不等于升格生产基线。
+当前工作区为 **Bundle 6.0.0 candidate**：新工作采用 `smc.plan.v4.0`（必需 `context_binding`）、Context Optimization Engine 与 Domain Pack v2；v6 运行时拒绝在途 v3.6/v3.7 Plan。已接受生产基线仍由 `BASELINE.md` 裁决。
 
 - [[identity]] — 权威源、路径冻结、与 Governance Kit 的边界
 - [[pipeline]] — 流水线阶段与 Artifact 路由
@@ -22,5 +22,6 @@ GES 是项目仓库内的 AI 工程治理工作流，不是跨仓控制面。它
 - [[governance-architecture-closure]] — v5.0.2 架构闭环命名迁移与 C01–C07 治理断点关闭（效果验证禁入）
 - [[safety-runtime-closure-v503]] — v5.0.3 安全 fail-closed 与 Spec Kit/Superpowers provider 接入方案（Pilot/Benchmark 禁入）
 - [[consumer-bootstrap]] — v5.0.5 Consumer Audit / Gap / Remediation / Validate 平台接入（Pilot/Benchmark 禁入）
+- [[context-optimization-v6]] — v6 Context Optimization Engine：Registry、影响图、预算编译与无在途兼容合同（candidate）
 
 GES 产出的是项目本地 Architecture / Stage PRD / Plan / evidence；跨仓 Feature / Work Package / Attestation 仍由中央控制面裁决，见 [[architecture]]、[[ADR-001-central-local-boundary]]。

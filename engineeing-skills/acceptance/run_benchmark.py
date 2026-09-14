@@ -8,7 +8,8 @@ import statistics
 from pathlib import Path
 
 THRESHOLDS = Path(__file__).with_name("thresholds.json")
-CLASSES = ("BOUNDED", "NORMAL", "BUG_FIX", "HIGH_RISK")
+CLASSES = ("BOUNDED", "NORMAL", "BUG_FIX", "HIGH_RISK", "COMPONENT", "MODULE")
+THRESHOLDS_V3 = Path(__file__).with_name("thresholds.v3.json")
 
 
 def _median(vals: list[float]) -> float | None:
@@ -47,11 +48,13 @@ def _work_class(row: dict) -> str:
 def score(rows: list[dict], thresholds: dict) -> dict:
     # @lat: [[acceptance-closure#Benchmark and Pilot Layout]]
     # @lat: [[governance-architecture-closure]]
-    if thresholds.get("schema") != "smc.ges.acceptance.thresholds.v2":
+    # @lat: [[context-optimization-v6#Acceptance Mapping]]
+    schema = thresholds.get("schema")
+    if schema not in {"smc.ges.acceptance.thresholds.v2", "smc.ges.acceptance.thresholds.v3"}:
         return {
             "schema": "smc.ges.benchmark.report.v2",
             "code": "BENCHMARK_INPUT_INVALID",
-            "detail": "thresholds schema must be smc.ges.acceptance.thresholds.v2",
+            "detail": "thresholds schema must be smc.ges.acceptance.thresholds.v2 or .v3",
         }
     if not rows:
         return {"schema": "smc.ges.benchmark.report.v2", "code": "BENCHMARK_INPUT_INVALID", "detail": "empty rows"}
@@ -253,16 +256,27 @@ def selftest() -> dict:
     unpaired = score([rows[0]], thresholds)
     bad = score([{"case_id": "x", "cohort": "C", "outcome": "PASS"}], thresholds)
     telem = score([{**rows[0], "outcome": "TELEMETRY_INCOMPLETE"}, rows[1]], thresholds)
+    v3 = json.loads(THRESHOLDS_V3.read_text(encoding="utf-8"))
+    v3_met = score(rows, v3)
+    red = v3_met.get("reductions") or {}
     return {
         "met_code": met.get("code"),
         "unpaired_code": unpaired.get("code"),
         "bad_code": bad.get("code"),
         "telem_code": telem.get("code"),
+        "v3_code": v3_met.get("code"),
+        "v3_reductions": {
+            "component_median_token_reduction_pct": red.get("component_median_token_reduction_pct"),
+            "module_median_token_reduction_pct": red.get("module_median_token_reduction_pct"),
+            "bounded_median_token_reduction_pct": red.get("bounded_median_token_reduction_pct"),
+        },
         "ok": met.get("code")
         in {"BENCHMARK_THRESHOLD_MET", "BENCHMARK_THRESHOLD_NOT_MET", "BENCHMARK_READY"}
         and unpaired.get("code") == "UNPAIRED_CASES"
         and bad.get("code") == "BENCHMARK_INPUT_INVALID"
-        and telem.get("code") == "TELEMETRY_INCOMPLETE",
+        and telem.get("code") == "TELEMETRY_INCOMPLETE"
+        and v3_met.get("code")
+        in {"BENCHMARK_THRESHOLD_MET", "BENCHMARK_THRESHOLD_NOT_MET", "BENCHMARK_READY"},
     }
 
 

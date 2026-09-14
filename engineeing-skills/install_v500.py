@@ -18,7 +18,7 @@ from build_package_manifest import build as build_manifest
 from build_package_manifest import verify
 
 base = inherited.suite
-base.PACKAGE_VERSION = "5.0.0"
+base.PACKAGE_VERSION = "6.0.0"
 PROJECT = None
 SELECTOR = None
 
@@ -217,6 +217,8 @@ def _git_head(project: Path) -> tuple[str, bool]:
 def _owned_paths(project: Path, names: list[str], records: dict) -> list[dict]:
     owned = []
     for rel, rec in sorted(records.items()):
+        if rel.startswith(".agents/ges/context/") and not rel.startswith(".agents/ges/context-engine/"):
+            continue
         if rel.startswith(".agents/skills/"):
             skill = rel.split("/")[2] if len(rel.split("/")) > 2 else ""
             if skill and skill not in names:

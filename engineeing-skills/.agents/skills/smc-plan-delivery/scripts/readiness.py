@@ -44,9 +44,13 @@ def collect(plan: Path) -> dict:
     done = sum(1 for x in todo_rows if x["status"] == "completed")
     evid = {vid: evidence_status(plan, vid)[0] for vid in blocking_verifications(plan)}
     run = load_run(plan) or {}; resume = execution_resume(plan)
+    contract = parse_top_level_frontmatter(plan.read_text(encoding="utf-8")).get("plan_contract", "")
+    legacy = [] if contract == "smc.plan.v4.0" else [f"CONTEXT_LEGACY_PLAN_UNSUPPORTED: {contract or 'missing'}"]
     return {
         "schema": "smc.delivery.readiness.v2",
         "plan_id": plan_id(plan), "plan": repo_relative_path(plan, root),
+        "plan_contract": contract,
+        "legacy_contract_errors": legacy,
         "scope_fingerprint": ws["scope_fingerprint"], "ambient_fingerprint": ws["ambient_fingerprint"],
         "workspace": {"ambient_stable": ws["ambient_stable"], "ambient_mutated": ws["ambient_mutated"], "unexpected_dirty": ws["unexpected_dirty"], "scope_changed_files": ws["scope_changed_files"]},
         "run_state": run.get("state", "UNINITIALIZED"), "last_valid_state": run.get("last_valid_state", "UNINITIALIZED"),

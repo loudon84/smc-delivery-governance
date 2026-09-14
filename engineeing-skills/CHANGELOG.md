@@ -1,77 +1,27 @@
-# GES 5.0.0 repaired candidate
+# GES 6.0.0 candidate
 
-Adaptive profiles, Domain v2 preplan, Plan v3.7 compatibility, command-bound method freshness and closed review gates. Existing v3.6 consumers preserve policy bindings. See CHANGES-v5.0.0.md.
+Context Optimization Engine on top of GES 5 repaired candidate. New Plans use
+`smc.plan.v4.0` with required context binding. In-flight v3.6/v3.7 Plans are rejected
+by the v6 runtime. See CHANGES-v6.0.0.md.
 
 # Changelog
 
-## v4.4.1 Candidate — 2026-09-13
+## v6.0.0 Candidate — 2026-09-14
 
 ### Added
 
-- Engineering Method Runtime with deterministic `MECHANICAL / BEHAVIOR_CHANGE / BUG_FIX / HIGH_RISK` Todo profiles.
-- TDD runtime policy and RED/GREEN gate recording without conflating expected RED with final Verification failure.
-- Systematic debugging root-cause gate plus three-failed-fix architecture escalation.
-- Default unified task reviewer for normal-risk SDD work, with independent review retained for high-risk work.
-- Stable `install.py` / `validate_package.py` dispatch to v4.4.1 wrappers; Consumer Profile v2, Domain Pack v1 and `smc.plan.v3.6` remain unchanged.
+- Context Registry, path identity, discovery proposals and registry snapshots.
+- Context Compiler, Budget Manager, freshness gates and ADVISORY/ENFORCED handshake.
+- Dependency graph (declared + Python imports), impact manifests and review triggers.
+- Plan contract `smc.plan.v4.0` and validator; legacy capability rejection on v3.3–v3.7.
+- Consumer bootstrap templates/audit for `.agents/ges/context/`.
+- Dispatch/epoch ledger helpers and external adapter capability reports.
 
 ### Compatibility
 
-- Engineering method records stay under `.smc/runs/<plan-id>/engineering/` and are working memory only.
-- No new Plan/PRD/Roadmap contract and no new delivery state is introduced.
-- `post_review`, Single Writer, Completion Audit, final Verification, Evidence Freshness and Roadmap DONE semantics are unchanged.
+- No dual-contract execution. Completed historical Plans remain read-only evidence.
+- Consumer Registry under `.agents/ges/context/` is not overlay-owned.
 
-## v4.4.0 Candidate — 2026-09-13
+## v5.0.0 repaired candidate
 
-### Added
-
-- Adaptive request classification: SPIKE / BOUNDED / ARCHITECTURAL with one-way complexity escalation.
-- Backward-compatible Plan semantic review depth: NONE / DELTA / FULL while preserving REQUIRED / NOT_REQUIRED and PASS / REVISE / RETURN_PRD public contracts.
-- Plan semantic review packets and local semantic snapshots under `.smc/` for DELTA review.
-- Plan-scoped task briefs, worker report paths and write-scoped task review packages under `.smc/runs/<plan-id>/`.
-- SDD same-shape batching policy, FAST/STANDARD/REASONING model tiers and five-round fix-loop breaker.
-- Stable `install.py` dispatch to `install_v440.py`; Consumer Profile v2 / Domain Pack v1 / `smc.plan.v3.6` remain unchanged.
-
-### Fixed
-
-- Restored the previously documented `smc-plan-review/scripts/assess_plan_review.py` runtime path and added deterministic self-tests.
-
-### Compatibility
-
-- No governed BOUNDED Lean Plan in v4.4A; tasks already bound to SMC governed artifacts stay on the existing canonical pipeline.
-- `post_review`, Single Writer, Evidence Freshness, Completion Audit, final Verification and Roadmap DONE semantics are unchanged.
-
-## v4.1.2 — 2026-09-03
-
-### Fixed
-
-- Installer now syncs declared full-tree mirrors after overlay copy: `.agents/skills` → `.cursor/skills` and `.agents/references` → `.cursor/references`.
-- Fixes NodeSkClaw `SKILL-004 CURSOR_SKILL_MIRROR_DRIFT` when files outside the overlay payload already drifted before upgrade.
-- Canonical `.agents` remains the source of truth: missing mirror files are added, drifted mirror files are updated, and mirror-only extras are removed inside the same transaction and rolled back with it.
-
-## v4.1.1 — 2026-09-03
-
-### Fixed
-
-- Windows 8.3 short-path / long-path identity mismatch across `smc-plan-delivery`.
-- Added filesystem-identity based `repo_relative_path()` shared helper.
-- Replaced lexical `Path.relative_to(repo_root)` calls in completion audit, readiness, delivery state, evidence, Plan resolution and v3.3 duplicate validation.
-- Added deterministic alias-path regression tests covering the production installer failure shape.
-
-## v4.1.0 — 2026-09-03
-
-- Added `smc-plan-delivery v1.0.0` as the unique post-Plan delivery orchestrator.
-- Upgraded SMC Plan contract to `smc.plan.v3.3`.
-- Unified Cursor UI Todo state and SMC Plan Todo identity in one canonical Plan.
-- Added deterministic working-tree content fingerprint.
-- Added content-bound plan and implementation review ledger.
-- Added local verification evidence ledger with FRESH/STALE/MISSING semantics.
-- Added Plan Completion Audit and commit guard.
-- Reworked execution skills as implementation engines under delivery orchestration.
-- Changed new Plan Verification Ledger from physical `Evidence Output` paths to `Evidence Policy`.
-- Updated Roadmap DONE proof to accept logical evidence references while retaining real implementation commit validation.
-- Added read-only `DIAGNOSE_PLAN` mode.
-- Preserved post_review, single-writer, lifecycle closure, AC/DoD traceability, Ponytail minimality and separate Roadmap commit invariants.
-- Production hardening: added durable `docs_agent/evidence/<plan_id>-evidence.json` Manifest committed with implementation while keeping raw logs out of Git.
-- Production hardening: `smc-roadmap v1.1` now resolves `smc-evidence:` against the Manifest stored in the referenced implementation commit and validates Plan ID/fingerprint/digest/audit/review/blocking verification proof.
-- Production hardening: transactional installer with automatic rollback on post-install validation failure plus standalone `rollback.py` with post-install drift protection.
-- Production hardening: package SHA256 integrity verification before installation.
+Adaptive profiles, Domain v2 preplan, Plan v3.7 compatibility, command-bound method freshness and closed review gates. Existing v3.6 consumers preserve policy bindings. See CHANGES-v5.0.0.md.

@@ -47,6 +47,8 @@ def _audit_ges(project: Path, checks: list[dict]) -> dict[str, Any]:
         ("ges.acceptance_surface", ".agents/skills/smc-plan-delivery/scripts/acceptance.py", "file"),
         ("ges.telemetry", ".agents/skills/smc-plan-delivery/scripts/runtime_metrics.py", "file"),
         ("ges.work_router", ".agents/skills/smc-work-router/SKILL.md", "file"),
+        ("ges.context_engine", ".agents/ges/context-engine/registry.py", "file"),
+        ("ges.context_registry", ".agents/ges/context/architecture.yaml", "file"),
     ]
     for cid, rel, kind in items:
         present = C.exists_file(project, rel) if kind == "file" else C.exists_dir(project, rel)

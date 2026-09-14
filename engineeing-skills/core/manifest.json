@@ -1,6 +1,6 @@
 {
   "schema": "smc.ges.core-manifest.v1",
-  "bundle": "5.0.0",
+  "bundle": "6.0.0",
   "managed_skills": [
     "smc-architecture-decision",
     "smc-architecture-review",

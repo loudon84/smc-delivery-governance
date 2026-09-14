@@ -33,6 +33,10 @@ def analyze(audit_report: dict[str, Any]) -> dict[str, Any]:
             codes.append("SUPERPOWERS_CAPABILITY_GAP")
         if name == "ges" and verdict != "PASS":
             codes.append("GES_CAPABILITY_GAP")
+            if any(str(m).endswith("context_registry") or "context_registry" in str(m) for m in missing):
+                codes.append("CONTEXT_REGISTRY_MISSING")
+            if any(str(m).endswith("context_engine") or "context_engine" in str(m) for m in missing):
+                codes.append("CONTEXT_ENGINE_MISSING")
         if verdict == "MISSING":
             codes.append(f"LAYER_MISSING:{name}")
         elif verdict == "PARTIAL":

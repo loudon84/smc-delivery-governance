@@ -1,0 +1,5 @@
+schema: smc.context.record.v1
+id: architecture
+status: REVIEWED
+owner: architecture-owner
+constraints: []

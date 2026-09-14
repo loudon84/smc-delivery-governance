@@ -13,6 +13,7 @@ PACKAGE=Path(__file__).resolve().parent
 SKILLS=PACKAGE/'.agents/skills'
 CORE_MANIFEST=PACKAGE/'core/manifest.json'
 DOMAIN_RUNTIME=PACKAGE/'domain-runtime'
+CONTEXT_ENGINE=PACKAGE/'context-engine'
 DOMAIN_PACKS=PACKAGE/'domain-packs'
 CONSUMERS=PACKAGE/'consumers'
 INTEGRATION=PACKAGE/'project-integration'
@@ -137,6 +138,8 @@ def mirror_managed(project:Path,names:list[str],policy:str,backup:Path,records:d
 def install_ges_metadata(project:Path,profile:dict[str,Any],selected,backup,records):
     target=project/'.agents/ges';count=0
     count+=copy_tree(project,DOMAIN_RUNTIME,target/'domain-runtime',backup,records)
+    if CONTEXT_ENGINE.is_dir():
+        count+=copy_tree(project,CONTEXT_ENGINE,target/'context-engine',backup,records)
     registry={'schema':'smc.ges.domain-registry.v1','packs':{}}
     for domain_id,(pack_path,pack) in selected.items():
         src_dir=pack_path.parent;dst_dir=target/'domain-packs'/domain_id
@@ -201,6 +204,7 @@ def preflight(project,profile,selected,names):
             '(pass --seed-consumer-skills once for greenfield; never overwrites existing)'
         )
     if not (DOMAIN_RUNTIME/'domain_runtime.py').is_file():errors.append('DOMAIN_RUNTIME_MISSING')
+    if CONTEXT_ENGINE.is_dir() and not (CONTEXT_ENGINE/'registry.py').is_file():errors.append('CONTEXT_ENGINE_MISSING')
     return errors
 
 def pre_overlay(project:Path,backup:Path,records:dict[str,dict])->int:

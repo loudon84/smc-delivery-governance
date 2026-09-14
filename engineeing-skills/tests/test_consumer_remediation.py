@@ -54,6 +54,33 @@ class ConsumerRemediationTests(unittest.TestCase):
         self.assertNotIn(".specify/spec.md", targets)
         self.assertIn(".specify/spec.md", plan["forbidden"])
 
+    def test_ac17_context_registry_dry_run_and_no_overwrite(self) -> None:
+        # @lat: [[context-optimization-v6#Acceptance Mapping]]
+        write(self.r, ".agents/ges/context/architecture.yaml", "id: keep\nstatus: REVIEWED\nowner: human\n")
+        gap = {
+            "layers": {
+                "ges": {"verdict": "PASS", "missing": []},
+                "spec_kit": {"verdict": "MISSING", "missing": []},
+                "superpowers": {"verdict": "MISSING", "missing": []},
+            }
+        }
+        plan = gen_mod.generate(self.r, gap, {})
+        targets = [a["target"] for a in plan["actions"] if a["kind"] == "WRITE_TEMPLATE"]
+        self.assertTrue(any(t.startswith(".agents/ges/context/") for t in targets))
+        dry = apply_mod.apply_plan(self.r, plan, do_apply=False)
+        self.assertEqual(dry["status"], "DRY_RUN")
+        self.assertEqual(
+            (self.r / ".agents/ges/context/architecture.yaml").read_text(encoding="utf-8"),
+            "id: keep\nstatus: REVIEWED\nowner: human\n",
+        )
+        receipt = apply_mod.apply_plan(self.r, plan, do_apply=True)
+        self.assertEqual(receipt["status"], "PASS")
+        self.assertEqual(
+            (self.r / ".agents/ges/context/architecture.yaml").read_text(encoding="utf-8"),
+            "id: keep\nstatus: REVIEWED\nowner: human\n",
+        )
+        self.assertTrue((self.r / ".agents/ges/context/project.yaml").is_file())
+
     def test_apply_writes_missing_only(self) -> None:
         write(self.r, ".specify/constitution.md", "# keep\n")
         gap = {

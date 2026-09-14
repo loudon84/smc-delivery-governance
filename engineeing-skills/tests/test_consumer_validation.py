@@ -32,7 +32,7 @@ def seed_ges_surface(root: Path) -> None:
     write(
         root,
         ".smc/ges-install-lock.json",
-        json.dumps({"schema": "smc.ges.install-lock.v2", "bundle": "5.0.0"}) + "\n",
+        json.dumps({"schema": "smc.ges.install-lock.v2", "bundle": "6.0.0"}) + "\n",
     )
     write(
         root,
@@ -42,6 +42,8 @@ def seed_ges_surface(root: Path) -> None:
     write(root, ".agents/ges/profile.json", '{"schema":"smc.ges.consumer-profile.v3","id":"generic","version":"2.0.0"}\n')
     write(root, ".agents/ges/domain-packs/registry.json", '{"schema":"smc.ges.domain-registry.v1","packs":{}}\n')
     write(root, ".agents/ges/domain-runtime/domain_runtime.py", "print('ok')\n")
+    write(root, ".agents/ges/context-engine/registry.py", "print('ok')\n")
+    write(root, ".agents/ges/context/architecture.yaml", "id: arch\nstatus: PROPOSED\nowner: arch\n")
     # Copy managed skill stubs from package for required validation paths.
     for name in (
         "smc-plan-validator",

@@ -1,0 +1,10 @@
+schema: smc.context.record.v1
+id: example
+status: PROPOSED
+owner: ""
+include:
+  - src/example/**
+exclude: []
+exports: []
+contracts: []
+allowed_dependencies: []

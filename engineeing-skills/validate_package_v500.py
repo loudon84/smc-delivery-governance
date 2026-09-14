@@ -46,6 +46,7 @@ def main():
   run('consumer bootstrap audit',[sys.executable,str(ROOT/'tests/test_consumer_audit.py'),'-v'])
   run('consumer bootstrap remediation',[sys.executable,str(ROOT/'tests/test_consumer_remediation.py'),'-v'])
   run('consumer bootstrap validation',[sys.executable,str(ROOT/'tests/test_consumer_validation.py'),'-v'])
+  run('context engine',[sys.executable,str(ROOT/'context-engine/run_selftest.py')])
   sys.path.insert(0,str(ROOT/'tests'))
   from test_package_v500 import fixture
   with tempfile.TemporaryDirectory(prefix='ges-v5-consumer-') as td:
@@ -53,7 +54,7 @@ def main():
    run('consumer install dry run',[sys.executable,str(ROOT/'install.py'),str(project),'--profile','generic'])
    run('consumer actual install',[sys.executable,str(ROOT/'install.py'),str(project),'--profile','generic','--apply'])
    lock=json.loads((project/'.smc/ges-install-lock.json').read_text(encoding='utf-8'))
-   if lock['bundle']!='5.0.0':raise ValueError('INSTALL_LOCK_VERSION_INVALID')
+   if lock['bundle']!='6.0.0':raise ValueError('INSTALL_LOCK_VERSION_INVALID')
    if lock.get('schema')!='smc.ges.install-lock.v2':raise ValueError('INSTALL_LOCK_V2_INVALID')
    if 'release_identity' not in lock or 'owned_files' not in lock:raise ValueError('INSTALL_RELEASE_IDENTITY_INVALID')
    # raw-bytes identity: must match PACKAGE-MANIFEST.json file digest, not reserialized object
@@ -85,7 +86,7 @@ def main():
      if p.relative_to(project/'.agents/skills').parts[0] in installer.base.managed_skills(profile,selected) and (not mirror.is_file() or p.read_bytes()!=mirror.read_bytes()):raise ValueError('MIRROR_DRIFT: '+str(p))
    run('consumer rollback',[sys.executable,str(ROOT/'rollback.py'),str(project),'--apply'])
    if (project/'.agents/skills/smc-plan-delivery/SKILL.md').exists():raise ValueError('ROLLBACK_LEFTOVER')
-  print('PACKAGE VALIDATION PASS — GES 5.0.0; full registered regressions + real fixture install/rollback',flush=True)
+  print('PACKAGE VALIDATION PASS — GES 6.0.0; context-engine + registered regressions + real fixture install/rollback',flush=True)
   return 0
  except (ValueError,OSError,KeyError,SyntaxError) as exc:
   print('PACKAGE VALIDATION FAILED:',exc,file=sys.stderr);return 1

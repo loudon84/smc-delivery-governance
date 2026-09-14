@@ -109,6 +109,27 @@ def generate(project: Path, gap: dict[str, Any], audit_report: dict[str, Any] | 
                 )
             )
 
+    # Context Registry templates (missing-only; never overwrite Consumer Registry)
+    context_templates = (
+        (".agents/ges/context/architecture.yaml", "ges/context/architecture.yaml"),
+        (".agents/ges/context/project.yaml", "ges/context/project.yaml"),
+        (".agents/ges/context/modules/example.yaml", "ges/context/modules/example.yaml"),
+        (".agents/ges/context/components/example.yaml", "ges/context/components/example.yaml"),
+        (".agents/ges/context/applications/example.yaml", "ges/context/applications/example.yaml"),
+    )
+    for rel, tmpl in context_templates:
+        if not C.exists_file(project, rel):
+            actions.append(
+                _action(
+                    next_id("CTX"),
+                    "WRITE_TEMPLATE",
+                    rel,
+                    "Context Registry template missing",
+                    template=tmpl,
+                    claim="GES_NATIVE",
+                )
+            )
+
     # GES gaps that bootstrap cannot invent — advise install
     ges_layer = (gap.get("layers") or {}).get("ges") or {}
     if ges_layer.get("verdict") != "PASS":

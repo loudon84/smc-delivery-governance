@@ -97,7 +97,7 @@ def intent_binding_errors(plan: Path) -> list[dict[str, str]]:
     # @lat: [[safety-runtime-closure-v503]]
     text = plan.read_text(encoding="utf-8")
     meta = parse_top_level_frontmatter(text)
-    if meta.get("plan_contract") and meta.get("plan_contract") != "smc.plan.v3.7":
+    if meta.get("plan_contract") and meta.get("plan_contract") not in {"smc.plan.v3.7", "smc.plan.v4.0"}:
         return []
     errors: list[dict[str, str]] = []
     required_meta = ("source_prd", "source_prd_sha256", "domain_activation_digest", "domain_intent_digest")

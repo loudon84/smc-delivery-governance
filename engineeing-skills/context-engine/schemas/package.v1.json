@@ -1,0 +1,21 @@
+{
+  "$id": "smc.context.package.v1",
+  "schema": "smc.context.package.v1",
+  "title": "GES Context Package",
+  "type": "object",
+  "required": ["schema", "package_id", "request_id", "phase", "epoch", "status", "binding", "selection"],
+  "properties": {
+    "schema": { "const": "smc.context.package.v1" },
+    "package_id": { "type": "string" },
+    "request_id": { "type": "string" },
+    "phase": { "enum": ["PLANNING", "EXECUTION"] },
+    "epoch": { "type": "integer" },
+    "status": { "enum": ["READY", "INCOMPLETE", "BLOCKED", "STALE"] },
+    "enforcement_mode": { "enum": ["ADVISORY", "ENFORCED"] },
+    "binding": { "type": "object" },
+    "selection": { "type": "object" },
+    "budget": { "type": "object" },
+    "read_set": { "type": "array" },
+    "write_set_ref": { "type": "array" }
+  }
+}

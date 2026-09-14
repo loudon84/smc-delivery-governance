@@ -10,9 +10,16 @@ import subprocess
 import sys
 from pathlib import Path
 
-# v4.3.1 stable seed entrypoint: direct invocation emits Plan v3.6. Compatibility
-# wrappers import this module (rather than execute it as __main__) and therefore
-# retain the v3.4 implementation below for historical Plan migration/tests.
+# Default authoring targets smc.plan.v4.0. Compat env vars retain older seeds for tests.
+_V40 = Path(__file__).resolve().with_name("create_plan_seed_v40.py")
+if (
+    __name__ == "__main__"
+    and _V40.is_file()
+    and os.environ.get("GES_PLAN_V34_COMPAT") != "1"
+    and os.environ.get("GES_PLAN_V36_COMPAT") != "1"
+    and os.environ.get("GES_PLAN_V37_COMPAT") != "1"
+):
+    raise SystemExit(subprocess.call([sys.executable, str(_V40), *sys.argv[1:]]))
 _V37 = Path(__file__).resolve().with_name("create_plan_seed_v37.py")
 if __name__ == "__main__" and _V37.is_file() and os.environ.get("GES_PLAN_V34_COMPAT") != "1" and os.environ.get("GES_PLAN_V36_COMPAT") != "1":
     raise SystemExit(subprocess.call([sys.executable, str(_V37), *sys.argv[1:]]))

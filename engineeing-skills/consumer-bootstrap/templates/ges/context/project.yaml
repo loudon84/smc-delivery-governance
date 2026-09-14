@@ -1,0 +1,4 @@
+schema: smc.context.record.v1
+id: default-project
+status: REVIEWED
+owner: project-owner

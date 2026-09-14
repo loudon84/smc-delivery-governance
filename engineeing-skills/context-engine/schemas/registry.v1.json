@@ -1,0 +1,33 @@
+{
+  "$id": "smc.context.registry.v1",
+  "schema": "smc.context.registry.v1",
+  "title": "GES Context Registry",
+  "type": "object",
+  "required": [
+    "schema",
+    "registry_id",
+    "revision",
+    "repo_identity",
+    "source_refs",
+    "projects",
+    "modules",
+    "components",
+    "applications",
+    "constraints",
+    "dependencies"
+  ],
+  "properties": {
+    "schema": { "const": "smc.context.registry.v1" },
+    "registry_id": { "type": "string" },
+    "revision": { "type": "string" },
+    "status": { "enum": ["PROPOSED", "REVIEWED"] },
+    "repo_identity": { "type": "string" },
+    "source_refs": { "type": "array" },
+    "projects": { "type": "array" },
+    "modules": { "type": "array" },
+    "components": { "type": "array" },
+    "applications": { "type": "array" },
+    "constraints": { "type": "array" },
+    "dependencies": { "type": "array" }
+  }
+}

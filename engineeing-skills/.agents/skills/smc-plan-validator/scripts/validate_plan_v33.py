@@ -60,6 +60,10 @@ def contract_checks(plan:Path,expected_contract:str)->list[dict[str,str]]:
     text=plan.read_text(encoding="utf-8");fm=parse_top_level_frontmatter(text);errors=[]
     def add(c,d):errors.append({"code":c,"detail":d})
     if fm.get("plan_contract")!=expected_contract:add("PLAN_CONTRACT_INVALID",f"plan_contract must be {expected_contract}")
+    binding=str(fm.get("context_binding") or "").strip().lower()
+    required_ext=str(fm.get("required_extensions") or fm.get("required_capabilities") or "")
+    if (binding in {"required","true","1","yes"} or "context_binding" in required_ext) and expected_contract!="smc.plan.v4.0":
+        add("PLAN_REQUIRED_CAPABILITY_UNSUPPORTED","context_binding")
     pid=fm.get("plan_id","").strip()
     if not pid:add("PLAN_ID_MISSING","plan_id is required")
     if fm.get("commit_policy")!="post_review":add("PLAN_COMMIT_POLICY_INVALID","commit_policy must be post_review")
@@ -79,7 +83,7 @@ def contract_checks(plan:Path,expected_contract:str)->list[dict[str,str]]:
 def transform_to_v32(text:str)->str:
     lines=text.splitlines();in_ver=False;policy_idx=None;header_seen=False
     for i,line in enumerate(lines):
-        if re.match(r"^plan_contract\s*:\s*smc\.plan\.v3\.[34567]\s*$",line):lines[i]="plan_contract: smc.plan.v3.2"
+        if re.match(r"^plan_contract\s*:\s*(smc\.plan\.v3\.[34567]|smc\.plan\.v4\.0)\s*$",line):lines[i]="plan_contract: smc.plan.v3.2"
         if line.strip()=="## Verification Ledger":in_ver=True;continue
         if in_ver and line.startswith("## "):in_ver=False
         if in_ver and line.strip().startswith("|") and "Verification ID" in line and "Evidence Policy" in line:

@@ -1,0 +1,6 @@
+schema: smc.context.record.v1
+id: example-app
+status: PROPOSED
+owner: ""
+uses:
+  - example

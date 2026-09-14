@@ -26,6 +26,12 @@ RESULT_REQUIRED = (
     "cache_read_tokens",
     "cache_write_tokens",
 )
+OPTIONAL_USAGE = (
+    "tool_tokens",
+    "subagent_tokens",
+    "reviewer_tokens",
+    "usage_kind",
+)
 
 
 def telemetry_path(plan: Path) -> Path:
@@ -122,6 +128,9 @@ def summarize(plan: Path) -> dict:
         "completion_tokens": 0,
         "cache_read_tokens": 0,
         "cache_write_tokens": 0,
+        "tool_tokens": 0,
+        "subagent_tokens": 0,
+        "reviewer_tokens": 0,
         "retry_count": 0,
         "source_context_hits": 0,
         "source_context_misses": 0,

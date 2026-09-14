@@ -1,0 +1,7 @@
+schema: smc.context.record.v1
+id: example-component
+status: PROPOSED
+owner: ""
+module: example
+include:
+  - src/example/component.py

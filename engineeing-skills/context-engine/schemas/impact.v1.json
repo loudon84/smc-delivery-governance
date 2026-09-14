@@ -1,0 +1,25 @@
+{
+  "$id": "smc.context.impact.v1",
+  "schema": "smc.context.impact.v1",
+  "title": "GES Context Impact Manifest",
+  "type": "object",
+  "required": ["schema", "impact_id", "graph_digest", "coverage", "affected"],
+  "properties": {
+    "schema": { "const": "smc.context.impact.v1" },
+    "impact_id": { "type": "string" },
+    "graph_digest": { "type": "string" },
+    "coverage": { "enum": ["COMPLETE", "INCOMPLETE"] },
+    "affected": {
+      "type": "object",
+      "properties": {
+        "modules": { "type": "array" },
+        "components": { "type": "array" },
+        "applications": { "type": "array" },
+        "contracts": { "type": "array" },
+        "reviews": { "type": "array" },
+        "verifications": { "type": "array" }
+      }
+    },
+    "incomplete_reasons": { "type": "array" }
+  }
+}

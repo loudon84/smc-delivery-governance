@@ -151,7 +151,7 @@ def validate_plan(plan: Path, require_synced: bool = False) -> list[dict[str, st
     """Validate v3.6 Test Asset Ledger entries without changing project state."""
     root = find_repo_root(plan)
     contract = parse_top_level_frontmatter(plan.read_text(encoding="utf-8")).get("plan_contract", "")
-    if contract not in {"smc.plan.v3.6", "smc.plan.v3.7"}:
+    if contract not in {"smc.plan.v3.6", "smc.plan.v3.7", "smc.plan.v4.0"}:
         return []
     header, rows = _rows(plan)
     errors: list[dict[str, str]] = []

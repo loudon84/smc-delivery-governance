@@ -1,0 +1,19 @@
+{
+  "$id": "smc.context.request.v1",
+  "schema": "smc.context.request.v1",
+  "title": "GES Context Request",
+  "type": "object",
+  "required": ["schema", "request_id", "phase", "source_snapshot"],
+  "properties": {
+    "schema": { "const": "smc.context.request.v1" },
+    "request_id": { "type": "string" },
+    "phase": { "enum": ["PLANNING", "EXECUTION"] },
+    "binding": { "type": "object" },
+    "project": { "type": "string" },
+    "modules": { "type": "array" },
+    "components": { "type": "array" },
+    "scope_level": { "enum": ["COMPONENT", "MODULE", "PROJECT", "ARCHITECTURE"] },
+    "budget": { "type": "object" },
+    "source_snapshot": { "type": "object" }
+  }
+}

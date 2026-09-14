@@ -52,6 +52,25 @@ def packet_path(plan: Path) -> Path:
     return root / ".smc" / "runs" / plan_id(plan) / "review" / "plan-semantic-review-packet.json"
 
 
+def _blocking_obligations(plan: Path) -> list[str]:
+    from common import parse_first_table, section, strip_md
+
+    _, rows = parse_first_table(section(plan.read_text(encoding="utf-8"), "Verification Ledger"))
+    return [
+        strip_md(r.get("Verification ID", "")).upper()
+        for r in rows
+        if strip_md(r.get("Blocking", "")).lower() == "yes"
+    ]
+
+
+def _context_package_refs(plan: Path) -> list[str]:
+    root = find_repo_root(plan)
+    base = root / ".smc" / "runs" / plan_id(plan) / "context"
+    if not base.is_dir():
+        return []
+    return [str(p.relative_to(root)).replace("\\", "/") for p in sorted(base.rglob("package.json"))]
+
+
 def accept(plan: Path) -> Path:
     root = find_repo_root(plan)
     pid = plan_id(plan)
@@ -123,12 +142,14 @@ def build(plan: Path, requested_depth: str = "AUTO") -> dict:
         "prior_snapshot": str(snap) if previous is not None else None,
         "semantic_diff": diff if depth == "DELTA" else None,
         "changed_diff_lines": len(diff.splitlines()) if diff else 0,
+        "blocking_obligations": _blocking_obligations(plan),
+        "context_package_refs": _context_package_refs(plan),
         "reviewer_instruction": (
             "No model semantic review required; record content-bound router clearance."
             if depth == "NONE"
-            else "Read semantic_diff and only affected closure; escalate to FULL if owner/boundary/acceptance semantics are implicated."
+            else "Read semantic_diff, blocking_obligations and full current diff; never PASS from worker summary alone."
             if depth == "DELTA"
-            else "Read the canonical Plan and approved inputs; this packet is metadata, not a second Plan."
+            else "Read the canonical Plan, blocking_obligations and full current diff; this packet is metadata, not a second Plan."
         ),
     }
     out = packet_path(plan)

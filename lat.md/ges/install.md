@@ -70,10 +70,10 @@ Profile 应声明 canonical/mirror roots、project validator、managed vs local 
 | 轴 | 已接受基线 | 当前工作区 |
 |---|---|---|
 | Governance Baseline | `GES-BASELINE-v1.0.0` | 尚未升基线 |
-| Bundle | 4.1.2 | 5.0.0 repaired candidate |
-| Pipeline contract | 4.1 | 保持 Delivery 状态机，新增 Domain preplan 与 Engineering Method v2 门禁 |
-| Plan contract | `smc.plan.v3.3` | 新 Plan 为 `smc.plan.v3.7`；在途 v3.6 保持原合同，旧 validator 仍可调用 |
-| Plan author / validator / delivery | 3.4.0 / 1.3.0 / 1.0.1 | 4.0.0 / 2.0.0 / 1.5.0 |
+| Bundle | 4.1.2 | 6.0.0 candidate |
+| Pipeline contract | 4.1 | 保持 Delivery 状态机；新增 Context Package freshness 与 COE |
+| Plan contract | `smc.plan.v3.3` | 新 Plan 为 `smc.plan.v4.0`；v6 运行时拒绝在途 v3.6/v3.7 |
+| Plan author / validator / delivery | 3.4.0 / 1.3.0 / 1.0.1 | 扩展既有 owner；不新增 `*-v6` 并列流水线 |
 
 PATCH 修 bug 与路径兼容；MINOR 加向后兼容能力；MAJOR 改 Frozen Invariant 或替换 canonical owner。单个 Skill 变更必须提升该 Skill SemVer，Bundle 至少 PATCH，未改动 Skill 不得机械升版。
 

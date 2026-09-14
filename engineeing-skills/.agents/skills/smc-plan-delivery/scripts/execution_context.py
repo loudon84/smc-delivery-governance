@@ -116,12 +116,32 @@ def create_task_brief(plan: Path, todo: str) -> Path:
         raise ValueError(f"EXECUTION_TODO_NOT_FOUND: {tid}")
     constraints = section(text, "Global Constraints") or "(none declared)"
     block = _todo_block(text, tid)
+    writes = _write_targets(block)
+    context_lines = ""
+    root = find_repo_root(plan)
+    pkg_candidates = sorted((root / ".smc" / "runs" / plan_id(plan) / "context" / tid).glob("*/package.json")) if (root / ".smc" / "runs" / plan_id(plan) / "context" / tid).is_dir() else []
+    if pkg_candidates:
+        import json as _json
+        package = _json.loads(pkg_candidates[-1].read_text(encoding="utf-8"))
+        if package.get("status") != "READY":
+            raise ValueError(f"CONTEXT_PACKAGE_NOT_READY: {package.get('status')}")
+        pkg_writes = {x.replace("\\", "/") for x in (package.get("write_set_ref") or [])}
+        plan_writes = {x.replace("\\", "/") for x in writes}
+        if pkg_writes - plan_writes:
+            raise ValueError("CONTEXT_WRITE_SCOPE_VIOLATION")
+        context_lines = (
+            f"- Context package: `{package.get('package_id')}` epoch={package.get('epoch')}\n"
+            f"- Context digest: `{package.get('manifest_digest')}`\n"
+            f"- Read set size: {len(package.get('read_set') or [])}\n"
+            f"- Write set ref: {', '.join(package.get('write_set_ref') or writes)}\n\n"
+        )
     body = (
         "# SMC Task Brief\n\n"
         f"- Plan ID: `{plan_id(plan)}`\n"
         f"- Todo: `{tid}`\n"
         f"- Plan semantic hash: `{semantic_plan_sha256(plan)}`\n"
         f"- Canonical Plan: `{plan}`\n\n"
+        f"{context_lines}"
         "This file is a derived execution brief, not a second Plan SOT. "
         "Implement only this Todo and its declared write ownership.\n\n"
         "## Global Constraints\n\n"

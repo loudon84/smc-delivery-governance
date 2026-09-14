@@ -27,11 +27,16 @@ def validate(project: Path) -> dict[str, Any]:
     checks: list[dict[str, str]] = []
 
     ges = report["layers"]["ges"]
+    ges_detail = f"{ges['present']}/{ges['total']} present"
+    if ges.get("missing"):
+        ges_detail += "; missing=" + ",".join(ges["missing"])
+        if any(m in {"ges.profile", "ges.domain_registry"} for m in ges["missing"]):
+            ges_detail += " (re-run: python install.py <project> --apply)"
     checks.append(
         _row(
             "GES Runtime",
             "PASS" if ges["verdict"] == "PASS" else "FAIL",
-            f"{ges['present']}/{ges['total']} present",
+            ges_detail,
         )
     )
 
@@ -126,6 +131,15 @@ def validate(project: Path) -> dict[str, Any]:
             "Release Governance",
             "PASS" if release_ok else "FAIL",
             "install lock/receipt + governance-policy.json",
+        )
+    )
+
+    context_ok = C.exists_file(project, ".agents/ges/context-engine/registry.py")
+    checks.append(
+        _row(
+            "Context Engine",
+            "PASS" if context_ok else "FAIL",
+            ".agents/ges/context-engine/registry.py",
         )
     )
 

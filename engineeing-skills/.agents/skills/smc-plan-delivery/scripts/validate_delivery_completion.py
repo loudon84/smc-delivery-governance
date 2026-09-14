@@ -46,7 +46,9 @@ def validate(plan: Path) -> tuple[list[str], dict]:
 
     contract = parse_top_level_frontmatter(plan.read_text(encoding="utf-8")).get("plan_contract", "")
     details["plan_contract"] = contract
-    if contract not in {"smc.plan.v3.6", "smc.plan.v3.7"}: errors.append(f"DELIVERY_PLAN_CONTRACT_NOT_CURRENT: {contract or 'missing'}")
+    if contract != "smc.plan.v4.0":
+        errors.append(f"CONTEXT_LEGACY_PLAN_UNSUPPORTED: {contract or 'missing'}")
+        errors.append(f"DELIVERY_PLAN_CONTRACT_NOT_CURRENT: {contract or 'missing'}")
     asset_errors = validate_test_assets(plan, require_synced=True)
     details["test_assets"] = resolved_assets(plan)
     errors.extend(f"DELIVERY_TEST_ASSET_{error['code']}: {error['detail']}" for error in asset_errors)
@@ -56,7 +58,7 @@ def validate(plan: Path) -> tuple[list[str], dict]:
     details["todos"] = todos
     for tid, status in todos.items():
         if status != "completed": errors.append(f"DELIVERY_TODO_NOT_COMPLETED: {tid}={status}")
-        if contract == 'smc.plan.v3.7':
+        if contract in {'smc.plan.v3.7', 'smc.plan.v4.0'}:
             from engineering_method import completion_check
             try: completion_check(plan, tid)
             except (ValueError, OSError, KeyError) as exc: errors.append('DELIVERY_ENGINEERING_METHOD_BLOCKED: ' + str(exc))

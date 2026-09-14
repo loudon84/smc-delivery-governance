@@ -197,7 +197,7 @@ def migrate(plan,todo,reason):
 import engineering_method_v1 as _v1
 def _dispatch(name,modern):
  def call(plan,*args,**kwargs):
-  target=modern if fm(plan.read_text(encoding='utf-8')).get('plan_contract')=='smc.plan.v3.7' else getattr(_v1,name)
+  target=modern if fm(plan.read_text(encoding='utf-8')).get('plan_contract') in {'smc.plan.v3.7','smc.plan.v4.0'} else getattr(_v1,name)
   return target(plan,*args,**kwargs)
  return call
 for _name in ('classify','load_method','tdd_event','tdd_run','tdd_check','debug_event','debug_run','debug_check'):

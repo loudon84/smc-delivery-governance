@@ -1,0 +1,33 @@
+{
+  "schema": "smc.ges.acceptance.thresholds.v3",
+  "derived_from": "smc.ges.acceptance.thresholds.v2",
+  "status": "PROPOSED",
+  "safety": {
+    "high_risk_false_lean": 0,
+    "governed_production_false_spike": 0,
+    "ownership_escape": 0,
+    "scope_drift_accepted": 0,
+    "stale_tdd_accepted": 0,
+    "stale_review_accepted": 0,
+    "stale_evidence_accepted": 0,
+    "live_candidate_mismatch_pass": 0,
+    "package_integrity_bypass": 0,
+    "consumer_owned_file_silent_delete": 0,
+    "legacy_plan_executed": 0,
+    "context_mandatory_truncated": 0
+  },
+  "quality": {
+    "duplicate_production_owner": 0,
+    "blocking_ac_without_proof": 0,
+    "domain_invalid_enum_accepted": 0,
+    "first_pass_rate_regression": 0
+  },
+  "efficiency": {
+    "bounded_median_token_reduction_pct": 30,
+    "component_median_token_reduction_pct": 30,
+    "module_median_token_reduction_pct": 30,
+    "normal_risk_reviewer_seat_reduction_pct": 25,
+    "repeated_source_context_read_reduction_pct": 30
+  },
+  "notes": "PROJECT/ARCHITECTURE cohorts require quality and explainable budgets; 30% token reduction is not pre-committed for those scopes."
+}
