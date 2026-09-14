@@ -17,7 +17,14 @@ if not RUNTIME.is_dir():
     RUNTIME = HERE.parents[3] / ".agents" / "ges" / "domain-runtime"
 sys.path.insert(0, str(RUNTIME))
 from risk_signals import parse_routing_facts, snapshot_json  # noqa: E402
-from domain_intent import binding_table, build_bindings, source_prd_sha256  # noqa: E402
+from domain_intent import (  # noqa: E402
+    activation_digest,
+    binding_table,
+    build_bindings,
+    canonical_empty_binding,
+    aggregate_intent_digest,
+    source_prd_sha256,
+)
 from domain_runtime import load_context  # noqa: E402
 
 
@@ -69,13 +76,104 @@ def insert_frontmatter(text, line):
     raise ValueError("PLAN_FRONTMATTER_UNCLOSED")
 
 
+def _set_fm(text: str, key: str, value: str) -> str:
+    pattern = re.compile(rf"^{re.escape(key)}:\s*.*$", re.M)
+    if pattern.search(text.split("---", 2)[1] if text.startswith("---") else ""):
+        # replace inside frontmatter only
+        parts = text.split("---", 2)
+        parts[1] = pattern.sub(f"{key}: {value}", parts[1], count=1)
+        return "---".join(parts)
+    return insert_frontmatter(text, f"{key}: {value}")
+
+
+def _binding_failed(phase: str, exc: BaseException) -> int:
+    reason = str(exc).replace("\n", " ").strip()[:240]
+    print(f"PLAN_SEED_BINDING_GENERATION_FAILED: phase={phase} reason={reason}", file=sys.stderr)
+    return 2
+
+
+def apply_bindings(text: str, prd: Path, profile: str, snapshot_line: str = "") -> str:
+    # @lat: [[safety-runtime-closure-v503]]
+    prd_sha = source_prd_sha256(prd)
+    try:
+        rel = prd.resolve().relative_to(repo_root(prd).resolve()).as_posix()
+    except ValueError:
+        rel = str(prd)
+    text = _set_fm(text, "source_prd", rel)
+    text = _set_fm(text, "source_prd_sha256", prd_sha)
+    text = _set_fm(text, "domain_intent_binding_version", "1")
+    try:
+        ctx0 = load_context(repo_root(prd))
+        packs = {k: v for k, v in ctx0["packs"].items()}
+        digest = aggregate_intent_digest(prd, packs)
+        empty = canonical_empty_binding()
+        try:
+            from domain_runtime import resolve as resolve_domains  # noqa: E402
+
+            activation = resolve_domains(prd)
+            act_digest = activation_digest(activation)
+        except Exception:
+            act_digest = empty["domain_activation_digest"]
+        text = _set_fm(text, "domain_intent_digest", digest)
+        text = _set_fm(text, "domain_activation_digest", act_digest)
+        bindings = build_bindings(prd, packs)
+        if not bindings:
+            table = empty["binding_table"]
+        else:
+            table = binding_table(bindings)
+    except Exception as exc:
+        raise RuntimeError(f"digest:{exc}") from exc
+
+    marker = "## Requirement Coverage Ledger"
+    block = (
+        f"## Governance Profile\n\n"
+        f"- Profile: `{profile}`\n"
+        f"- Route rationale: <GROUND>\n"
+        f"- Escalation triggers checked: <GROUND>\n"
+        f"{snapshot_line}\n"
+    )
+    if marker in text and "## Governance Profile" not in text:
+        text = text.replace(marker, block + marker, 1)
+    if "## Domain Intent Binding" not in text:
+        if "## Governance Profile\n" in text:
+            text = text.replace("## Governance Profile\n", table + "\n## Governance Profile\n", 1)
+        else:
+            text = text + "\n" + table
+    return text
+
+
+def repair_binding(plan: Path, prd: Path) -> int:
+    text = plan.read_text(encoding="utf-8")
+    meta = fm(text)
+    if meta.get("plan_contract") != "smc.plan.v3.7":
+        print("PLAN_REPAIR_REQUIRES_V37", file=sys.stderr)
+        return 2
+    profile = (meta.get("governance_profile") or "FULL").upper()
+    try:
+        text = apply_bindings(text, prd, profile)
+    except Exception as exc:
+        return _binding_failed("repair", exc)
+    # Invalidate prior review/evidence markers in frontmatter if present.
+    for stale_key in ("review_verdict", "evidence_verdict", "static_review_sha256", "semantic_review_sha256"):
+        if stale_key in meta:
+            text = _set_fm(text, stale_key, "STALE_PENDING_REBIND")
+    plan.write_text(text, encoding="utf-8", newline="\n")
+    print(f"Plan v3.7 binding repaired: {plan}")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("prd", type=Path)
-    ap.add_argument("output", type=Path)
-    ap.add_argument("--plan-id", required=True)
+    ap.add_argument("prd", type=Path, nargs="?")
+    ap.add_argument("output", type=Path, nargs="?")
+    ap.add_argument("--plan-id")
     ap.add_argument("--governance-profile", choices=("LEAN", "FULL"))
+    ap.add_argument("--repair-binding", nargs=2, metavar=("PLAN", "PRD"), help="re-bind existing v3.7 plan")
     a = ap.parse_args()
+    if a.repair_binding:
+        return repair_binding(Path(a.repair_binding[0]).resolve(), Path(a.repair_binding[1]).resolve())
+    if not a.prd or not a.output or not a.plan_id:
+        ap.error("prd, output, and --plan-id are required unless --repair-binding is used")
     out = a.output.resolve()
     if out.exists():
         print(f"PLAN_ALREADY_EXISTS: {out}", file=sys.stderr)
@@ -142,50 +240,11 @@ def main():
         )
         if "governance_profile:" not in text.split("---", 2)[1]:
             text = insert_frontmatter(text, f"governance_profile: {profile}")
-        prd_sha = source_prd_sha256(prd)
-        if "source_prd:" not in text.split("---", 2)[1]:
-            # Prefer repo-relative path when possible
-            try:
-                rel = prd.resolve().relative_to(repo_root(prd).resolve()).as_posix()
-            except ValueError:
-                rel = str(prd)
-            text = insert_frontmatter(text, f"source_prd: {rel}")
-        if "source_prd_sha256:" not in text.split("---", 2)[1]:
-            text = insert_frontmatter(text, f"source_prd_sha256: {prd_sha}")
-        if "domain_intent_binding_version:" not in text.split("---", 2)[1]:
-            text = insert_frontmatter(text, "domain_intent_binding_version: 1")
         try:
-            from domain_intent import aggregate_intent_digest  # noqa: E402
-
-            ctx0 = load_context(repo_root(prd))
-            digest = aggregate_intent_digest(prd, ctx0["packs"])
-            if "domain_intent_digest:" not in text.split("---", 2)[1]:
-                text = insert_frontmatter(text, f"domain_intent_digest: {digest}")
-        except Exception:
-            pass
-        marker = "## Requirement Coverage Ledger"
-        block = (
-            f"## Governance Profile\n\n"
-            f"- Profile: `{profile}`\n"
-            f"- Route rationale: <GROUND>\n"
-            f"- Escalation triggers checked: <GROUND>\n"
-            f"{snapshot_line}\n"
-        )
-        if marker in text and "## Governance Profile" not in text:
-            text = text.replace(marker, block + marker, 1)
-        try:
-            ctx = load_context(repo_root(prd))
-            packs = {k: v for k, v in ctx["packs"].items()}
-            bindings = build_bindings(prd, packs)
-            if bindings and "## Domain Intent Binding" not in text:
-                text = text.replace(
-                    "## Governance Profile\n",
-                    binding_table(bindings) + "\n## Governance Profile\n",
-                    1,
-                )
-        except Exception:
-            pass
-        out.write_text(text, encoding="utf-8")
+            text = apply_bindings(text, prd, profile, snapshot_line)
+        except Exception as exc:
+            return _binding_failed("seed", exc)
+        out.write_text(text, encoding="utf-8", newline="\n")
     finally:
         tmp.unlink(missing_ok=True)
     print(f"Plan v3.7 seed created: {out}\nPlan ID: {a.plan_id}\nGovernance profile: {profile}")

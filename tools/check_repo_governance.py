@@ -35,23 +35,46 @@ def load_desired(path: Path = DESIRED) -> dict:
 
 
 def compare(desired: dict, actual: dict) -> tuple[str, list[str]]:
-    """Return (REPO_GOVERNANCE_PASS|DRIFT, problems)."""
+    """Return (REPO_GOVERNANCE_PASS|DRIFT|INVALID_EVIDENCE, problems)."""
+    mod = _load_normalize()
+    # Prefer strict evaluate on parsed evidence when available.
+    if isinstance(actual.get("evidence"), dict) or actual.get("schema") == "smc.repo.protection-evidence.v1":
+        code, problems = mod.evaluate(actual)
+        return code, problems
+
     problems: list[str] = []
-    if not actual.get("protected"):
-        problems.append("master not protected")
-    if desired.get("require_pull_request") and not actual.get("require_pr"):
-        problems.append("require_pr missing")
+    # Fail closed on missing actual fields — never treat None as satisfied.
+    if actual.get("protected") is not True:
+        problems.append("master not protected" if actual.get("protected") is False else "protected field missing")
+    if desired.get("require_pull_request") and actual.get("require_pr") is not True:
+        problems.append("require_pr missing" if actual.get("require_pr") is None else "require_pr not true")
     want = set(desired.get("required_checks") or [])
-    have = set(actual.get("required_checks") or [])
-    for need in want:
-        if need not in have and not any(need in c for c in have):
-            problems.append(f"missing check: {need}")
-    if desired.get("allow_force_push") is False and not actual.get("force_push_blocked"):
-        problems.append("force push not blocked")
-    if desired.get("allow_delete") is False and not actual.get("deletion_blocked"):
-        problems.append("deletion not blocked")
-    if desired.get("direct_update") == "restricted" and not actual.get("direct_update_restricted"):
-        problems.append("direct update not restricted")
+    have = actual.get("required_checks")
+    if have is None:
+        problems.append("required_checks missing")
+    else:
+        have_set = set(have or [])
+        for need in want:
+            if need not in have_set and not any(need in c for c in have_set):
+                problems.append(f"missing check: {need}")
+    if desired.get("allow_force_push") is False and actual.get("force_push_blocked") is not True:
+        problems.append(
+            "force_push_blocked missing"
+            if actual.get("force_push_blocked") is None
+            else "force push not blocked"
+        )
+    if desired.get("allow_delete") is False and actual.get("deletion_blocked") is not True:
+        problems.append(
+            "deletion_blocked missing" if actual.get("deletion_blocked") is None else "deletion not blocked"
+        )
+    if desired.get("direct_update") == "restricted" and actual.get("direct_update_restricted") is not True:
+        problems.append(
+            "direct_update_restricted missing"
+            if actual.get("direct_update_restricted") is None
+            else "direct update not restricted"
+        )
+    if any("missing" in p for p in problems) and actual.get("protected") is True:
+        return "REPO_GOVERNANCE_INVALID_EVIDENCE", problems
     return ("REPO_GOVERNANCE_PASS" if not problems else "REPO_GOVERNANCE_DRIFT", problems)
 
 
@@ -69,11 +92,26 @@ def main() -> int:
         mod = _load_normalize()
         actual = mod.from_api(*a.api) if a.api else mod.from_evidence(a.evidence)
     except Exception as exc:
-        out = {"code": "REPO_GOVERNANCE_UNAVAILABLE", "detail": str(exc)}
+        out = {
+            "code": "REPO_GOVERNANCE_UNAVAILABLE",
+            "detail": str(exc),
+            "verifier_implementation": "PASS",
+            "live_master_protection": "UNAVAILABLE",
+        }
         print(json.dumps(out, indent=2) if a.json else out["code"])
         return 2
     code, problems = compare(desired, actual)
-    out = {"code": code, "problems": problems, "actual": actual, "desired": desired}
+    live = "PASS" if code == "REPO_GOVERNANCE_PASS" else "DRIFT"
+    if code == "REPO_GOVERNANCE_UNAVAILABLE":
+        live = "UNAVAILABLE"
+    out = {
+        "code": code,
+        "problems": problems,
+        "actual": actual,
+        "desired": desired,
+        "verifier_implementation": "PASS",
+        "live_master_protection": live,
+    }
     print(json.dumps(out, indent=2) if a.json else code)
     return 0 if code == "REPO_GOVERNANCE_PASS" else 1
 

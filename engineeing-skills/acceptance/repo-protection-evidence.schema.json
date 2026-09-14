@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "smc.repo.protection-evidence.v1",
+  "title": "Repository protection evidence",
+  "type": "object",
+  "required": ["schema", "source", "repository", "branch"],
+  "properties": {
+    "schema": { "const": "smc.repo.protection-evidence.v1" },
+    "source": { "enum": ["GITHUB_API", "OFFLINE_FIXTURE"] },
+    "repository": { "type": "string" },
+    "repository_id": {},
+    "branch": { "type": "string" },
+    "ruleset_id": {},
+    "ruleset_target": { "type": ["string", "null"] },
+    "enforcement": { "type": ["string", "null"] },
+    "include_refs": { "type": ["array", "null"], "items": { "type": "string" } },
+    "require_pr": { "type": ["boolean", "null"] },
+    "required_checks": { "type": ["array", "null"], "items": { "type": "string" } },
+    "force_push_blocked": { "type": ["boolean", "null"] },
+    "deletion_blocked": { "type": ["boolean", "null"] },
+    "direct_update_restricted": { "type": ["boolean", "null"] },
+    "bypass_actors": { "type": "array" },
+    "fetched_at": { "type": "string" },
+    "raw_evidence_sha256": { "type": "string" },
+    "protected": { "type": ["boolean", "null"] }
+  },
+  "additionalProperties": true
+}

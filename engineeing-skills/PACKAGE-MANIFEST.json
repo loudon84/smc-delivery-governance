@@ -1,5 +1,5 @@
 {
-  "file_count": 232,
+  "file_count": 246,
   "files": [
     {
       "path": ".agents/skills/executing-plans/SKILL.md",
@@ -468,8 +468,8 @@
     },
     {
       "path": ".agents/skills/smc-plan-from-approved-prd-ponytail/scripts/create_plan_seed_v37.py",
-      "sha256": "c4450d0b0b99e46ec9ca654d1cebabe2d117308f0f167c079d8fd9c026424d05",
-      "size": 7428
+      "sha256": "5b6a02cfbe68f542e15c3a2f4d6755137ac7492d602ebc4201b15877b3fb60dc",
+      "size": 9596
     },
     {
       "path": ".agents/skills/smc-plan-from-approved-prd-ponytail/SKILL.md",
@@ -523,8 +523,8 @@
     },
     {
       "path": ".agents/skills/smc-plan-validator/scripts/validate_plan_v37.py",
-      "sha256": "3d3477a96cde8ff8b88c0fd07898c2ef24d2adb01c780063549011dc68da0915",
-      "size": 6711
+      "sha256": "226d775273d8370b0a46532f6067b07e97459cd321f8ea45789e253cebfb993b",
+      "size": 7258
     },
     {
       "path": ".agents/skills/smc-plan-validator/SKILL.md",
@@ -622,14 +622,19 @@
       "size": 1205
     },
     {
+      "path": ".agents/skills/using-superpowers/scripts/path_containment.py",
+      "sha256": "e41f59c7820313457192d0289dd41978c7c6b0b5558b3acb4df5b8e4970b6a62",
+      "size": 1993
+    },
+    {
       "path": ".agents/skills/using-superpowers/scripts/test_work_authority.py",
       "sha256": "e809afd6411b49bee22b5af29821cfe3f9c6b6fcf1038a014c33a24b781da392",
       "size": 3977
     },
     {
       "path": ".agents/skills/using-superpowers/scripts/test_work_facts.py",
-      "sha256": "9d18e293386630fe890cd3c5b86a77f8e21226e2bec233444beeb8ac6157cc7d",
-      "size": 5923
+      "sha256": "63fbb3f8c9fc0df586ebe5ac1b317db193d0faa2c04d141b981c0a0ec26cf64d",
+      "size": 9378
     },
     {
       "path": ".agents/skills/using-superpowers/scripts/test_work_router.py",
@@ -643,13 +648,13 @@
     },
     {
       "path": ".agents/skills/using-superpowers/scripts/work_facts.py",
-      "sha256": "bb98dcfffbedb6427668e96e4fed2dd82a47e5623df709b9d76705962d8b96e9",
-      "size": 9065
+      "sha256": "9aeb2c9b5c97a0f8a9d15fdf45663dec41269f137f7c49bd750a3aa1599b7e7a",
+      "size": 13657
     },
     {
       "path": ".agents/skills/using-superpowers/scripts/work_router.py",
-      "sha256": "cf56cbcb352bb9bd2a3cc0c9f9be9b61bca9e48da22eefd5a92ddffc3232e74a",
-      "size": 10325
+      "sha256": "58f9d84c4962e10bf2a210858853cd8bc80b81fe76d20cdcef621a508b3164d5",
+      "size": 12481
     },
     {
       "path": ".agents/skills/using-superpowers/SKILL.md",
@@ -692,6 +697,41 @@
       "size": 57
     },
     {
+      "path": "acceptance/fixtures/repo-protection/complete-pass.json",
+      "sha256": "2b727eff4997bea8df02af32145082c7a4cbb72d1bc469cf53eaccae54caf0e3",
+      "size": 378
+    },
+    {
+      "path": "acceptance/fixtures/repo-protection/evaluate-enforcement.json",
+      "sha256": "ffec88e8857a4f5508fa80f9c343cf92112e493a66dbc41083e9a4d2bebeb0e2",
+      "size": 357
+    },
+    {
+      "path": "acceptance/fixtures/repo-protection/missing-checks.json",
+      "sha256": "ad33fe1baad1f408c7117acb8e64def6d22daa9d9dd000de40b5b5b33e14d335",
+      "size": 294
+    },
+    {
+      "path": "acceptance/fixtures/repo-protection/missing-force-fields.json",
+      "sha256": "3c64da6adb6eee10e53a75ade59fca3f7b13e5e989a559490b4c6a27f430a75e",
+      "size": 261
+    },
+    {
+      "path": "acceptance/fixtures/repo-protection/not-master.json",
+      "sha256": "ff3f8d3ac07d2c231d2fdbf1fb6d0ce567379ebd95fb2979c04ed9078cac89c5",
+      "size": 356
+    },
+    {
+      "path": "acceptance/fixtures/repo-protection/protected-only-incomplete.json",
+      "sha256": "2bd8adda2bb1fb3258fa1cb6a02d0418b7c6ec40eeb3c0e82a179cfd379852c2",
+      "size": 69
+    },
+    {
+      "path": "acceptance/fixtures/repo-protection/with-bypass.json",
+      "sha256": "735f79de4e4eea72a041a1d5f770dbf3ff543cb6343410020b50c9cc99551e16",
+      "size": 441
+    },
+    {
       "path": "acceptance/metrics.schema.json",
       "sha256": "d2a1108d1dd2c553891794d97f8be10274e9df3089bc253c02a4ec8f5ceff7ae",
       "size": 1530
@@ -722,6 +762,11 @@
       "size": 496
     },
     {
+      "path": "acceptance/repo-protection-evidence.schema.json",
+      "sha256": "57e877d6072d1b579f8bed4202fe4a432d042e79af1ab9a59fca03c87e16faf0",
+      "size": 1218
+    },
+    {
       "path": "acceptance/RULESET-ACTIVATION.md",
       "sha256": "46d41654df4b50a0da568b96de1f6f3ff901f63c5f855e3c3135d826994d73b2",
       "size": 1667
@@ -748,8 +793,8 @@
     },
     {
       "path": "acceptance/verify_repository_protection.py",
-      "sha256": "9985a7a8e20582c9a2f52f856b21eb401053f3890d4c0bf0a3fc20fda14289e0",
-      "size": 4722
+      "sha256": "42c322f51a50a400498b72f8677485b99b43b43149fcb5cfbfb3b44df5c85eab",
+      "size": 13619
     },
     {
       "path": "APPLY-v4.2.0.md",
@@ -1003,8 +1048,8 @@
     },
     {
       "path": "domain-runtime/domain_intent.py",
-      "sha256": "f62ecfd7f5658855c4ba73980b7abb6a979c912ee9034a0605b1bc8ffcd725e2",
-      "size": 9116
+      "sha256": "cd4b0212557ea642691a69685b1bfd53993bd3268fdcde842c514442610d49df",
+      "size": 10509
     },
     {
       "path": "domain-runtime/domain_runtime.py",
@@ -1073,8 +1118,8 @@
     },
     {
       "path": "install_v500.py",
-      "sha256": "5f513c27bcd9b6b7eae0d2d7a1cae37e18ca7cc2091359abf16a2b0f9c98bcd8",
-      "size": 14409
+      "sha256": "9bfaf48861655a88b58accf53f9ec13b6a637d65dd7e79480e73bc8eb25fe3ee",
+      "size": 16945
     },
     {
       "path": "MAINTAINERS.md",
@@ -1108,8 +1153,8 @@
     },
     {
       "path": "rollback.py",
-      "sha256": "f9862873f6bb973df4398ccf8e37851b6b2fadeebe7c9bfbd79cdbe7e1447b37",
-      "size": 4501
+      "sha256": "c1be9af21b7465f4047c130262eeb9c35b4780218330b328c53bd63701f41b0b",
+      "size": 10351
     },
     {
       "path": "SHA256SUMS-v4.2.0",
@@ -1117,9 +1162,34 @@
       "size": 7045
     },
     {
+      "path": "tests/test_install_finalization.py",
+      "sha256": "48ba5d399e53b08297b3cf9b559968d7d2ef7a939b56fef1466f95a7f7bdd3ff",
+      "size": 8201
+    },
+    {
       "path": "tests/test_package_v500.py",
       "sha256": "9d96fb7e97d69a759441730b2b2d61ddacfefd2200e26ab2ca32c554671ca0e9",
       "size": 8198
+    },
+    {
+      "path": "tests/test_path_containment.py",
+      "sha256": "489b6cb0daad4bb6f6e3d3269c5a3872e46714d4083f7d85ff8a1e5e2fbce26a",
+      "size": 1563
+    },
+    {
+      "path": "tests/test_plan_v37_binding.py",
+      "sha256": "74202fc179615504336875c9ecaa456b1796f6d6cd158aa2dc23a9eb21e0b5fc",
+      "size": 3462
+    },
+    {
+      "path": "tests/test_repo_protection_evidence.py",
+      "sha256": "04c3d05b68c80c3127c66846ddf7dd8f8be817e9178d5b4081782e472fb4cc92",
+      "size": 3622
+    },
+    {
+      "path": "tests/test_rollback_security.py",
+      "sha256": "f216dd8cd7f01b0b1c9d4333b025b79bb5f83de4e0525835f06a787d832562b5",
+      "size": 10080
     },
     {
       "path": "UPGRADE-MANIFEST.md",

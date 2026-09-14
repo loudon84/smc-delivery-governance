@@ -12,6 +12,8 @@ from domain_table import _token, parse_table
 
 BINDING_SCHEMA = "smc.ges.domain-intent-binding.v1"
 BINDING_VERSION = "1"
+EMPTY_INTENT_DIGEST = sha256_json({"bindings": []})
+PLACEHOLDERS = frozenset({"", "<GROUND>", "TODO", "TBD", "N/A", "NA", "-", "none", "null"})
 
 
 def _field_map(pack: dict[str, Any]) -> tuple[str, str, dict[str, str]]:
@@ -119,6 +121,39 @@ def build_bindings(prd: Path, packs: dict[str, dict[str, Any]]) -> list[dict[str
 def aggregate_intent_digest(prd: Path, packs: dict[str, dict[str, Any]]) -> str:
     rows = build_bindings(prd, packs)
     return sha256_json({"bindings": rows})
+
+
+def canonical_empty_binding() -> dict[str, str]:
+    # @lat: [[safety-runtime-closure-v503]]
+    """No-domain Plan still binds canonical empty intent + activation=NONE."""
+    return {
+        "activation": "NONE",
+        "domain_activation_digest": sha256_json({"activation": "NONE", "domains": []}),
+        "domain_intent_digest": EMPTY_INTENT_DIGEST,
+        "binding_table": (
+            "## Domain Intent Binding\n\n"
+            "| Domain | Change ID | Intent SHA256 | Source PRD SHA256 |\n"
+            "|---|---|---|---|\n"
+            "| NONE | — | `{digest}` | — |\n".format(digest=EMPTY_INTENT_DIGEST)
+        ),
+    }
+
+
+def activation_digest(activation: dict[str, Any] | None) -> str:
+    if not activation or not activation.get("domains"):
+        return canonical_empty_binding()["domain_activation_digest"]
+    return sha256_json(
+        {
+            "activation": activation.get("schema") or "smc.ges.domain-activation.v2",
+            "domains": sorted(
+                [
+                    {"id": d.get("id"), "triggers": d.get("trigger_changes") or []}
+                    for d in activation.get("domains") or []
+                ],
+                key=lambda x: str(x.get("id") or ""),
+            ),
+        }
+    )
 
 
 def parse_binding_table(plan_text: str) -> list[dict[str, str]]:

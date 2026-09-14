@@ -1,0 +1,14 @@
+{
+  "protected": true,
+  "require_pr": true,
+  "required_checks": [
+    "validate",
+    "GES Package Gate / validate-package"
+  ],
+  "enforcement": "active",
+  "ruleset_target": "branch",
+  "include_refs": [
+    "refs/heads/master"
+  ],
+  "repository": "o/r"
+}

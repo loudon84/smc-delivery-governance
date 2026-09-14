@@ -1,0 +1,14 @@
+{
+  "protected": true,
+  "require_pr": true,
+  "required_checks": [],
+  "force_push_blocked": true,
+  "deletion_blocked": true,
+  "direct_update_restricted": true,
+  "enforcement": "active",
+  "ruleset_target": "branch",
+  "include_refs": [
+    "refs/heads/master"
+  ],
+  "repository": "o/r"
+}

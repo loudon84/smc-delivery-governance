@@ -94,15 +94,25 @@ def ownership_errors(plan: Path) -> list[dict[str, str]]:
 
 
 def intent_binding_errors(plan: Path) -> list[dict[str, str]]:
+    # @lat: [[safety-runtime-closure-v503]]
     text = plan.read_text(encoding="utf-8")
     meta = parse_top_level_frontmatter(text)
+    if meta.get("plan_contract") and meta.get("plan_contract") != "smc.plan.v3.7":
+        return []
+    errors: list[dict[str, str]] = []
+    required_meta = ("source_prd", "source_prd_sha256", "domain_activation_digest", "domain_intent_digest")
+    placeholders = {"", "<GROUND>", "TODO", "TBD", "N/A", "NA", "-", "none", "null"}
+    for key in required_meta:
+        val = (meta.get(key) or "").strip()
+        if not val or val.lower() in placeholders:
+            errors.append({"code": "PLAN_DOMAIN_INTENT_BINDING_MISSING", "detail": key})
+    if "Domain Intent Binding" not in text:
+        errors.append({"code": "PLAN_DOMAIN_INTENT_BINDING_MISSING", "detail": "Domain Intent Binding section"})
+    if errors:
+        return errors
     prd_ref = meta.get("source_prd") or meta.get("prd_path")
-    if "Domain Intent Binding" not in text and "source_prd_sha256" not in meta and "domain_intent_digest" not in meta:
-        return []
     if not prd_ref:
-        if "Domain Intent Binding" in text or "domain_intent_digest" in meta:
-            return [{"code": "PLAN_SOURCE_PRD_MISSING", "detail": "source_prd path"}]
-        return []
+        return [{"code": "PLAN_SOURCE_PRD_MISSING", "detail": "source_prd path"}]
     prd = Path(prd_ref)
     if not prd.is_file():
         prd = repo_root(plan) / prd_ref

@@ -108,6 +108,36 @@ def install_metadata(project, profile, selected, backup, records):
 _previous_commands = base.validation_commands
 _RECONCILE_STATE: dict = {"deleted": [], "blocked": [], "notes": []}
 _VALIDATION_CMDS: list = []
+# Test hook: set to one of receipt|pointer|before_lock|after_lock|before_journal
+_FINALIZATION_FAULT: str | None = None
+_FAULT_TRIGGERED: bool = False
+
+
+def atomic_write_text(project, dst, text, backup, records):
+    # @lat: [[safety-runtime-closure-v503]]
+    """Transaction-owned atomic write: record_before + same-dir temp + replace + cleanup."""
+    bounded(project, dst.relative_to(project))
+    rec = base.record_before(project, dst, backup, records)
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dst.with_name(dst.name + f".{uuid.uuid4().hex}.tmp")
+    try:
+        tmp.write_text(text, encoding="utf-8", newline="\n")
+        os.replace(str(tmp), str(dst))
+    finally:
+        if tmp.exists():
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+    rec["installed_sha256"] = base.sha256(dst)
+    return rec
+
+
+def _fault(point: str) -> None:
+    global _FAULT_TRIGGERED
+    if _FINALIZATION_FAULT == point:
+        _FAULT_TRIGGERED = True
+        raise RuntimeError(f"INSTALL_FINALIZATION_FAILED: injected:{point}")
 
 
 def validation_commands(project, profile, selected, skip):
@@ -182,10 +212,11 @@ def _owned_paths(project: Path, names: list[str], records: dict) -> list[dict]:
 
 
 def write_immutable_receipt(project, backup, profile, selected, records, release_identity, policy_digest, owned):
-    """PRD §15/§16 step 13 — immutable receipt before lock; receipt has no self-hash."""
+    """PRD §11.3 — immutable receipt + compat pointer inside the install transaction."""
     # @lat: [[acceptance-closure#Install Receipt]]
     # @lat: [[install#Install Receipt]]
     # @lat: [[governance-architecture-closure]]
+    # @lat: [[safety-runtime-closure-v503]]
     install_id = backup.name if backup else uuid.uuid4().hex
     dirty = bool(release_identity.get("source_tree_dirty"))
     receipt = {
@@ -218,15 +249,17 @@ def write_immutable_receipt(project, backup, profile, selected, records, release
         "backup_id": install_id,
     }
     if dirty:
-        # Record ineligibility; install may still proceed for development.
         receipt["release_identity"]["note"] = "INSTALL_SOURCE_DIRTY_NOT_RELEASE_ELIGIBLE"
     out_dir = project / ".smc" / "ges-install-receipts"
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / f"{install_id}.json"
-    out.write_text(json.dumps(receipt, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    # Compat pointer for older tooling
+    if out.is_file():
+        raise RuntimeError("INSTALL_RECEIPT_ALREADY_EXISTS: " + install_id)
+    receipt_text = json.dumps(receipt, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    atomic_write_text(project, out, receipt_text, backup, records)
+    _fault("receipt")
     compat = project / ".smc" / "ges-install-receipt.json"
-    compat.write_text(
+    compat_text = (
         json.dumps(
             {
                 "schema": "smc.ges.install-receipt.v1",
@@ -241,9 +274,10 @@ def write_immutable_receipt(project, backup, profile, selected, records, release
             indent=2,
             sort_keys=True,
         )
-        + "\n",
-        encoding="utf-8",
+        + "\n"
     )
+    atomic_write_text(project, compat, compat_text, backup, records)
+    _fault("pointer")
     return out, receipt
 
 
@@ -355,16 +389,48 @@ base.build_install_lock = build_install_lock
 base.reconcile_stale_owned_files = reconcile_stale_owned_files
 base.now_tag = lambda: uuid.uuid4().hex
 
+_previous_write_text = base.write_text
+_previous_transaction_manifest = base.transaction_manifest
+
+
+def write_text(project, dst, text, backup, records):
+    rel = dst.relative_to(project).as_posix() if dst.is_absolute() or project in dst.parents or str(dst).startswith(str(project)) else str(dst)
+    try:
+        rel = dst.resolve().relative_to(project.resolve()).as_posix()
+    except Exception:
+        rel = dst.as_posix().replace("\\", "/")
+    if rel == ".smc/ges-install-lock.json" or dst.name == "ges-install-lock.json":
+        _fault("before_lock")
+        atomic_write_text(project, dst if dst.is_absolute() else project / rel, text, backup, records)
+        _fault("after_lock")
+        return
+    return _previous_write_text(project, dst, text, backup, records)
+
+
+def transaction_manifest(project, backup, profile, selected, records, status):
+    if status == "PASS":
+        _fault("before_journal")
+    return _previous_transaction_manifest(project, backup, profile, selected, records, status)
+
+
+base.write_text = write_text
+base.transaction_manifest = transaction_manifest
+
 
 def main():
+    global _FAULT_TRIGGERED
+    _FAULT_TRIGGERED = False
     try:
         verify()
     except (ValueError, OSError) as exc:
         print("INSTALL_INTEGRITY_BLOCKED:", exc)
         return 2
     os.environ.setdefault("PYTHONUTF8", "1")
-    # Receipt is written inside build_install_lock (before journal PASS).
-    return base.main()
+    # Receipt/pointer/lock are transaction-owned; finalization faults restore pre-install bytes.
+    code = base.main()
+    if code != 0 and _FAULT_TRIGGERED:
+        print("INSTALL_RECEIPT_TRANSACTION_ROLLBACK", file=sys.stderr)
+    return code
 
 
 if __name__ == "__main__":
