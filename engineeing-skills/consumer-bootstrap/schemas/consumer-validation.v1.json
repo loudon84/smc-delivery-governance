@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "smc.ges.consumer-validation.v1",
+  "title": "GES Consumer Validation Report",
+  "type": "object",
+  "required": [
+    "schema",
+    "project",
+    "validated_at",
+    "checks",
+    "ok",
+    "code"
+  ],
+  "properties": {
+    "schema": { "const": "smc.ges.consumer-validation.v1" },
+    "project": { "type": "string" },
+    "validated_at": { "type": "string" },
+    "ok": { "type": "boolean" },
+    "code": { "type": "string" },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "verdict", "detail"],
+        "properties": {
+          "id": { "type": "string" },
+          "verdict": { "enum": ["PASS", "FAIL", "SKIP"] },
+          "detail": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "claims": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}

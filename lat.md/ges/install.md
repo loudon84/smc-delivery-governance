@@ -31,6 +31,12 @@ Greenfield 仓库可缺少 consumer-owned skills；默认仍 fail-closed，避�
 
 `--seed-consumer-skills` 仅复制**缺失**的 `consumer_required_skills`：优先包内 `.agents/skills/<name>`，否则 `consumer-baseline/<name>`；已存在文件永不覆盖。实现：[[engineeing-skills/install_v500.py#seed_consumer_skills]]、[[engineeing-skills/install_v430.py#preflight]]。
 
+## Consumer Bootstrap
+
+Install 之后用 [[consumer-bootstrap]] 做平台级 Audit / Gap / Remediation / Validate；apply 默认 dry-run，只补缺失脚手架与 bridge JSON。
+
+禁止写入 `.specify/spec.md` 与 `.agents/ges/profile.json`。详见 [[consumer-bootstrap#Automated Remediation]]。
+
 ## Install Lock v2
 
 Hardening 后的 install lock 证明 package bytes 身份，并安全清理未修改的 stale package-owned 文件。

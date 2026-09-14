@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "smc.ges.consumer-bootstrap-receipt.v1",
+  "title": "GES Consumer Bootstrap Receipt",
+  "type": "object",
+  "required": [
+    "schema",
+    "bootstrap_id",
+    "project",
+    "finalized_at",
+    "status",
+    "files",
+    "skipped"
+  ],
+  "properties": {
+    "schema": { "const": "smc.ges.consumer-bootstrap-receipt.v1" },
+    "bootstrap_id": { "type": "string" },
+    "project": { "type": "string" },
+    "finalized_at": { "type": "string" },
+    "status": { "enum": ["PASS", "DRY_RUN", "ROLLED_BACK", "FAILED"] },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "existed_before", "installed_sha256"],
+        "properties": {
+          "path": { "type": "string" },
+          "existed_before": { "type": "boolean" },
+          "original_sha256": { "type": ["string", "null"] },
+          "installed_sha256": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "skipped": { "type": "array", "items": { "type": "string" } },
+    "backup_id": { "type": "string" },
+    "remediation_plan_sha256": { "type": "string" }
+  },
+  "additionalProperties": true
+}

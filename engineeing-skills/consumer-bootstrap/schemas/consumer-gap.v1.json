@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "smc.ges.consumer-gap.v1",
+  "title": "GES Consumer Gap Analysis",
+  "type": "object",
+  "required": [
+    "schema",
+    "project",
+    "analyzed_at",
+    "layers",
+    "claims",
+    "codes",
+    "ok"
+  ],
+  "properties": {
+    "schema": { "const": "smc.ges.consumer-gap.v1" },
+    "project": { "type": "string" },
+    "analyzed_at": { "type": "string" },
+    "ok": { "type": "boolean" },
+    "layers": {
+      "type": "object",
+      "required": ["ges", "spec_kit", "superpowers"],
+      "additionalProperties": {
+        "type": "object",
+        "required": ["verdict"],
+        "properties": {
+          "verdict": { "enum": ["PASS", "PARTIAL", "MISSING"] },
+          "missing": { "type": "array", "items": { "type": "string" } },
+          "notes": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "claims": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "enum": [
+          "INSPIRED",
+          "ADAPTER_READY",
+          "UPSTREAM_PINNED",
+          "EXTERNAL_VERIFIED",
+          "GES_NATIVE",
+          "NATIVE_ONLY",
+          "UNAVAILABLE",
+          "INCOMPATIBLE",
+          "AVAILABLE"
+        ]
+      }
+    },
+    "codes": { "type": "array", "items": { "type": "string" } },
+    "audit_schema": { "type": "string" }
+  },
+  "additionalProperties": true
+}

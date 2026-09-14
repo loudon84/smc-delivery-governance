@@ -1,5 +1,5 @@
 {
-  "file_count": 279,
+  "file_count": 307,
   "files": [
     {
       "path": ".agents/skills/executing-plans/SKILL.md",
@@ -987,14 +987,139 @@
       "size": 1688
     },
     {
+      "path": "CHANGES-v5.0.5-consumer-bootstrap.md",
+      "sha256": "95a5c72f9d451326c645ac7eaa5fd6a519e8a1e721b0b50884f05b20bced1ad3",
+      "size": 2256
+    },
+    {
       "path": "consumer-baseline/code-review-and-quality/SKILL.md",
       "sha256": "d75bcfe756341856099e17ea64205e16b5a82582c8dd40603796d4db69067f9b",
       "size": 1063
     },
     {
+      "path": "consumer-bootstrap/analyze_gap.py",
+      "sha256": "c21ce69282d7d5346b6b1bc4abaffb3c238f2e84bf856e15a06038a214ca0bb4",
+      "size": 4949
+    },
+    {
+      "path": "consumer-bootstrap/apply_remediation.py",
+      "sha256": "f7be4bfe0b181a34c2e9a8d1e2e426629770fe29c793cbf2f774ff4f475ac78b",
+      "size": 6505
+    },
+    {
+      "path": "consumer-bootstrap/audit_consumer.py",
+      "sha256": "9fc2ab387a3e8831d2e25769b19bd5bfcaf9961a33d6890169d984331f80fa6c",
+      "size": 11723
+    },
+    {
+      "path": "consumer-bootstrap/common.py",
+      "sha256": "9257496d54ba39394b45604098c7f7dfef80041fc2a1b1ef1ab43fdf03941687",
+      "size": 6010
+    },
+    {
+      "path": "consumer-bootstrap/generate_remediation.py",
+      "sha256": "ec4f75e41f888fe8fdcd74d7b51e834aa1666300086b0f8f78da571f5bf82cc4",
+      "size": 6723
+    },
+    {
+      "path": "consumer-bootstrap/schemas/consumer-audit.v1.json",
+      "sha256": "1eaa3d9489cc63fc604441ec7513803190fb79c331dec138062c89d414898d57",
+      "size": 1795
+    },
+    {
+      "path": "consumer-bootstrap/schemas/consumer-bootstrap-receipt.v1.json",
+      "sha256": "9804469b6e30c142fdb25ba5a1c5fe6e48b8ea39aded8bbbe3264e7cc7940b60",
+      "size": 1195
+    },
+    {
+      "path": "consumer-bootstrap/schemas/consumer-gap.v1.json",
+      "sha256": "e1c18e5bf690ff79089f9d22f77250db1e555443302fe3c01fe522ea21041763",
+      "size": 1419
+    },
+    {
+      "path": "consumer-bootstrap/schemas/consumer-remediation-plan.v1.json",
+      "sha256": "be350514d60fe14fc7f6f6aeb54692fd1650691c37cd667d25d9c7552264e7ed",
+      "size": 1135
+    },
+    {
+      "path": "consumer-bootstrap/schemas/consumer-validation.v1.json",
+      "sha256": "eb45bec4dd348789bf74f5ec913226139f627fbd58b372c8ff2deb92e770f325",
+      "size": 992
+    },
+    {
+      "path": "consumer-bootstrap/templates/ges/governance-policy.json",
+      "sha256": "6a14d752d798be58b53b2f48d081779e5df3f44a1cce9cecaa51f1068a525f13",
+      "size": 636
+    },
+    {
+      "path": "consumer-bootstrap/templates/ges/spec-kit-binding.json",
+      "sha256": "fdfb150ae154d529208145605a31f241db876434743945ae33e66a8a1fdaae7d",
+      "size": 571
+    },
+    {
+      "path": "consumer-bootstrap/templates/ges/spec-superpower-ges.json",
+      "sha256": "63205510064634e39013dbe8abdf91e3a971bf9b9463f6427b1b12bbf51af294",
+      "size": 541
+    },
+    {
+      "path": "consumer-bootstrap/templates/ges/superpowers-binding.json",
+      "sha256": "da098a521fc511e13a7de991e943f6da7c161f0dbd5ca04bc066f511e70e049a",
+      "size": 900
+    },
+    {
+      "path": "consumer-bootstrap/templates/spec-kit/constitution.md",
+      "sha256": "fbcc0ac3411cc6e53fdbab3fc8d0b32298905fb6a3ef96504e2e95304b23366c",
+      "size": 616
+    },
+    {
+      "path": "consumer-bootstrap/templates/spec-kit/scripts/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "consumer-bootstrap/templates/spec-kit/specs/README.md",
+      "sha256": "5b4d99a0639f331558da287f4a194b24996cf7f643d225627d09ec6f019e7c36",
+      "size": 158
+    },
+    {
+      "path": "consumer-bootstrap/templates/spec-kit/templates/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "consumer-bootstrap/templates/superpowers/brainstorming/SKILL.md",
+      "sha256": "acef742a89bd1366f29234206dfc978394148490f62bb37698c1f2be438ff5ce",
+      "size": 541
+    },
+    {
+      "path": "consumer-bootstrap/templates/superpowers/finishing-branch/SKILL.md",
+      "sha256": "93513e532c6573ce5bf75d40ec2a3acba87ccbfc097ece0e89b5d7de4983bb9c",
+      "size": 552
+    },
+    {
+      "path": "consumer-bootstrap/templates/superpowers/systematic-debugging/SKILL.md",
+      "sha256": "eb621de4343dfe4d0726ebd268095efd152d5ec37f36cd016f46854fb9c41fa5",
+      "size": 569
+    },
+    {
+      "path": "consumer-bootstrap/templates/superpowers/test-driven-development/SKILL.md",
+      "sha256": "097e3e849eace1d798740eba4618fe959055b0b63551018c344cad7b65dc74bd",
+      "size": 532
+    },
+    {
+      "path": "consumer-bootstrap/templates/superpowers/writing-plans/SKILL.md",
+      "sha256": "7aa26bce8e3f5989ed446b764c04217674b81df39e28fc566b6472e62b234561",
+      "size": 498
+    },
+    {
+      "path": "consumer-bootstrap/validate_consumer.py",
+      "sha256": "e70363891396eb2a629d9d27292ad4483f3965e4f3e10cb393f96f8d5346d040",
+      "size": 6338
+    },
+    {
       "path": "CONSUMER-INTEGRATION.md",
-      "sha256": "dd41904afdc7416e00d3622e614386b156fc4053a2f3ded9d8682af6d591b4c3",
-      "size": 2277
+      "sha256": "a6a4a3e96860c5be3ed37c0f175e3422923763b46aa1a1173848f69030e82d70",
+      "size": 3094
     },
     {
       "path": "consumers/generic.json",
@@ -1312,6 +1437,21 @@
       "size": 7045
     },
     {
+      "path": "tests/test_consumer_audit.py",
+      "sha256": "8d11c17a9093ea09abb74d6740dbab723999dde66073fc6dbc67767f39556cb3",
+      "size": 3274
+    },
+    {
+      "path": "tests/test_consumer_remediation.py",
+      "sha256": "de312beedc2b1342b1982e967ecccf1be5d912dd4af747c2be4b308a8665aae3",
+      "size": 5491
+    },
+    {
+      "path": "tests/test_consumer_validation.py",
+      "sha256": "92bebd4dfd68d266f57dda44e448db20bfab473d1c402e23cdcdcb5d12fee02e",
+      "size": 4464
+    },
+    {
       "path": "tests/test_install_finalization.py",
       "sha256": "48ba5d399e53b08297b3cf9b559968d7d2ef7a939b56fef1466f95a7f7bdd3ff",
       "size": 8201
@@ -1388,8 +1528,8 @@
     },
     {
       "path": "validate_package_v500.py",
-      "sha256": "04f970df229d6f9fa75e53dedf0ba09b3e7cf9df1f05d56d8cf97275a136195f",
-      "size": 7100
+      "sha256": "921e9091e1f679f35a7f048310a3c08f745e6d5c1af66608997829f7c3343498",
+      "size": 7413
     },
     {
       "path": "VERSIONING.md",

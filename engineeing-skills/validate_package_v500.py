@@ -43,6 +43,9 @@ def main():
    run('telemetry result',[sys.executable,str(rm),'result',str(plan),'--dispatch-id','d1','--actual-tier','default','--provider','syn','--model','m','--outcome','ok','--prompt-tokens','1','--completion-tokens','1','--cache-read-tokens','0','--cache-write-tokens','0','--latency-ms','1'])
    run('telemetry summarize',[sys.executable,str(rm),'summarize',str(plan),'--json'])
   run('package v5 integration regressions',[sys.executable,str(ROOT/'tests/test_package_v500.py'),'-v'])
+  run('consumer bootstrap audit',[sys.executable,str(ROOT/'tests/test_consumer_audit.py'),'-v'])
+  run('consumer bootstrap remediation',[sys.executable,str(ROOT/'tests/test_consumer_remediation.py'),'-v'])
+  run('consumer bootstrap validation',[sys.executable,str(ROOT/'tests/test_consumer_validation.py'),'-v'])
   sys.path.insert(0,str(ROOT/'tests'))
   from test_package_v500 import fixture
   with tempfile.TemporaryDirectory(prefix='ges-v5-consumer-') as td:
