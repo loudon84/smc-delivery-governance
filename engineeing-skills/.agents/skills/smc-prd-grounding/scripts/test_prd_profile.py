@@ -1,7 +1,7 @@
 import json,sys,tempfile,unittest
 from pathlib import Path
 from prd_profile import scan
-sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'using-superpowers/scripts'))
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'smc-work-router/scripts'))
 from work_router import REQUIRED,RISKS
 def fixture(profile='FULL'):
  facts={**dict.fromkeys(REQUIRED,True),**dict.fromkeys(RISKS,False),'governed':True}

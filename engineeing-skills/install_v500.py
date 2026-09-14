@@ -145,7 +145,7 @@ def validation_commands(project, profile, selected, skip):
     commands = _previous_commands(project, profile, selected, True)
     scripts = project / ".agents/skills"
     for label, relative in [
-        ("work router", "using-superpowers/scripts/test_work_router.py"),
+        ("work router", "smc-work-router/scripts/test_work_router.py"),
         ("PRD profile", "smc-prd-grounding/scripts/test_prd_profile.py"),
         ("v5 runtime", "smc-plan-delivery/scripts/test_engineering_method_v2.py"),
     ]:

@@ -21,7 +21,7 @@
 | Plan semantic truth | `smc-plan-review` | 2.0.0 |
 | Plan delivery sequencing | `smc-plan-delivery` | 1.5.0 |
 | Todo implementation | `executing-plans` / `subagent-driven-development` | 5.0.0 / 5.0.0 |
-| Workflow router | `using-superpowers` | 5.0.0 |
+| Workflow router | `smc-work-router` (canonical); `using-superpowers` deprecated shim | 5.0.3 |
 | Implementation semantic review | `code-review-and-quality` | consumer baseline |
 | Verification truthfulness | `verification-before-completion` + delivery evidence | inherited |
 | Frontend preplan / engineering providers | `smc-frontend-preplan` / `smc-frontend-engineering` | 2.0.0 / 2.0.0 |

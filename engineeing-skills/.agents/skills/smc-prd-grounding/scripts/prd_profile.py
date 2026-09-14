@@ -76,7 +76,7 @@ def scan(path: Path) -> dict:
     hard = [r for r in risk.get("reasons", []) if not str(r).startswith("RISK_")]
 
     if profile == "LEAN":
-        router = Path(__file__).resolve().parents[2] / "using-superpowers" / "scripts"
+        router = Path(__file__).resolve().parents[2] / "smc-work-router" / "scripts"
         sys.path.insert(0, str(router))
         from work_router import route
 

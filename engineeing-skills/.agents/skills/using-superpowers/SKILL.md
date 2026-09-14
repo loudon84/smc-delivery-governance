@@ -1,16 +1,14 @@
 ---
 name: using-superpowers
-description: GES 5 work router with explicit risk facts and monotonic NONE/LEAN/FULL governance.
-version: 5.0.0
+description: Deprecated compatibility shim — delegates to canonical smc-work-router. Do not add business logic here.
+version: 5.0.3
+deprecated: true
+canonical: smc-work-router
 ---
-# GES Work Router
+# Deprecated: using-superpowers
 
-Read references/work-routing-contract.md. Route one request with scripts/work_router.py using explicit facts; unknown risk selects FULL. Research-only work uses SPIKE/NONE. Existing bounded work may use BOUNDED/LEAN even when governed by a Roadmap.
+This skill is a one-release compatibility shim. Canonical Work Router is **smc-work-router**.
 
-## Canonical ownership
+All Work Facts, routing contracts, and production CLI live under `.agents/skills/smc-work-router/`. This directory only re-exports and prints a deprecation warning.
 
-Architecture and Roadmap keep their existing owners. smc-prd-grounding owns discover/clarify/verify/revision; smc-prd-review and smc-prd-converge review and approve the same PRD. Only smc-plan-from-approved-prd-ponytail creates the canonical Plan. smc-plan-delivery owns all post-creation sequencing through audit, review, verification, freshness, post_review commit and separate Roadmap DONE.
-
-## Continuation
-
-Read the existing artifact's governance_profile before routing and supply it as --previous-profile. FULL cannot become LEAN; LEAN cannot become NONE. Never create a second spec/Plan or infer that a lightweight label clears a blocking finding. Existing v3.6 Plans remain supported; new Plans use v3.7.
+Official Superpowers method providers are unrelated and live under `engineeing-skills/integrations/superpowers/`.

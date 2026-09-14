@@ -1,0 +1,15 @@
+{
+  "schema": "smc.ges.provider.v1",
+  "provider": "spec-kit",
+  "integration_status": "ADAPTER_READY",
+  "provider_status": "UNAVAILABLE",
+  "allowed_capabilities": ["clarify", "checklist", "analyze"],
+  "forbidden_capabilities": ["specify", "plan", "tasks", "implement", "converge"],
+  "probe_commands": [
+    ["specify", "version"],
+    ["specify", "version", "--features", "--json"]
+  ],
+  "canonical_writer": "smc-prd-grounding",
+  "proposal_schema": "smc.ges.ux-proposal.v1",
+  "notes": "Honest landing state without specify CLI: ADAPTER_READY + NATIVE_ONLY fallback. EXTERNAL_VERIFIED requires real probe + dispatch receipt."
+}

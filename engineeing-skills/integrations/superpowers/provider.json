@@ -1,0 +1,16 @@
+{
+  "schema": "smc.ges.provider.v1",
+  "provider": "superpowers",
+  "integration_status": "UPSTREAM_PINNED",
+  "provider_states": ["GES_NATIVE", "UPSTREAM_PINNED", "EXTERNAL_VERIFIED", "UNAVAILABLE", "INCOMPATIBLE"],
+  "capabilities": [
+    "executing-plans",
+    "subagent-driven-development",
+    "test-driven-development",
+    "systematic-debugging",
+    "verification-before-completion"
+  ],
+  "orchestrator": "smc-plan-delivery",
+  "result_schema": "smc.ges.method-result.v1",
+  "notes": "Method provider only. Cannot advance Delivery State or mint Final Evidence."
+}

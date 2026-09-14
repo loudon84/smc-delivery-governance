@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / ".agents/skills/using-superpowers/scripts"))
+sys.path.insert(0, str(ROOT / ".agents/skills/smc-work-router/scripts"))
 
 import rollback as rb  # noqa: E402
 from path_containment import PathContainmentError, safe_repo_relative  # noqa: E402

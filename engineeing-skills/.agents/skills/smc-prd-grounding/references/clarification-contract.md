@@ -19,6 +19,15 @@ Maximum five accepted questions per clarification session. Ask one question at a
 must have material implementation or verification impact. If no material ambiguity exists, ask
 zero questions.
 
+Context packet for optional Spec Kit provider (when present) is limited to: bounded user
+objective, bound Work Facts summary, current Stage PRD relevant sections, minimal source
+anchors, and the open clarification ledger. Do not send the full repository, full chat history,
+or full Plan/Delivery evidence. Identical source digests may reuse a prior context packet.
+
+Provider unavailable → `provider_status=UNAVAILABLE`, `integration_status=NATIVE_ONLY`; continue
+with native clarify and never claim Spec Kit was used. Stale/malformed/conflicting proposals
+return `SPEC_KIT_RESULT_INVALID|STALE|CONFLICT` and are not auto-applied.
+
 ## Ledger
 
 ```markdown

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "smc.ges.method-result.v1",
+  "type": "object",
+  "required": [
+    "schema",
+    "provider",
+    "provider_version",
+    "capability",
+    "plan_id",
+    "plan_semantic_hash",
+    "todo_id",
+    "result_digest",
+    "provider_self_pass"
+  ],
+  "properties": {
+    "schema": { "const": "smc.ges.method-result.v1" },
+    "provider": { "const": "superpowers" },
+    "provider_version": { "type": "string" },
+    "capability": { "type": "string" },
+    "plan_id": { "type": "string" },
+    "plan_semantic_hash": { "type": "string" },
+    "todo_id": { "type": "string" },
+    "method_epoch": { "type": "string" },
+    "owned_source_fingerprint": { "type": "string" },
+    "test_fingerprint": { "type": "string" },
+    "changed_paths": { "type": "array", "items": { "type": "string" } },
+    "focused_test_result": { "type": "object" },
+    "tdd_debug_event_refs": { "type": "array" },
+    "task_review_findings": { "type": "array" },
+    "scope_exceptions": { "type": "array" },
+    "provider_self_pass": { "type": "boolean" },
+    "result_digest": { "type": "string" }
+  },
+  "additionalProperties": true
+}

@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DELIVERY = ROOT / ".agents/skills/smc-plan-delivery/scripts"
-sys.path.insert(0, str(ROOT / ".agents/skills/using-superpowers/scripts"))
+sys.path.insert(0, str(ROOT / ".agents/skills/smc-work-router/scripts"))
 sys.path.insert(0, str(ROOT / "domain-runtime"))
 sys.path.insert(0, str(DELIVERY))
 sys.path.insert(0, str(ROOT))

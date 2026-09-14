@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "smc.ges.ux-proposal.v1",
+  "type": "object",
+  "required": [
+    "schema",
+    "provider",
+    "provider_version",
+    "capability",
+    "work_item_id",
+    "source_prd",
+    "source_prd_sha256",
+    "work_facts_digest",
+    "result_digest"
+  ],
+  "properties": {
+    "schema": { "const": "smc.ges.ux-proposal.v1" },
+    "provider": { "const": "spec-kit" },
+    "provider_version": { "type": "string" },
+    "capability": { "enum": ["clarify", "checklist", "analyze"] },
+    "work_item_id": { "type": "string" },
+    "source_prd": { "type": "string" },
+    "source_prd_sha256": { "type": "string" },
+    "work_facts_digest": { "type": "string" },
+    "questions": { "type": "array" },
+    "decisions": { "type": "array" },
+    "consistency_findings": { "type": "array" },
+    "proposed_patch": { "type": "array" },
+    "result_digest": { "type": "string" }
+  },
+  "additionalProperties": true
+}

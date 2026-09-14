@@ -20,5 +20,6 @@ GES 是项目仓库内的 AI 工程治理工作流，不是跨仓控制面。它
 - [[acceptance-hardening]] — 路由信任、结构化风险、Domain 语义、install-lock.v2、telemetry 与 package gate
 - [[acceptance-closure]] — v5.0.2 闭环：字节身份、审查优先级、authority→work-facts、intent binding、install receipt、可执行验收与保护校验
 - [[governance-architecture-closure]] — v5.0.2 架构闭环命名迁移与 C01–C07 治理断点关闭（效果验证禁入）
+- [[safety-runtime-closure-v503]] — v5.0.3 安全 fail-closed 与 Spec Kit/Superpowers provider 接入方案（Pilot/Benchmark 禁入）
 
 GES 产出的是项目本地 Architecture / Stage PRD / Plan / evidence；跨仓 Feature / Work Package / Attestation 仍由中央控制面裁决，见 [[architecture]]、[[ADR-001-central-local-boundary]]。

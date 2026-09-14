@@ -50,7 +50,7 @@ Plan Review 深度按 Architecture Closure §8.2 九级序；主码为 `PLAN_REV
 
 生产 SPIKE/NONE 必须绑定可验证权威；Architecture Closure 起 canonical 为 `smc.ges.work-facts.v1`。
 
-[[engineeing-skills/.agents/skills/using-superpowers/scripts/work_facts.py#build_envelope]] 写入全量 facts、per-field provenance 与 `facts_digest`（落 `.smc/runs/<id>/routing/work-facts.json`）。[[engineeing-skills/.agents/skills/using-superpowers/scripts/work_router.py#route_bound]] 为 CLI 默认；仅 `--unsafe-raw-facts` 允许裸 facts。旧 [[engineeing-skills/.agents/skills/using-superpowers/scripts/work_authority.py#build_authority]] 为只读兼容 shim，不得单独宣称 bound。见 [[acceptance-hardening#Work Router Research Trust]] 与 [[governance-architecture-closure#Naming Migration Map]]。
+[[engineeing-skills/.agents/skills/smc-work-router/scripts/work_facts.py#build_envelope]] 写入全量 facts、per-field provenance 与 `facts_digest`（落 `.smc/runs/<id>/routing/work-facts.json`）。[[engineeing-skills/.agents/skills/smc-work-router/scripts/work_router.py#route_bound]] 为 CLI 默认；仅 `--unsafe-raw-facts` 允许裸 facts。旧 [[engineeing-skills/.agents/skills/smc-work-router/scripts/work_authority.py#build_authority]] 为只读兼容 shim，不得单独宣称 bound。见 [[acceptance-hardening#Work Router Research Trust]] 与 [[governance-architecture-closure#Naming Migration Map]]。
 
 ## Domain Intent Binding
 

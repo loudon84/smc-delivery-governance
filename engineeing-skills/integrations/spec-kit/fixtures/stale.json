@@ -1,0 +1,15 @@
+{
+  "schema": "smc.ges.ux-proposal.v1",
+  "provider": "spec-kit",
+  "provider_version": "0.0.0-test",
+  "capability": "clarify",
+  "work_item_id": "WI-1",
+  "source_prd": "docs/prd.md",
+  "source_prd_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "work_facts_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "questions": [],
+  "decisions": [],
+  "consistency_findings": [],
+  "proposed_patch": [],
+  "result_digest": "sha256:653ba55f17cfb4e47bd85cdc6d74f76c25969401febcfe3eb92c751cf3e3aa3b"
+}

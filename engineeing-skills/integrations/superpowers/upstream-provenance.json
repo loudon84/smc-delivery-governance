@@ -1,0 +1,63 @@
+{
+  "schema": "smc.ges.provider-provenance.v1",
+  "provider": "superpowers",
+  "pinned_commit": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+  "license_summary": "MIT License",
+  "capabilities": [
+    {
+      "capability_id": "executing-plans",
+      "upstream_repository": "https://github.com/obra/Superpowers",
+      "upstream_commit": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "upstream_file_path": "skills/executing-plans/SKILL.md",
+      "upstream_sha256": "sha256:c4c3d8b628c51114cd165fb8246fe02744cd8be180032328391252e653028d9b",
+      "local_adaptation_sha256": "sha256:3cde56c2a4ccfb30d8c9ccceecc5c90b8574c5e2ebfdb6d9749292d7c12d43d1",
+      "license": "LICENSE",
+      "adaptation_notes": "Local adaptation of upstream skill; GES retains delivery ownership.",
+      "provider_state": "UPSTREAM_PINNED"
+    },
+    {
+      "capability_id": "subagent-driven-development",
+      "upstream_repository": "https://github.com/obra/Superpowers",
+      "upstream_commit": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "upstream_file_path": "skills/subagent-driven-development/SKILL.md",
+      "upstream_sha256": "sha256:8dd1b8e698edec3700c6d89517dbe96febd3bacd3f6ea21c1a3569c62ea104b5",
+      "local_adaptation_sha256": "sha256:b6f08a5b0df5236a2decc69ce6f5b12ab633cfcb8a4916bd4b1f2266b50ab76c",
+      "license": "LICENSE",
+      "adaptation_notes": "Local adaptation of upstream skill; GES retains delivery ownership.",
+      "provider_state": "UPSTREAM_PINNED"
+    },
+    {
+      "capability_id": "test-driven-development",
+      "upstream_repository": "https://github.com/obra/Superpowers",
+      "upstream_commit": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "upstream_file_path": "skills/test-driven-development/SKILL.md",
+      "upstream_sha256": "sha256:bf1b8216e523851a411e91d429a7c1c2a173e79d88957bc78e348218d50edd54",
+      "local_adaptation_sha256": null,
+      "license": "LICENSE",
+      "adaptation_notes": "Upstream skill pinned; no local skill tree copy (dispatch uses provider contract).",
+      "provider_state": "UPSTREAM_PINNED"
+    },
+    {
+      "capability_id": "systematic-debugging",
+      "upstream_repository": "https://github.com/obra/Superpowers",
+      "upstream_commit": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "upstream_file_path": "skills/systematic-debugging/SKILL.md",
+      "upstream_sha256": "sha256:808fc5717aa88ad65efff312b11c186294d3e6ee301afb584e2f86599b137787",
+      "local_adaptation_sha256": null,
+      "license": "LICENSE",
+      "adaptation_notes": "Upstream skill pinned; no local skill tree copy (dispatch uses provider contract).",
+      "provider_state": "UPSTREAM_PINNED"
+    },
+    {
+      "capability_id": "verification-before-completion",
+      "upstream_repository": "https://github.com/obra/Superpowers",
+      "upstream_commit": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "upstream_file_path": "skills/verification-before-completion/SKILL.md",
+      "upstream_sha256": "sha256:2befe7fc55bcadaa3d97dd9e8efeb633d2561c0ebe74c5a8b17c4d9e7e4520b3",
+      "local_adaptation_sha256": "sha256:c7a403ad40bba10de8f4f40ebc6fe66acf6af9cf29f59a699aab0cc4ce3f2197",
+      "license": "LICENSE",
+      "adaptation_notes": "Local adaptation of upstream skill; GES retains delivery ownership.",
+      "provider_state": "UPSTREAM_PINNED"
+    }
+  ]
+}

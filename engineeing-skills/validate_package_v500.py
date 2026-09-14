@@ -27,7 +27,7 @@ def main():
     if pack.get(field) and not (ROOT/pack[field]).is_file():raise ValueError('DOMAIN_PROVIDER_MISSING: '+str(pack[field]))
   for label,cmd in installer.validation_commands(ROOT,profile,selected,True):run(label,cmd)
   # PRD §24 registry — architecture contracts only (no real Pilot/Benchmark/Harness)
-  run('work facts authority',[sys.executable,str(ROOT/'.agents/skills/using-superpowers/scripts/test_work_facts.py'),'-v'])
+  run('work facts authority',[sys.executable,str(ROOT/'.agents/skills/smc-work-router/scripts/test_work_facts.py'),'-v'])
   run('risk precedence',[sys.executable,str(ROOT/'.agents/skills/smc-plan-review/scripts/selftest.py')])
   run('domain semantic frontend',[sys.executable,str(ROOT/'.agents/skills/smc-frontend-preplan/scripts/selftest.py')])
   run('benchmark synthetic',[sys.executable,str(ROOT/'acceptance/run_benchmark.py'),'--selftest'])

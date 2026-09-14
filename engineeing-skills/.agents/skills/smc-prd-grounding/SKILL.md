@@ -11,7 +11,9 @@ disable-model-invocation: true
 
 Turn one READY Roadmap Item into a source-grounded Stage PRD without duplicating capability or
 repeating unchanged discovery. GES 5 adds `governance_profile: LEAN|FULL` and bounded
-clarification inspired by Spec Kit, while the Stage PRD remains the only requirement SOT.
+clarification. Spec Kit may act as an optional UX provider (`ADAPTER_READY` / `NATIVE_ONLY` when
+unavailable); the Stage PRD remains the only requirement SOT and `smc-prd-grounding` is the
+canonical writer that may apply validated `smc.ges.ux-proposal.v1` proposals.
 
 ## Modes
 

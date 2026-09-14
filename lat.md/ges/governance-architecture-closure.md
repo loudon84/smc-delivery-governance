@@ -68,7 +68,7 @@ C01–C07 落地锚点（不含真实执行）：
 - Package version：[[engineeing-skills/build_package_manifest.py#package_version]]
 - Plan review：[[engineeing-skills/.agents/skills/smc-plan-review/scripts/assess_plan_review.py#classify]]、[[engineeing-skills/.agents/skills/smc-plan-review/scripts/assess_plan_review.py#delta_eligible]]
 - Repo governance：[[tools/check_repo_governance.py#main]] + `governance/github/master-ruleset.json`
-- Work facts：[[engineeing-skills/.agents/skills/using-superpowers/scripts/work_facts.py#build_envelope]]、[[engineeing-skills/.agents/skills/using-superpowers/scripts/work_router.py#route_bound]]
+- Work facts：[[engineeing-skills/.agents/skills/smc-work-router/scripts/work_facts.py#build_envelope]]、[[engineeing-skills/.agents/skills/smc-work-router/scripts/work_router.py#route_bound]]
 - Domain：[[engineeing-skills/domain-runtime/domain_intent.py#validate_intent_binding]]、packs `2.2.0` `intent_bindings`
 - Install：[[engineeing-skills/install_v500.py#write_immutable_receipt]] → lock → PASS
 - Telemetry：[[engineeing-skills/.agents/skills/smc-plan-delivery/scripts/runtime_metrics.py#summarize]]

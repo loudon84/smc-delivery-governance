@@ -1,0 +1,15 @@
+{
+  "schema": "smc.ges.ux-proposal.v1",
+  "provider": "spec-kit",
+  "provider_version": "0.0.0-test",
+  "capability": "implement",
+  "work_item_id": "WI-1",
+  "source_prd": "docs/prd.md",
+  "source_prd_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "work_facts_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "questions": [],
+  "decisions": [],
+  "consistency_findings": [],
+  "proposed_patch": [],
+  "result_digest": "sha256:b675eedb31de4f339c820bddf0162966f9cac8af1ffa39fd3eeb29bb42338db4"
+}

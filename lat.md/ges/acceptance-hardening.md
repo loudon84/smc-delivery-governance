@@ -8,7 +8,7 @@ Acceptance Hardening 在不改 Frozen Invariants 的前提下加固路由信任�
 
 `research_only` 只是 hint（`research_intent` 别名），不能单独产生 SPIKE/NONE。
 
-[[engineeing-skills/.agents/skills/using-superpowers/scripts/work_router.py#effective_research_only]] 仅在 authority 字段全部显式为 false、且 previous profile 为 None/NONE 时返回有效 research。缺字段、unknown、governed/production 冲突一律 fail-closed 到 FULL。路由输出 schema 为 `smc.ges.work-route.v2`。Architecture Closure 起 CLI 默认 [[engineeing-skills/.agents/skills/using-superpowers/scripts/work_router.py#route_bound]]；权威 SOT 为 work-facts，见 [[acceptance-closure#Work Authority Binding]]。
+[[engineeing-skills/.agents/skills/smc-work-router/scripts/work_router.py#effective_research_only]] 仅在 authority 字段全部显式为 false、且 previous profile 为 None/NONE 时返回有效 research。缺字段、unknown、governed/production 冲突一律 fail-closed 到 FULL。路由输出 schema 为 `smc.ges.work-route.v2`。Architecture Closure 起 CLI 默认 [[engineeing-skills/.agents/skills/smc-work-router/scripts/work_router.py#route_bound]]；权威 SOT 为 work-facts，见 [[acceptance-closure#Work Authority Binding]]。
 
 ## Structured Risk Runtime
 
