@@ -20,9 +20,10 @@ Forces Budget / Cache / Telemetry into Plan Author → Model Dispatch → Delive
 | C07 | Plan Author | `plan_author_cost.py` structured patches + grounding dir |
 | C08 | Delivery Worker | Mandatory task brief + `worker-context-envelope.json` |
 | C09 | Review | REVISE→DELTA default; FULL re-entry; loop cap |
-| C10 | Stage Closure | `stage_cost_closure.py` PASS / PASS_USAGE_UNAVAILABLE / BLOCKED |
+| C10 | Stage Closure | `stage_cost_closure.py` PASS / PASS_USAGE_UNAVAILABLE / BLOCKED; `assert_managed_cost_closure` hard-gates completion/readiness |
 | Probe | Install identity | Infers `5.0.8` / `5.0.9` feature slices |
-| Acceptance | G61–G80 | Golden `G01-G80` |
+| Acceptance | G61–G80 | Golden `G01-G80` (G80 simulated; no real Pilot) |
+| Hardening | Error codes / worker | `CONTEXT_ENVELOPE_STALE`, `TELEMETRY_RESULT_UNPAIRED`; worker envelope required on Todo complete |
 
 ## Hard constraints honored
 

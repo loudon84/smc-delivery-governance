@@ -16,7 +16,7 @@ Closes Budget, Cache, and Telemetry into real GES-managed model paths without ad
 
 ## Stage Cost Closure
 
-[[engineeing-skills/context-engine/stage_cost_closure.py#evaluate_stage]] gates PLANNING / IMPLEMENTATION / REVIEW on paired telemetry, envelope digest, and managed calls.
+[[engineeing-skills/context-engine/stage_cost_closure.py#evaluate_stage]] and [[engineeing-skills/context-engine/stage_cost_closure.py#assert_managed_cost_closure]] gate PLANNING / IMPLEMENTATION / REVIEW; completion and readiness fail closed when managed dispatches exist without PASS.
 
 ## Plan Author Cost Closure
 
@@ -24,7 +24,7 @@ Closes Budget, Cache, and Telemetry into real GES-managed model paths without ad
 
 ## Delivery Worker Cost Closure
 
-[[engineeing-skills/.agents/skills/smc-plan-delivery/scripts/execution_context.py#create_worker_context_envelope]] makes Task Brief + Todo envelope mandatory worker input.
+[[engineeing-skills/.agents/skills/smc-plan-delivery/scripts/execution_context.py#create_worker_context_envelope]] is mandatory worker input; Todo completion requires the worker envelope before TDD/debug gates.
 
 ## Review Cost Closure
 

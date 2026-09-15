@@ -118,6 +118,8 @@ python .agents/ges/frontend-runtime/stage_cost_closure.py "$PLAN_PATH" --stage I
 - Reads outside `allowed_roots` → `WORKER_CONTEXT_SCOPE_VIOLATION`.
 - Root cause beyond scope → `DISCOVERY_ESCALATION_REQUESTED`; orchestrator recomputes the envelope.
 - Stage completion requires `stage_cost_closure` PASS / `PASS_USAGE_UNAVAILABLE`.
+- Delivery completion / readiness fail closed via `assert_managed_cost_closure` when managed dispatches exist.
+- Todo completion requires `*-worker-context-envelope.json` (`WORKER_CONTEXT_ENVELOPE_REQUIRED`).
 
 Engineering files in `.smc/runs/<plan_id>/engineering` are working memory, not Final Evidence.
 TDD/debug event v2 binds Plan semantic hash + method epoch. The latest successful execution event

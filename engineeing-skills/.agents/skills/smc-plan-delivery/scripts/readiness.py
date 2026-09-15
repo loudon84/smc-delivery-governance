@@ -45,23 +45,29 @@ def collect(plan: Path) -> dict:
     evid = {vid: evidence_status(plan, vid)[0] for vid in blocking_verifications(plan)}
     run = load_run(plan) or {}; resume = execution_resume(plan)
     cost_closure = None
+    cost_closure_blocking = False
     try:
         ctx = Path(__file__).resolve().parents[3] / "context-engine"
         if not ctx.is_dir():
             ctx = Path(__file__).resolve().parents[4] / "engineeing-skills" / "context-engine"
         if str(ctx) not in sys.path:
             sys.path.insert(0, str(ctx))
-        from stage_cost_closure import evaluate_stage
+        from stage_cost_closure import assert_managed_cost_closure, evaluate_stage
 
-        # Advisory status only — in-flight Plans without dispatches stay visible.
         for stage in ("PLANNING", "IMPLEMENTATION", "REVIEW"):
             try:
-                closure = evaluate_stage(plan=plan, stage=stage)
-                if closure.get("dispatch_count", 0) > 0:
+                closure = evaluate_stage(plan=plan, stage=stage, strict_stage=True)
+                if closure.get("dispatch_count", 0) > 0 or closure.get("orphan_results"):
                     cost_closure = cost_closure or {}
                     cost_closure[stage] = closure.get("status")
+                    if closure.get("status") not in {"PASS", "PASS_USAGE_UNAVAILABLE"}:
+                        cost_closure_blocking = True
             except Exception:
                 pass
+        try:
+            assert_managed_cost_closure(plan)
+        except ValueError:
+            cost_closure_blocking = True
     except Exception:
         cost_closure = None
     return {
@@ -76,6 +82,7 @@ def collect(plan: Path) -> dict:
         "completion_audit": completion, "implementation_review": implementation_review, "verification": evid,
         "implementation_commit": run.get("implementation_commit"), "roadmap": "DONE" if run.get("state") == "ROADMAP_DONE" else "PENDING",
         "stage_cost_closure": cost_closure,
+        "stage_cost_closure_blocking": cost_closure_blocking,
     }
 
 
@@ -97,6 +104,9 @@ def print_table(data: dict) -> None:
     print(f"Implementation Commit: {data['implementation_commit'] or '-'}")
     print(f"Roadmap              : {data['roadmap']}")
     print(f"Scope Fingerprint    : {data['scope_fingerprint']}")
+    if data.get("stage_cost_closure"):
+        print(f"Stage Cost Closure   : {data['stage_cost_closure']}")
+        print(f"Cost Closure Block   : {'YES' if data.get('stage_cost_closure_blocking') else 'NO'}")
 
 
 def main() -> int:
@@ -107,6 +117,8 @@ def main() -> int:
     except (ValueError, RuntimeError) as exc: print(str(exc), file=sys.stderr); return 1
     if args.json: print(json.dumps(data, ensure_ascii=False, indent=2))
     else: print_table(data)
+    if data.get("stage_cost_closure_blocking"):
+        return 1
     return 0
 
 

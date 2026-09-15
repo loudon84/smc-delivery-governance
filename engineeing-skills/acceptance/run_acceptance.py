@@ -1351,7 +1351,37 @@ class GoldenCorpus(unittest.TestCase):
             closure = scc.evaluate_stage(plan=plan, stage="IMPLEMENTATION")
             self.assertEqual(closure["status"], "BLOCKED")
             self.assertIn("TELEMETRY_DISPATCH_UNPAIRED", closure["reasons"])
-
+            with self.assertRaises(ValueError) as ctx:
+                scc.assert_managed_cost_closure(plan)
+            self.assertIn("TELEMETRY_DISPATCH_UNPAIRED", str(ctx.exception))
+            telemetry.result(
+                plan,
+                dispatch_id="ghost-result",
+                phase="IMPLEMENT",
+                provider="syn",
+                model="m",
+                outcome="ok",
+                prompt_tokens=1,
+                completion_tokens=1,
+                cache_read_tokens=0,
+                cache_write_tokens=0,
+                latency_ms=1,
+            )
+            summary = telemetry.summarize(plan)
+            codes = {e.get("code") for e in summary.get("errors") or []}
+            self.assertIn("TELEMETRY_RESULT_UNPAIRED", codes)
+            stale = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                phase="IMPLEMENT",
+                governance_profile="LEAN",
+                candidates=[{"path": "app.py", "tokens": 10, "artifact_kind": "SOURCE"}],
+                repo=root,
+            )
+            stale["permit"]["context_envelope_digest"] = "sha256:stale"
+            with self.assertRaises(ValueError) as stx:
+                md.require_permit(stale["permit"], stale["envelope"])
+            self.assertIn("CONTEXT_ENVELOPE_STALE", str(stx.exception))
     def test_g77_managed_call_ratio(self):
         # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G77 Managed Call Ratio]]
         with tempfile.TemporaryDirectory() as td:

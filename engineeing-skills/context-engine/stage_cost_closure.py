@@ -39,6 +39,7 @@ def evaluate_stage(
     budget_status: str | None = None,
     allocated_tokens: int | None = None,
     allow_observable: bool = False,
+    strict_stage: bool = False,
 ) -> dict[str, Any]:
     """Return stage-cost-closure.v1 with PASS / PASS_USAGE_UNAVAILABLE / BLOCKED."""
     stage_u = stage.strip().upper()
@@ -66,12 +67,15 @@ def evaluate_stage(
             or str(e.get("cost_bucket") or "").upper() in aliases
         )
     }
-    if not stage_dispatches:
+    if not stage_dispatches and not strict_stage:
         # Fall back to all dispatches when stage tags are absent.
         stage_dispatches = {
             e.get("dispatch_id"): e for e in events if e.get("kind") == "dispatch" and e.get("dispatch_id")
         }
     dispatches = stage_dispatches
+    all_dispatch_ids = {
+        e.get("dispatch_id") for e in events if e.get("kind") == "dispatch" and e.get("dispatch_id")
+    }
     results = [
         e
         for e in events
@@ -80,7 +84,18 @@ def evaluate_stage(
     scoped = list(dispatches.values()) + results
     result_ids = {e.get("dispatch_id") for e in results if e.get("dispatch_id")}
     unpaired_dispatches = [did for did in dispatches if did not in result_ids]
-    orphan_results = []  # results already filtered to known stage dispatches
+    orphan_results = [
+        e.get("dispatch_id")
+        for e in events
+        if e.get("kind") == "result"
+        and e.get("dispatch_id")
+        and e.get("dispatch_id") not in all_dispatch_ids
+        and (
+            not strict_stage
+            or str(e.get("phase") or "").upper() in aliases
+            or str(e.get("cost_bucket") or "").upper() in aliases
+        )
+    ]
     unmanaged_calls = [
         e
         for e in scoped
@@ -109,9 +124,12 @@ def evaluate_stage(
 
     reasons: list[str] = []
     status = "PASS"
-    if unpaired_dispatches or orphan_results:
+    if unpaired_dispatches:
         status = "BLOCKED"
         reasons.append("TELEMETRY_DISPATCH_UNPAIRED")
+    if orphan_results:
+        status = "BLOCKED"
+        reasons.append("TELEMETRY_RESULT_UNPAIRED")
     if unmanaged_calls:
         status = "BLOCKED"
         reasons.append("RUNTIME_COST_UNMANAGED")
@@ -121,12 +139,51 @@ def evaluate_stage(
     if not env_digest and dispatches:
         status = "BLOCKED"
         reasons.append("CONTEXT_ENVELOPE_MISSING")
+    digests = {
+        e.get("context_envelope_digest")
+        for e in scoped
+        if e.get("context_envelope_digest")
+    }
+    if context_envelope_digest and env_digest and context_envelope_digest != env_digest:
+        status = "BLOCKED"
+        reasons.append("CONTEXT_ENVELOPE_STALE")
+    elif len(digests) > 1:
+        status = "BLOCKED"
+        reasons.append("CONTEXT_ENVELOPE_STALE")
     if budget_status == "BLOCKED":
         status = "BLOCKED"
         reasons.append("CONTEXT_BUDGET_INSUFFICIENT")
     if not dispatches:
-        status = "BLOCKED"
-        reasons.append("MODEL_DISPATCH_PERMIT_MISSING")
+        if orphan_results:
+            status = "BLOCKED"
+            if "TELEMETRY_RESULT_UNPAIRED" not in reasons:
+                reasons.append("TELEMETRY_RESULT_UNPAIRED")
+        elif strict_stage:
+            return {
+                "schema": SCHEMA,
+                "stage": stage_u,
+                "dispatch_count": 0,
+                "result_count": 0,
+                "unpaired_dispatches": [],
+                "orphan_results": [],
+                "unmanaged_calls": 0,
+                "budget_status": budget_status or "OK",
+                "allocated_tokens": allocated_tokens or 0,
+                "actual_tokens": None,
+                "usage_status": "UNAVAILABLE",
+                "cache_hits": 0,
+                "cache_misses": 0,
+                "cache_stale": 0,
+                "context_envelope_digest": context_envelope_digest,
+                "policy_digest": policy_digest,
+                "status": "PASS",
+                "skipped": True,
+                "reasons": [],
+                "generated_at": _utc(),
+            }
+        else:
+            status = "BLOCKED"
+            reasons.append("MODEL_DISPATCH_PERMIT_MISSING")
     for e in results:
         if not e.get("provider") and not e.get("model") and not e.get("model_identity_unavailable"):
             status = "BLOCKED"
@@ -145,6 +202,7 @@ def evaluate_stage(
         "dispatch_count": len(dispatches),
         "result_count": len(results),
         "unpaired_dispatches": unpaired_dispatches,
+        "orphan_results": orphan_results,
         "unmanaged_calls": len(unmanaged_calls),
         "budget_status": budget_status or ("OK" if status.startswith("PASS") else "BLOCKED"),
         "allocated_tokens": allocated,
@@ -175,6 +233,49 @@ def persist_closure(repo: Path, work_item_id: str, closure: dict[str, Any]) -> P
 def require_pass(closure: dict[str, Any]) -> None:
     if closure.get("status") not in {"PASS", "PASS_USAGE_UNAVAILABLE"}:
         raise ValueError(closure.get("error") or "STAGE_COST_CLOSURE_FAILED")
+
+
+# @lat: [[runtime-cost-closure-v509#Stage Cost Closure]]
+def assert_managed_cost_closure(plan: Path) -> dict[str, Any]:
+    """Fail-closed completion gate when managed dispatch telemetry exists.
+
+    Plans with zero dispatch events remain compatible (pre-v5.0.9 / no model work).
+    """
+    rm = _import_runtime_metrics()
+    path = rm.telemetry_path(plan)
+    if not path.is_file():
+        return {"enforced": False, "stages": {}}
+    events = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    dispatches = [e for e in events if e.get("kind") == "dispatch" and e.get("dispatch_id")]
+    all_dispatch_ids = {e.get("dispatch_id") for e in dispatches}
+    orphan = [
+        e.get("dispatch_id")
+        for e in events
+        if e.get("kind") == "result" and e.get("dispatch_id") and e.get("dispatch_id") not in all_dispatch_ids
+    ]
+    if not dispatches:
+        if orphan:
+            raise ValueError("TELEMETRY_RESULT_UNPAIRED")
+        return {"enforced": False, "stages": {}}
+
+    tagged = any(
+        str(e.get("phase") or "").strip() or str(e.get("cost_bucket") or "").strip() for e in dispatches
+    )
+    statuses: dict[str, str] = {}
+    if tagged:
+        for stage in sorted(STAGES):
+            closure = evaluate_stage(plan=plan, stage=stage, strict_stage=True)
+            if int(closure.get("dispatch_count") or 0) == 0 and not closure.get("orphan_results"):
+                continue
+            require_pass(closure)
+            statuses[stage] = str(closure.get("status"))
+    else:
+        closure = evaluate_stage(plan=plan, stage="IMPLEMENTATION", strict_stage=False)
+        require_pass(closure)
+        statuses["IMPLEMENTATION"] = str(closure.get("status"))
+    if orphan:
+        raise ValueError("TELEMETRY_RESULT_UNPAIRED")
+    return {"enforced": True, "stages": statuses}
 
 
 def main() -> int:

@@ -225,6 +225,13 @@ def debug_check(plan,todo):
  if last.get('scope_fingerprint')!=scope_fingerprint(plan,tid):return 2,{'status':'BLOCKED','reason':'DEBUG_SCOPE_STALE','todo':tid}
  return 0,{'status':'PASS','reason':'DEBUG_VERIFIED_FRESH','todo':tid,'failed_fix_attempts':fails}
 def completion_check(plan,todo):
+ tid=norm(todo)
+ try:
+  from execution_context import worker_envelope_path
+  if not worker_envelope_path(plan,tid).is_file():
+   raise ValueError('WORKER_CONTEXT_ENVELOPE_REQUIRED: '+tid)
+ except ImportError:
+  pass
  for check in (tdd_check,debug_check):
   rc,result=check(plan,todo)
   if rc:raise ValueError(result['reason']+': '+norm(todo))

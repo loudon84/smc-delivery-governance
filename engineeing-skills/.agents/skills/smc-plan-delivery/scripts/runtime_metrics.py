@@ -292,7 +292,7 @@ def summarize(plan: Path) -> dict:
     for r in results:
         did = r.get("dispatch_id")
         if did not in dispatches:
-            errors.append({"code": "TELEMETRY_DISPATCH_UNPAIRED", "detail": str(did)})
+            errors.append({"code": "TELEMETRY_RESULT_UNPAIRED", "detail": str(did)})
             errors.append({"code": "TELEMETRY_ORPHAN_RESULT", "detail": str(did)})
         if not r.get("provider") and not r.get("model") and not r.get("model_identity_unavailable"):
             errors.append({"code": "TELEMETRY_MODEL_IDENTITY_MISSING", "detail": str(did)})

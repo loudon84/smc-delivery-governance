@@ -44,6 +44,8 @@ class RuntimeV5Tests(unittest.TestCase):
   self.assertEqual(0,m.tdd_run(self.p,'T1','RED',self.cmd)[0])
   (self.r/'a.txt').write_text('good',encoding='utf-8')
   self.assertEqual(0,m.tdd_run(self.p,'T1','GREEN',self.cmd)[0])
+  import execution_context as ec
+  ec.create_worker_context_envelope(self.p,'T1')
  def test_multiline_and_inline_writes(self):
   self.assertEqual(['a.txt','check.py'],m.write_paths(self.p,'T1'))
   self.p.write_text(PLAN.replace('**Writes**\n- a.txt\n- check.py','**Writes:** a.txt, check.py'),encoding='utf-8')

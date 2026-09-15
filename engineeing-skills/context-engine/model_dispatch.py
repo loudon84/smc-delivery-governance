@@ -290,7 +290,7 @@ def require_permit(permit: dict[str, Any] | None, envelope: dict[str, Any] | Non
     if not envelope or not envelope.get("content_digest"):
         raise ValueError("CONTEXT_ENVELOPE_MISSING")
     if permit.get("context_envelope_digest") != envelope.get("content_digest"):
-        raise ValueError("MODEL_DISPATCH_PERMIT_INVALID")
+        raise ValueError("CONTEXT_ENVELOPE_STALE")
 
 
 def run_managed_call(

@@ -246,6 +246,8 @@ def ensure_report_path(plan: Path, todo: str) -> Path:
 # @lat: [[runtime-cost#GES Runtime Cost Optimization#Task Context Artifacts]]
 def build_task_review_package(plan: Path, todo: str) -> Path:
     tid = _normalize_todo(todo)
+    if not worker_envelope_path(plan, tid).is_file():
+        raise ValueError("WORKER_CONTEXT_ENVELOPE_REQUIRED")
     block = _todo_block(plan.read_text(encoding="utf-8"), tid)
     writes = _write_targets(block)
     if not writes:

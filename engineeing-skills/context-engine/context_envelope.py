@@ -199,3 +199,13 @@ def load_envelope(path: Path) -> dict[str, Any]:
     if data.get("schema") != SCHEMA:
         raise ValueError("CONTEXT_ENVELOPE_MISSING")
     return data
+
+
+def assert_envelope_fresh(envelope: dict[str, Any], expected_digest: str | None) -> None:
+    """Fail closed when a bound permit/digest no longer matches the envelope body."""
+    if not envelope or not envelope.get("content_digest"):
+        raise ValueError("CONTEXT_ENVELOPE_MISSING")
+    if not expected_digest:
+        raise ValueError("CONTEXT_ENVELOPE_MISSING")
+    if envelope.get("content_digest") != expected_digest:
+        raise ValueError("CONTEXT_ENVELOPE_STALE")
