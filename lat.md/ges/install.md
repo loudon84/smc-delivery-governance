@@ -23,7 +23,7 @@ Windows 上禁止用 `os.execv` 派发：它不会覆盖当前控制台进程，
 5. 跑 delivery self-test、Roadmap tests、可选项目 validator；
 6. 任一 gate 失败 → [[engineeing-skills/install_v430.py#restore]]。
 
-实现入口：[[engineeing-skills/install_v500.py#main]]、[[engineeing-skills/install_v500.py#preflight]]。省略 profile 选择时保留已安装元数据；显式迁移 profile 需要重新绑定受影响 Plan。Managed skill 路径（如 `smc-plan-validator`）由 overlay 写入，不得作为 preflight 硬依赖。
+实现入口：[[engineeing-skills/install_v500.py#main]]、[[engineeing-skills/install_v500.py#preflight]]、[[engineeing-skills/install_v500.py#install_metadata]]。省略 `--profile` 时保留已安装 profile；但若 `profile.json` 或 `domain-packs/registry.json` 缺失，安装器必须修复完整元数据（不可只刷新 domain-runtime）。显式迁移 profile 需要重新绑定受影响 Plan。Managed skill 路径（如 `smc-plan-validator`）由 overlay 写入，不得作为 preflight 硬依赖。
 
 ## Consumer Baseline Seed
 

@@ -1033,8 +1033,8 @@
     },
     {
       "path": "consumer-bootstrap/generate_remediation.py",
-      "sha256": "9095724223eec43e21f0d0d83816741ed2758fe08f9d6e5f838bf6b66120f7fc",
-      "size": 8637
+      "sha256": "9d9a38511e0adaf2a495df717e3d2537beb12d9cec719f396f88904e75e07c02",
+      "size": 9093
     },
     {
       "path": "consumer-bootstrap/schemas/consumer-audit.v1.json",
@@ -1488,8 +1488,8 @@
     },
     {
       "path": "install_v500.py",
-      "sha256": "f3cd38aa15bf36fbc2fcb886495cc4aedbbbc6a34f907ea9231e64ced71b7620",
-      "size": 18078
+      "sha256": "3ad076600d146e3bc16fcaea53839c03ce3eeda05c0b2c777a1854c560ee31c3",
+      "size": 18415
     },
     {
       "path": "integrations/spec-kit/fixtures/conflict-digest.json",

@@ -122,8 +122,13 @@ _previous_metadata = base.install_ges_metadata
 
 
 def install_metadata(project, profile, selected, backup, records):
+    # @lat: [[install#Transactional Overlay]]
+    # Preserve an in-place profile when reinstalling without --profile, but always
+    # repair if profile.json or domain-packs/registry.json is missing (partial overlay).
     installed = project / ".agents/ges"
-    if SELECTOR is None and (installed / "profile.json").is_file():
+    profile_ok = (installed / "profile.json").is_file()
+    registry_ok = (installed / "domain-packs" / "registry.json").is_file()
+    if SELECTOR is None and profile_ok and registry_ok:
         return base.copy_tree(project, base.DOMAIN_RUNTIME, installed / "domain-runtime", backup, records)
     return _previous_metadata(project, profile, selected, backup, records)
 

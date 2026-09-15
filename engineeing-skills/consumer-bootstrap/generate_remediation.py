@@ -110,15 +110,23 @@ def generate(project: Path, gap: dict[str, Any], audit_report: dict[str, Any] | 
             )
 
     # GES gaps that bootstrap cannot invent — advise install
+    # (profile.json + domain-packs/registry.json are installer-owned; bootstrap must not write them)
     ges_layer = (gap.get("layers") or {}).get("ges") or {}
+    ges_missing = list(ges_layer.get("missing") or [])
     if ges_layer.get("verdict") != "PASS":
+        reason = "GES runtime incomplete; run package installer (optionally with --seed-consumer-skills)"
+        if any(x in ges_missing for x in ("ges.profile", "ges.domain_registry")):
+            reason = (
+                "Missing installer-owned GES metadata (profile.json and/or domain-packs/registry.json); "
+                "re-run installer — bootstrap cannot write these paths"
+            )
         actions.append(
             _action(
                 next_id("GES"),
                 "RUN_COMMAND",
                 ".",
-                "GES runtime incomplete; run package installer (optionally with --seed-consumer-skills)",
-                command="python install.py <project> --seed-consumer-skills --apply",
+                reason,
+                command="python install.py <project> --apply",
                 claim="GES_NATIVE",
             )
         )
