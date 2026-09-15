@@ -1,5 +1,5 @@
 {
-  "file_count": 347,
+  "file_count": 350,
   "files": [
     {
       "path": ".agents/skills/executing-plans/SKILL.md",
@@ -338,8 +338,8 @@
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/runtime_metrics.py",
-      "sha256": "084d800da235aea7b56f9e26a87949e5942ad765db708bb7824427d419997aa0",
-      "size": 13473
+      "sha256": "b984fa1678ab7465660799a28f7a4304a6beafdd25cd11e7b3d2ec6c6717b67a",
+      "size": 15880
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/source_context.py",
@@ -603,8 +603,8 @@
     },
     {
       "path": ".agents/skills/smc-work-router/references/artifact-state-routing.md",
-      "sha256": "385347e4bf6b3f3d2346534a60aa28fa9183b01d3e1cf5cb5a30498b13f03661",
-      "size": 2644
+      "sha256": "4c64f81e99624069c9cb75c0fbf0031c63f4ab45ec82056225ba1227bc12d8eb",
+      "size": 2819
     },
     {
       "path": ".agents/skills/smc-work-router/references/complexity-routing.md",
@@ -623,8 +623,8 @@
     },
     {
       "path": ".agents/skills/smc-work-router/scripts/classification_state.py",
-      "sha256": "dbd355a4052a0ce6e0f16824ce4775ba057f458fa450a5784610279684002fab",
-      "size": 5125
+      "sha256": "d07e3f23255ee8616db20b486eeb27fb383ebe6df5626bc38f7faa159de4cae2",
+      "size": 5242
     },
     {
       "path": ".agents/skills/smc-work-router/scripts/path_containment.py",
@@ -643,8 +643,8 @@
     },
     {
       "path": ".agents/skills/smc-work-router/scripts/test_work_router.py",
-      "sha256": "f8699fb4449a0d418685c8c9f70090a3acd419a6ba75907302f1c3866360da17",
-      "size": 3789
+      "sha256": "2d1dabdaea922ddb648cabbdecdae45629a773418c0459142d2abd719fc1e87d",
+      "size": 6359
     },
     {
       "path": ".agents/skills/smc-work-router/scripts/work_authority.py",
@@ -658,8 +658,8 @@
     },
     {
       "path": ".agents/skills/smc-work-router/scripts/work_router.py",
-      "sha256": "21308aa16d589dc6593106aaa2aa51a70322568dfc5a64c037d9e57d8cfd74ae",
-      "size": 16319
+      "sha256": "976233bd40b12a717782ba27c6f2972a6e996c4e11403ca15812723fab250d04",
+      "size": 22068
     },
     {
       "path": ".agents/skills/smc-work-router/SKILL.md",
@@ -673,8 +673,8 @@
     },
     {
       "path": ".agents/skills/using-superpowers/references/artifact-state-routing.md",
-      "sha256": "385347e4bf6b3f3d2346534a60aa28fa9183b01d3e1cf5cb5a30498b13f03661",
-      "size": 2644
+      "sha256": "4c64f81e99624069c9cb75c0fbf0031c63f4ab45ec82056225ba1227bc12d8eb",
+      "size": 2819
     },
     {
       "path": ".agents/skills/using-superpowers/references/complexity-routing.md",
@@ -843,8 +843,8 @@
     },
     {
       "path": "acceptance/run_acceptance.py",
-      "sha256": "7a5ceff09447ee6efcb94f7a9b33f318b02ccba722cd131530481fc9b6661287",
-      "size": 43450
+      "sha256": "343be7a8143c5f2a84da28fe493988d237317bde8e4a541e391628c0446801f5",
+      "size": 56155
     },
     {
       "path": "acceptance/run_benchmark.py",
@@ -933,8 +933,8 @@
     },
     {
       "path": "build_package_manifest.py",
-      "sha256": "ca48833f0a0f13c0f385d4defe81c21e4f767608c24fa989e9b70c7289943346",
-      "size": 3600
+      "sha256": "a3ed51b9d416a3bd6a933599d798d11a567f83d3d8dd4b8b0ec284caac43290a",
+      "size": 3678
     },
     {
       "path": "CHANGELOG.md",
@@ -1003,8 +1003,13 @@
     },
     {
       "path": "CHANGES-v5.0.7-frontend-context-scoped-install.md",
-      "sha256": "f0e7e261a28d1a597cdfe7ba027faf8756773cf3fb091e9ad94100852703e938",
-      "size": 1690
+      "sha256": "6eef481f04e49aa0379fbb9aa72e4bdc42155677944cd0fdab73465862c266d9",
+      "size": 1754
+    },
+    {
+      "path": "CHANGES-v5.0.8-adaptive-governance-context-budget.md",
+      "sha256": "b07221661d7fad21309007a063ea2679c153dc236ea83f2d976d1666ff5b18b1",
+      "size": 2182
     },
     {
       "path": "consumer-baseline/code-review-and-quality/SKILL.md",
@@ -1033,8 +1038,8 @@
     },
     {
       "path": "consumer-bootstrap/frontend_audit.py",
-      "sha256": "f1a2be0b2dd8b64b16ac4254e131d2e9fa8fb71bb512855aafe39e4c7f9b6b0d",
-      "size": 13835
+      "sha256": "32c962b7ade33e2e9285b64bea48708bad2882f481167d8b2268b19e5a40da5f",
+      "size": 14110
     },
     {
       "path": "consumer-bootstrap/generate_remediation.py",
@@ -1222,14 +1227,24 @@
       "size": 79
     },
     {
+      "path": "context-engine/budget_controller.py",
+      "sha256": "cda5b27f0000a6172f384f8c60b106933b27ab8b29e0607de3a4e16b95ed6a47",
+      "size": 6027
+    },
+    {
       "path": "context-engine/context_cache.py",
-      "sha256": "969ee4b74f1f4305ace7aa0e3bfb8d0addd91feec84c3b685326c9b5178d44a9",
-      "size": 2719
+      "sha256": "7f27572a0835e8459e749fdde0dfe4f32d52ebe8b5d10815165299ff99a10b95",
+      "size": 10148
     },
     {
       "path": "context-engine/frontend_app_registry.py",
       "sha256": "3a945c4f707a973c65be7ed8311b83a4df7e834ef7f12ec3c820d7f14874a7f9",
       "size": 18360
+    },
+    {
+      "path": "context-engine/policies/context-budget.v1.json",
+      "sha256": "41891cd400a8dd407714caa37541ea4bf082bc9913a1172c5f554780633ed924",
+      "size": 3281
     },
     {
       "path": "context-engine/schemas/feature-scope.v1.json",
@@ -1288,8 +1303,8 @@
     },
     {
       "path": "context-engine/work_scope.py",
-      "sha256": "70a5343525d2abb5cea85199e15aab87183d8f77411c1d129d01bb5eee714304",
-      "size": 3837
+      "sha256": "cc3948fa6e138f8ac47510e2eeeb4761a02438feac52d641bdb9389a67385b40",
+      "size": 4388
     },
     {
       "path": "CONTRIBUTING.md",
@@ -1643,8 +1658,8 @@
     },
     {
       "path": "tests/test_context_engine.py",
-      "sha256": "60b5377962df12e55c42fc0b090d62885524bfb5a832b89768d6187cced17306",
-      "size": 11189
+      "sha256": "c0f50e411fb7faedbc0815ab5bdaee3c8691e224cb41972b06f6305184f81863",
+      "size": 15081
     },
     {
       "path": "tests/test_install_finalization.py",
@@ -1728,7 +1743,7 @@
     },
     {
       "path": "validate_package_v500.py",
-      "sha256": "d8f6573f081a4bdf5ee1e211ce64944e81a0938d9d6785d233c7114cf6837adb",
+      "sha256": "3d5d858368c0112f2cca27b9bba34c0106312d8c746e765832fbb9a1d4de10aa",
       "size": 7959
     },
     {

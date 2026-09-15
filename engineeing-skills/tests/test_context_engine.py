@@ -276,6 +276,79 @@ class ContextEngineTests(unittest.TestCase):
         self.assertEqual(scope["token_budget"]["model_max_tier"], "STANDARD")
         self.assertIn("web", scope["target_apps"])
 
+    # @lat: [[adaptive-governance-context-v508#上下文预算与缓存]]
+    def test_context_budget_lean_to_full_then_block(self) -> None:
+        import budget_controller as budget_ctrl
+
+        policy = budget_ctrl.load_policy()
+        self.assertEqual(policy["schema"], "smc.ges.context-budget-policy.v1")
+        ok = budget_ctrl.decide_budget(
+            work_item_id="wi-budget",
+            repo_identity=str(self.r),
+            governance_profile="LEAN",
+            candidates=[{"path": f"src/a{i}.ts", "tokens": 100} for i in range(3)],
+        )
+        self.assertEqual(ok["status"], "OK")
+        self.assertEqual(ok["governance_profile"], "LEAN")
+
+        huge = [{"path": f"src/f{i}.ts", "tokens": 5000} for i in range(50)]
+        upgraded = budget_ctrl.decide_budget(
+            work_item_id="wi-budget",
+            repo_identity=str(self.r),
+            governance_profile="LEAN",
+            candidates=huge,
+        )
+        self.assertIn("LEAN_TO_FULL", upgraded.get("upgrades") or [])
+        # FULL still insufficient → block
+        blocked = budget_ctrl.decide_budget(
+            work_item_id="wi-budget",
+            repo_identity=str(self.r),
+            governance_profile="LEAN",
+            candidates=[{"path": f"src/x{i}.ts", "tokens": 20000} for i in range(200)],
+        )
+        self.assertEqual(blocked["status"], "BLOCKED")
+        self.assertEqual(blocked.get("error"), "CONTEXT_BUDGET_INSUFFICIENT")
+
+        trimmed = budget_ctrl.trim_candidates(
+            [{"path": "apps/work/a.ts"}, {"path": "apps/other/b.ts"}, {"path": "apps/work/a.ts"}],
+            allowed_roots=["apps/work"],
+        )
+        self.assertEqual(len(trimmed), 1)
+
+    def test_capsule_cache_hit_and_stale(self) -> None:
+        store = cache_mod.CapsuleStore(self.r, "wi-cache", ttl_seconds=3600)
+        key_kw = dict(
+            repo_identity=str(self.r),
+            artifact_kind="SOURCE",
+            scope_digest="sha256:scope1",
+            identity="apps/work/src/App.tsx",
+            content_sha256=cache_mod.content_sha256(" const x=1 "),
+            extractor_version="1.0.0",
+            policy_digest="sha256:policy1",
+        )
+        store.put_capsule(**key_kw, value={"excerpt": "x=1"}, persist=True)
+        hit = store.get_capsule(**key_kw)
+        self.assertEqual(hit, {"excerpt": "x=1"})
+        self.assertGreaterEqual(store.hits, 1)
+
+        # Same key with expired TTL → CONTEXT_CACHE_STALE path.
+        mem_key = cache_mod.make_capsule_key(**key_kw)
+        store._memory[mem_key]["stored_at"] = 0
+        stale = store.get_capsule(**key_kw)
+        self.assertIsNone(stale)
+        self.assertGreaterEqual(store.stale, 1)
+
+        miss = store.get_capsule(**{**key_kw, "policy_digest": "sha256:other"})
+        self.assertIsNone(miss)
+        self.assertGreaterEqual(store.misses, 1)
+
+        with self.assertRaises(ValueError):
+            store.put_capsule(**key_kw, value={"api_key": "x"})
+
+        escaped = cache_mod.CapsuleStore(self.r, "../escape")
+        with self.assertRaises(ValueError):
+            escaped.root()
+
 
 if __name__ == "__main__":
     raise SystemExit(unittest.main())

@@ -50,10 +50,15 @@ def main():
  ap=argparse.ArgumentParser();ap.add_argument('--check',action='store_true');ap.add_argument('--explain-diff',action='store_true');a=ap.parse_args()
  if a.explain_diff:
   print(json.dumps(explain_diff(),indent=2,ensure_ascii=False));return
- if a.check:print('PACKAGE INTEGRITY PASS:',verify());return
+ if a.check:
+  n=verify()
+  print('PACKAGE_MANIFEST_VALID')
+  print('PACKAGE INTEGRITY PASS:',n)
+  return
  value=build();(ROOT/'PACKAGE-MANIFEST.json').write_text(json.dumps(value,ensure_ascii=False,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
  sums=''.join(r['sha256']+'  '+r['path']+'\n' for r in value['files'])
  sums+=hashlib.sha256((ROOT/'PACKAGE-MANIFEST.json').read_bytes()).hexdigest()+'  PACKAGE-MANIFEST.json\n'
  (ROOT/'SHA256SUMS').write_text(sums,encoding='utf-8',newline='\n')
  print('PACKAGE MANIFEST GENERATED:',verify())
+ print('PACKAGE_MANIFEST_VALID')
 if __name__=='__main__':main()

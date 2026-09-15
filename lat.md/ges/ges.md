@@ -23,5 +23,6 @@ GES 是项目仓库内的 AI 工程治理工作流，不是跨仓控制面。它
 - [[safety-runtime-closure-v503]] — v5.0.3 安全 fail-closed 与 Spec Kit/Superpowers provider 接入方案（Pilot/Benchmark 禁入）
 - [[consumer-bootstrap]] — v5.0.5 Consumer Audit / Gap / Remediation / Validate 平台接入（Pilot/Benchmark 禁入）
 - [[frontend-context]] — v5.0.6 Frontend Context System：App Registry、Stack Adapter、Per-App UX Baseline、Surface Gate（Pilot/Benchmark 禁入）
+- [[adaptive-governance-context-v508]] — v5.0.8 复用 Router / v3.7 Plan / Delivery 真源的复杂度派生、上下文预算与缓存闭环
 
 GES 产出的是项目本地 Architecture / Stage PRD / Plan / evidence；跨仓 Feature / Work Package / Attestation 仍由中央控制面裁决，见 [[architecture]]、[[ADR-001-central-local-boundary]]。

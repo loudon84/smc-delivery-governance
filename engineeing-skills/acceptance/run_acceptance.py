@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic Acceptance Closure golden + chaos cases (G01–G42 real behavior)."""
+"""Deterministic Acceptance Closure golden + chaos cases (G01–G60 real behavior)."""
 from __future__ import annotations
 
 import hashlib
@@ -22,7 +22,7 @@ sys.path.insert(0, str(DELIVERY))
 sys.path.insert(0, str(CONTEXT_ENGINE))
 sys.path.insert(0, str(ROOT))
 from risk_signals import classify_text_hint, parse_risk_snapshot, resolve_risk  # noqa: E402
-from work_router import REQUIRED, RISKS, route  # noqa: E402
+from work_router import REQUIRED, RISKS, derive_feature_complexity, route  # noqa: E402
 import install_v500 as installer  # noqa: E402
 import engineering_method as em  # noqa: E402
 import review_record  # noqa: E402
@@ -33,6 +33,11 @@ import commit_guard  # noqa: E402
 import runtime_metrics as telemetry  # noqa: E402
 import frontend_app_registry as registry_mod  # noqa: E402
 import ux_context_resolver as ux_mod  # noqa: E402
+import budget_controller as budget_ctrl  # noqa: E402
+import context_cache as cache_mod  # noqa: E402
+import classification_state as class_state  # noqa: E402
+import contract_resolver  # noqa: E402
+import work_facts as wf  # noqa: E402
 
 
 def safe_facts(**extra):
@@ -835,6 +840,270 @@ class GoldenCorpus(unittest.TestCase):
             self.assertEqual(result["decision"], "EXTEND")
             self.assertTrue(result["ok"])
 
+    def test_g51_deterministic_complexity_receipt(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G51 Deterministic Complexity Receipt]]
+        routed = route(safe_facts())
+        scope = {
+            "schema": "smc.ges.feature-scope.v1",
+            "app_id": "work",
+            "surface_id": "work:sidebar.footer.identity",
+            "layout_owner": "apps/work/src/Layout.tsx",
+            "decision": "EXTEND",
+            "ok": True,
+        }
+        a = derive_feature_complexity(routed, work_item_id="g51", feature_scope=scope)
+        b = derive_feature_complexity(routed, work_item_id="g51", feature_scope=scope)
+        self.assertEqual(a["schema"], "smc.ges.feature-complexity.v1")
+        self.assertEqual(a["work_route_digest"], b["work_route_digest"])
+        self.assertEqual(a["feature_scope_digest"], b["feature_scope_digest"])
+        self.assertEqual(a["governance_profile"], routed["governance_profile"])
+
+    def test_g52_missing_provenance_not_lean(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G52 Missing Provenance Not Lean]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            env = {
+                "schema": "smc.ges.work-facts.v1",
+                "work_item_id": "g52",
+                "facts": safe_facts(),
+                "provenance": {},
+                "facts_digest": "sha256:" + ("0" * 64),
+            }
+            status, reasons = wf.verify_envelope(env, repo=root)
+            self.assertNotEqual(status, "VERIFIED")
+            self.assertTrue(reasons)
+            self.assertTrue(
+                any(
+                    r
+                    in {
+                        "WORK_FACTS_UNBOUND",
+                        "WORK_FACTS_PROVENANCE_MISSING",
+                        "WORK_FACTS_FIELD_MISSING",
+                        "WORK_FACTS_INVALID",
+                    }
+                    for r in reasons
+                )
+            )
+            out = route(safe_facts(), work_facts=env, repo=root, require_authority_for_none=True)
+            self.assertNotEqual(out["governance_profile"], "LEAN")
+            receipt = derive_feature_complexity(out, work_item_id="g52")
+            self.assertNotEqual(receipt["governance_profile"], "LEAN")
+
+    def test_g53_production_text_never_spike(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G53 Production Text Never Spike]]
+        f = safe_facts(
+            research_intent=True,
+            governed=False,
+            retained_production_change=True,
+            production_write_requested=False,
+            durable_product_artifact_requested=False,
+        )
+        out = route(f)
+        self.assertNotEqual(out["work_class"], "SPIKE")
+        self.assertNotEqual(out["governance_profile"], "NONE")
+
+    def test_g54_frozen_downgrade_denied(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G54 Downgrade Denied]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            class_state.apply_profile(root, "g54", "FULL")
+            class_state.freeze(root, "g54")
+            with self.assertRaises(ValueError) as ctx:
+                class_state.apply_profile(root, "g54", "LEAN")
+            self.assertEqual(str(ctx.exception), "CLASSIFICATION_DOWNGRADE_DENIED")
+
+    def test_g55_lean_v37_ledger_and_delivery_gates(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G55 Lean Plan Delivery Gates]]
+        self.assertEqual(contract_resolver.CURRENT_PLAN_CONTRACT, "smc.plan.v3.7")
+        self.assertEqual(contract_resolver.validator_name("smc.plan.v3.7"), "validate_plan_v37.py")
+        lean_plan = (
+            MIN_PLAN.replace("governance_profile: FULL", "governance_profile: LEAN")
+            + """
+## Ownership Ledger
+
+| Change ID | Owner | Authority |
+|---|---|---|
+| C01 | app.py#main | EXISTING |
+
+## Verification Ledger
+
+| Change ID | Evidence | Freshness |
+|---|---|---|
+| C01 | tests/test_app.py | REQUIRED |
+"""
+        )
+        self.assertIn("plan_contract: smc.plan.v3.7", lean_plan)
+        self.assertIn("governance_profile: LEAN", lean_plan)
+        for heading in ("## Change Matrix", "## Ownership Ledger", "## Verification Ledger"):
+            self.assertIn(heading, lean_plan)
+            # LEAN public ledgers must not be N/A placeholders.
+            block = lean_plan.split(heading, 1)[1].split("## ", 1)[0]
+            self.assertNotIn("| N/A |", block)
+        delivery_skill = (ROOT / ".agents/skills/smc-plan-delivery/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("smc.plan.v3.7", delivery_skill)
+        self.assertIn("canonical Plan delivery", delivery_skill)
+
+    def test_g56_context_cache_hit(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G56 Cache Hit]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = cache_mod.CapsuleStore(root, "g56")
+            kw = dict(
+                repo_identity=str(root),
+                artifact_kind="SOURCE",
+                scope_digest="sha256:scope",
+                identity="apps/work/src/A.tsx",
+                content_sha256=cache_mod.content_sha256("alpha"),
+                extractor_version="1.0.0",
+                policy_digest=budget_ctrl.policy_digest(),
+            )
+            store.put_capsule(**kw, value={"ok": True})
+            self.assertEqual(store.get_capsule(**kw), {"ok": True})
+            self.assertGreaterEqual(store.hits, 1)
+
+    def test_g57_context_cache_stale_on_policy_change(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G57 Cache Stale]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = cache_mod.CapsuleStore(root, "g57")
+            kw = dict(
+                repo_identity=str(root),
+                artifact_kind="SOURCE",
+                scope_digest="sha256:scope",
+                identity="apps/work/src/A.tsx",
+                content_sha256=cache_mod.content_sha256("alpha"),
+                extractor_version="1.0.0",
+                policy_digest="sha256:old",
+            )
+            store.put_capsule(**kw, value={"ok": True})
+            # Policy change → different key → miss (no cross-policy reuse).
+            miss = store.get_capsule(**{**kw, "policy_digest": "sha256:new"})
+            self.assertIsNone(miss)
+            # Expired binding on the original key → stale.
+            key = cache_mod.make_capsule_key(**kw)
+            store._memory[key]["stored_at"] = 0
+            stale = store.get_capsule(**kw)
+            self.assertIsNone(stale)
+            self.assertGreaterEqual(store.stale, 1)
+
+    def test_g58_budget_escalate_then_block(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G58 Budget Escalate Or Block]]
+        candidates = [{"path": f"src/{i}.ts", "tokens": 3000} for i in range(40)]
+        trimmed = budget_ctrl.trim_candidates(candidates + candidates, allowed_roots=["src"])
+        self.assertLess(len(trimmed), len(candidates) * 2)
+        decision = budget_ctrl.decide_budget(
+            work_item_id="g58",
+            repo_identity="repo",
+            governance_profile="LEAN",
+            candidates=candidates,
+        )
+        self.assertIn("LEAN_TO_FULL", decision.get("upgrades") or [])
+        blocked = budget_ctrl.decide_budget(
+            work_item_id="g58",
+            repo_identity="repo",
+            governance_profile="FULL",
+            candidates=[{"path": f"src/{i}.ts", "tokens": 50000} for i in range(200)],
+        )
+        self.assertEqual(blocked["status"], "BLOCKED")
+        self.assertEqual(blocked.get("error"), "CONTEXT_BUDGET_INSUFFICIENT")
+
+    def test_g59_install_fault_rollback_preserves_sibling(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G59 Install Rollback Sibling]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            self.assertEqual(self._frontend_audit(root, "--app", "work", "--apply").returncode, 0)
+            sibling = (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes()
+            _write(root, "AGENTS.md", "# Project policy\n")
+            for skill in ("code-review-and-quality", "verification-before-completion"):
+                _write(root, f".agents/skills/{skill}/SKILL.md", "# consumer-owned\n")
+            (root / ".cursor/skills").mkdir(parents=True, exist_ok=True)
+            shutil.copytree(ROOT / "domain-packs", root / ".agents/ges/domain-packs")
+            profile = json.loads((ROOT / "consumers/generic.json").read_text(encoding="utf-8"))
+            _write(root, ".agents/ges/profile.json", json.dumps(profile))
+            shutil.copytree(ROOT / "domain-runtime", root / ".agents/ges/domain-runtime")
+            shutil.copytree(ROOT / ".agents/skills", root / ".agents/skills", dirs_exist_ok=True)
+            _, loaded = installer.resolve_profile(root, None)
+            _, packs = installer.pack_context(loaded)
+            backup = root / ".smc" / "skill-upgrade-backups" / "g59"
+            backup.mkdir(parents=True)
+            records: dict = {}
+            installer._FINALIZATION_FAULT = "receipt"
+            try:
+                with self.assertRaises(RuntimeError):
+                    installer.build_install_lock(root, loaded, packs, records, backup)
+                installer.base.restore(root, backup, records)
+            finally:
+                installer._FINALIZATION_FAULT = None
+            self.assertFalse((root / ".smc/ges-install-lock.json").is_file())
+            self.assertFalse((root / ".smc/ges-install-receipt.json").is_file())
+            receipts = root / ".smc" / "ges-install-receipts"
+            if receipts.is_dir():
+                self.assertFalse(any(receipts.glob("*.json")))
+            self.assertFalse((root / ".agents/ges/frontend-runtime").exists())
+            self.assertEqual(
+                sibling,
+                (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes(),
+            )
+
+    def test_g60_telemetry_redacted(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G60 Telemetry Redacted]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            with self.assertRaises(ValueError):
+                telemetry.dispatch(
+                    plan,
+                    phase="IMPLEMENT",
+                    todo="T1",
+                    requested_tier="STANDARD",
+                    dispatch_id="g60-bad",
+                    agent="acc",
+                    prompt="secret prompt text",
+                )
+            telemetry.dispatch(
+                plan,
+                phase="IMPLEMENT",
+                todo="T1",
+                requested_tier="STANDARD",
+                dispatch_id="g60",
+                agent="acc",
+                cost_bucket="IMPLEMENT",
+                work_route_digest="sha256:route",
+                policy_digest="sha256:policy",
+                phase_allocated_tokens=100,
+                phase_actual_tokens=40,
+                context_cache_hits=1,
+                context_cache_misses=0,
+                context_cache_stale=0,
+                budget_upgrade_reason="LEAN_TO_FULL",
+            )
+            telemetry.result(
+                plan,
+                dispatch_id="g60",
+                actual_tier="STANDARD",
+                provider="test",
+                model="test-model",
+                outcome="ok",
+                retry_count=0,
+                latency_ms=1,
+                prompt_tokens=2,
+                completion_tokens=2,
+                cache_read_tokens=0,
+                cache_write_tokens=0,
+                cost_bucket="IMPLEMENT",
+            )
+            summary = telemetry.summarize(plan)
+            self.assertTrue(summary.get("complete"))
+            self.assertEqual(summary.get("work_route_digest"), "sha256:route")
+            self.assertEqual(summary.get("budget_upgrade_reason"), "LEAN_TO_FULL")
+            blob = json.dumps(summary)
+            self.assertNotIn("secret prompt", blob)
+            self.assertNotIn("password", blob)
+
     def test_uc_profile_gov_golden(self):
         # @lat: [[frontend-context#Acceptance G31–G42#UC-PROFILE-GOV Golden]]
         out = route(
@@ -946,7 +1215,7 @@ def main() -> int:
         "passed": result.wasSuccessful(),
         "tests": result.testsRun,
         "failures": len(result.failures) + len(result.errors),
-        "golden": "G01-G50",
+        "golden": "G01-G60",
         "chaos": True,
     }
     print(json.dumps(report, indent=2))
