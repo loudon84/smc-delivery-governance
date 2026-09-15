@@ -258,8 +258,8 @@
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/common.py",
-      "sha256": "61a4b14a208838ad02e435af28fcee8357f509080d88f6a0e0908ec46a55e323",
-      "size": 9741
+      "sha256": "eb3398d19871dc4c9b62e4766570c43009553986dfe704e512d9facc778a6866",
+      "size": 10766
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/completion_audit.py",
