@@ -175,3 +175,21 @@ def persist_closure(repo: Path, work_item_id: str, closure: dict[str, Any]) -> P
 def require_pass(closure: dict[str, Any]) -> None:
     if closure.get("status") not in {"PASS", "PASS_USAGE_UNAVAILABLE"}:
         raise ValueError(closure.get("error") or "STAGE_COST_CLOSURE_FAILED")
+
+
+def main() -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser(description="Stage cost closure gate")
+    ap.add_argument("plan", type=Path)
+    ap.add_argument("--stage", required=True, choices=sorted(STAGES))
+    ap.add_argument("--allow-observable", action="store_true")
+    ap.add_argument("--json", action="store_true")
+    a = ap.parse_args()
+    closure = evaluate_stage(plan=a.plan.resolve(), stage=a.stage, allow_observable=a.allow_observable)
+    print(json.dumps(closure, ensure_ascii=False, indent=2, sort_keys=True) if a.json else closure["status"])
+    return 0 if closure.get("status") in {"PASS", "PASS_USAGE_UNAVAILABLE"} else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

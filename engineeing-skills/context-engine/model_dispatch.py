@@ -407,3 +407,55 @@ def self_check_modules() -> dict[str, bool]:
         "stage_cost_closure": (HERE / "stage_cost_closure.py").is_file(),
         "harness_contract": (HERE / "harness_contract.py").is_file(),
     }
+
+
+def main() -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser(description="GES v5.0.9 model dispatch runtime")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    p = sub.add_parser("prepare")
+    p.add_argument("--work-item-id", required=True)
+    p.add_argument("--plan-id", default="")
+    p.add_argument("--todo-id", default="")
+    p.add_argument("--phase", default="IMPLEMENT")
+    p.add_argument("--governance-profile", default="FULL")
+    p.add_argument("--requested-tier", default="STANDARD")
+    p.add_argument("--agent-role", default="worker")
+    p.add_argument("--candidates-json", type=Path)
+    p.add_argument("--repo", type=Path)
+    p.add_argument("--review-depth", default="")
+    p.add_argument("--json", action="store_true")
+    p = sub.add_parser("self-check")
+    p.add_argument("--json", action="store_true")
+    a = ap.parse_args()
+    if a.cmd == "self-check":
+        out = self_check_modules()
+        print(json.dumps(out, indent=2) if a.json else out)
+        return 0 if all(out.values()) else 1
+    candidates = json.loads(a.candidates_json.read_text(encoding="utf-8")) if a.candidates_json else []
+    prepared = prepare_dispatch(
+        work_item_id=a.work_item_id,
+        plan_id=a.plan_id,
+        todo_id=a.todo_id,
+        phase=a.phase,
+        governance_profile=a.governance_profile,
+        requested_tier=a.requested_tier,
+        agent_role=a.agent_role,
+        candidates=candidates,
+        repo=a.repo.resolve() if a.repo else None,
+        review_depth=a.review_depth or None,
+    )
+    out = {
+        "dispatch": prepared["dispatch"],
+        "permit": prepared["permit"],
+        "envelope_digest": prepared["envelope"].get("content_digest"),
+        "budget_status": prepared["budget"].get("status"),
+        "cache": prepared["cache"],
+    }
+    print(json.dumps(out, ensure_ascii=False, indent=2, sort_keys=True) if a.json else out)
+    return 0 if prepared["permit"]["status"] == "PERMITTED" else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

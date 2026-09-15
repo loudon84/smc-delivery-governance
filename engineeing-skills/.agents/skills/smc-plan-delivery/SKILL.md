@@ -98,10 +98,26 @@ For each Todo:
 2. create/reuse content-bound Source Context Capsules;
 3. classify Engineering Method from structured Plan signals;
 4. dispatch minimum task brief, not entire Plan/history;
-5. execute TDD/debug policy when required;
-6. run focused checks and task review;
-7. verify method gates before controller marks Todo completed;
-8. assert workspace stability at Todo/resume boundaries.
+5. build the mandatory worker context envelope before model work;
+6. execute TDD/debug policy when required;
+7. run focused checks and task review;
+8. verify method gates before controller marks Todo completed;
+9. assert workspace stability at Todo/resume boundaries.
+
+## Worker cost closure (v5.0.9)
+
+Worker default input is Task Brief + Todo-owned envelope, never the full Plan:
+
+```bash
+python .agents/skills/smc-plan-delivery/scripts/execution_context.py worker-envelope "$PLAN_PATH" --todo T1 --json
+python .agents/ges/frontend-runtime/model_dispatch.py prepare --work-item-id <plan_id> --todo-id T1 --phase IMPLEMENT --json
+python .agents/ges/frontend-runtime/stage_cost_closure.py "$PLAN_PATH" --stage IMPLEMENTATION --json
+```
+
+- Envelope binds write/read paths, symbols, verification, engineering method, allowed roots, budget.
+- Reads outside `allowed_roots` → `WORKER_CONTEXT_SCOPE_VIOLATION`.
+- Root cause beyond scope → `DISCOVERY_ESCALATION_REQUESTED`; orchestrator recomputes the envelope.
+- Stage completion requires `stage_cost_closure` PASS / `PASS_USAGE_UNAVAILABLE`.
 
 Engineering files in `.smc/runs/<plan_id>/engineering` are working memory, not Final Evidence.
 TDD/debug event v2 binds Plan semantic hash + method epoch. The latest successful execution event

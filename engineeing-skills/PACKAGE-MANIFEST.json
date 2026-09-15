@@ -343,8 +343,8 @@
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/source_context.py",
-      "sha256": "3f3ac48a0555761ab062e10815d57e16b2cc9c68d532d5e3483e28196a9db7c4",
-      "size": 2576
+      "sha256": "2c51d67216b4bdc5de88f36a65215cdf4530177cf48e6ae159c53dff8dc23b58",
+      "size": 3664
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/test_assets.py",
@@ -403,8 +403,8 @@
     },
     {
       "path": ".agents/skills/smc-plan-delivery/SKILL.md",
-      "sha256": "b60cafa79b2654e086e06f8aad531bce372245fcf70ed33a8990d0441552728e",
-      "size": 6446
+      "sha256": "ce1f5097c13a511fcabe50cf2473cedf85760c13c70b15eb5d0db7bbd3280028",
+      "size": 7335
     },
     {
       "path": ".agents/skills/smc-plan-from-approved-prd-ponytail/references/plan-contract-v3.md",
@@ -483,8 +483,8 @@
     },
     {
       "path": ".agents/skills/smc-plan-from-approved-prd-ponytail/SKILL.md",
-      "sha256": "3c21ed686469f18de7ba236c973e4cd88ffcfa2747b33fb93ba189ba360e4e39",
-      "size": 3771
+      "sha256": "563e44c600e4ad244307bedf5c9102def2f68864bd2313e7b9703431df928a35",
+      "size": 4636
     },
     {
       "path": ".agents/skills/smc-plan-review/scripts/assess_plan_review.py",
@@ -503,8 +503,8 @@
     },
     {
       "path": ".agents/skills/smc-plan-review/SKILL.md",
-      "sha256": "ea753abb06a6e81f8e35bad47f984da6ddadbc65325fe6b05bdba4bcec880ddb",
-      "size": 1239
+      "sha256": "b9a2be9d650f587a16b40b7be8c59320cefbebe94f0e58eb395e71f03fe263ba",
+      "size": 1797
     },
     {
       "path": ".agents/skills/smc-plan-validator/scripts/validate_plan_current.py",
@@ -1263,8 +1263,8 @@
     },
     {
       "path": "context-engine/model_dispatch.py",
-      "sha256": "378f4b6aeb77acfe28996833202d99eafdf61ec2e66e35bab3a982c6c4d7427c",
-      "size": 15494
+      "sha256": "fa40674894f20d2b7168680f7f52e774d91c73088f4747da8d7f1aa673367bf2",
+      "size": 17528
     },
     {
       "path": "context-engine/policies/context-budget.v1.json",
@@ -1318,8 +1318,8 @@
     },
     {
       "path": "context-engine/stage_cost_closure.py",
-      "sha256": "a3fe30344e3f59fa4ced8c0a8558678cb04486e31b61f6beabbd6346d711f907",
-      "size": 7015
+      "sha256": "080168f20ced0eb708cdacfbe7a4f2dc202e3839d0c10af226d6b79b28fe0f02",
+      "size": 7731
     },
     {
       "path": "context-engine/token_budget.py",
