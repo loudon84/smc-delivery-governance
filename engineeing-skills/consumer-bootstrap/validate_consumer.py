@@ -231,23 +231,31 @@ def validate(project: Path) -> dict[str, Any]:
         )
     )
 
-    # Release governance: lock + receipt + governance-policy
+    # Release governance: lock + receipt + governance-policy (filesystem, not git)
+    from probe_install_identity import probe as probe_install_identity  # local import
+
+    identity = probe_install_identity(project)
     release_ok = (
-        C.exists_file(project, ".smc/ges-install-lock.json")
+        bool(identity.get("present", {}).get("lock"))
         and (
-            C.exists_file(project, ".smc/ges-install-receipt.json")
-            or (
-                (project / ".smc" / "ges-install-receipts").is_dir()
-                and any((project / ".smc" / "ges-install-receipts").glob("*.json"))
-            )
+            bool(identity.get("present", {}).get("receipt_pointer"))
+            or bool(identity.get("present", {}).get("receipt_full"))
         )
         and C.exists_file(project, ".agents/ges/governance-policy.json")
+    )
+    ri = identity.get("release_identity") or {}
+    release_detail = (
+        f"fs-proof bundle={identity.get('bundle')} "
+        f"slices={identity.get('feature_slices_inferred')} "
+        f"commit={ri.get('source_commit')} "
+        f"release_eligible={ri.get('release_eligible')} "
+        f"+ governance-policy.json"
     )
     checks.append(
         _row(
             "Release Governance",
             "PASS" if release_ok else "FAIL",
-            "install lock/receipt + governance-policy.json",
+            release_detail,
         )
     )
 

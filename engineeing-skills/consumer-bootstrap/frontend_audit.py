@@ -27,6 +27,8 @@ ADOPTION_SCHEMA = "smc.ges.frontend-adoption.v1"
 ADOPTION_REL = f"{C.FRONTEND_ROOT}/adoption-mode.json"
 ENFORCED_MARKER_REL = f"{C.FRONTEND_ROOT}/ENFORCED"
 REGISTRY_REL = f"{C.FRONTEND_ROOT}/apps-registry.json"
+CALIBRATION_REL = f"{C.FRONTEND_ROOT}/calibration-status.json"
+CALIBRATION_SCHEMA = "smc.ges.frontend-calibration.v1"
 
 
 def _load_adoption(project: Path) -> str:
@@ -64,6 +66,38 @@ def _write_adoption(project: Path, mode: str) -> Path:
         marker.write_text("ENFORCED\n", encoding="utf-8", newline="\n")
     elif marker.is_file():
         marker.unlink()
+    return path
+
+
+def _ensure_calibration_status(project: Path) -> Path:
+    """Ensure calibration marker exists; never downgrade ACCEPTED."""
+    path = C.bounded(project, CALIBRATION_REL)
+    existing: dict[str, Any] = {}
+    if path.is_file():
+        try:
+            existing = C.read_json(path)
+        except Exception:
+            existing = {}
+    status = str(existing.get("status") or "PENDING").upper()
+    if status != "ACCEPTED":
+        status = "PENDING"
+    C.dump_json(
+        path,
+        {
+            "schema": CALIBRATION_SCHEMA,
+            "status": status,
+            "updated_at": C.utc_now() if status != "ACCEPTED" else existing.get("updated_at") or C.utc_now(),
+            "note": (
+                "Generated Frontend Context baselines are discovery until status=ACCEPTED. "
+                "OBSERVE/GUIDED output is not Production SOT."
+            ),
+            "checklist": [
+                "Confirm Sidebar / Header / Workspace / Settings / Account / Navigation regions",
+                "Confirm identity_control surfaces match product UX (avatar/profile/logout)",
+                "Confirm shared UI packages are correctly classified (no business surfaces)",
+            ],
+        },
+    )
     return path
 
 
@@ -152,6 +186,8 @@ def audit(
     if apply:
         _write_adoption(project, adoption)
         applied.append(ADOPTION_REL)
+        _ensure_calibration_status(project)
+        applied.append(CALIBRATION_REL)
         # Discover + write full repository registry (never scoped-down)
         discovered = registry_mod.discover(project)
         applied.append(REGISTRY_REL)

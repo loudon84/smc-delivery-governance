@@ -215,6 +215,54 @@ class ContextEngineTests(unittest.TestCase):
         self.assertEqual(value, {"parsed": True})
         self.assertGreaterEqual(cache_mod._DEFAULT.hits, 2)
 
+    # @lat: [[frontend-context#Tests#Component scan excludes build artifacts]]
+    def test_component_scan_excludes_dist_and_uses_adapter_globs(self) -> None:
+        write(
+            self.r,
+            "apps/work/package.json",
+            json.dumps(
+                {
+                    "name": "work",
+                    "dependencies": {"react": "18.0.0", "electron": "28.0.0"},
+                    "devDependencies": {"electron-vite": "5.0.0"},
+                }
+            )
+            + "\n",
+        )
+        write(self.r, "apps/work/src/renderer/src/App.tsx", "export default function App(){return null}\n")
+        write(self.r, "apps/work/src/main/index.ts", "console.log('main')\n")
+        write(self.r, "apps/work/out/renderer/chunk.js", "console.log('built')\n")
+        write(self.r, "apps/work/dist/win/app.js", "console.log('dist')\n")
+        write(self.r, "apps/work/references/chatbox/src/renderer/App.tsx", "export default function Ref(){return null}\n")
+        registry_mod.discover(self.r)
+        ux_mod.generate_baseline(self.r, "work")
+        comps = json.loads(
+            (self.r / ".agents/ges/frontend/apps/work/component-registry.json").read_text(encoding="utf-8")
+        )["components"]
+        paths = [c["path"].replace("\\", "/") for c in comps]
+        self.assertTrue(any(p.endswith("src/renderer/src/App.tsx") for p in paths))
+        self.assertFalse(any("/out/" in p for p in paths))
+        self.assertFalse(any("/dist/" in p for p in paths))
+        self.assertFalse(any("/references/" in p for p in paths))
+        baseline = json.loads(
+            (self.r / ".agents/ges/frontend/apps/work/ui-baseline.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(baseline.get("provenance"), "generated")
+        self.assertEqual(baseline.get("calibration_status"), "PENDING")
+        # Unavailable must not become navigation via substring "nav"
+        write(self.r, "apps/work/src/renderer/src/UnavailableBanner.tsx", "export default function X(){return null}\n")
+        write(self.r, "apps/work/src/renderer/src/ProfileSwitcher.tsx", "export function ProfileSwitcher(){return null}\n")
+        ux_mod.generate_baseline(self.r, "work")
+        surfaces2 = json.loads(
+            (self.r / ".agents/ges/frontend/apps/work/surface-registry.json").read_text(encoding="utf-8")
+        )["surfaces"]
+        for s in surfaces2:
+            self.assertFalse(
+                s["owner"].replace("\\", "/").endswith("UnavailableBanner.tsx")
+                and s["ux_role"] == "navigation"
+            )
+        self.assertTrue(any("ProfileSwitcher" in s["owner"] for s in surfaces2))
+
     def test_work_scope_schema(self) -> None:
         write(
             self.r,

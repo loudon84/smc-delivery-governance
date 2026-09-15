@@ -1,5 +1,5 @@
 {
-  "file_count": 345,
+  "file_count": 347,
   "files": [
     {
       "path": ".agents/skills/executing-plans/SKILL.md",
@@ -1003,8 +1003,8 @@
     },
     {
       "path": "CHANGES-v5.0.7-frontend-context-scoped-install.md",
-      "sha256": "d121d3b72b73806cb63216b501f11706604e347930a809695caa709c2dce5c05",
-      "size": 1349
+      "sha256": "f0e7e261a28d1a597cdfe7ba027faf8756773cf3fb091e9ad94100852703e938",
+      "size": 1690
     },
     {
       "path": "consumer-baseline/code-review-and-quality/SKILL.md",
@@ -1033,13 +1033,18 @@
     },
     {
       "path": "consumer-bootstrap/frontend_audit.py",
-      "sha256": "30c849bf42b625e48488c91282a3df14b82917295c46d932207a80c8f9eb9a71",
-      "size": 12676
+      "sha256": "f1a2be0b2dd8b64b16ac4254e131d2e9fa8fb71bb512855aafe39e4c7f9b6b0d",
+      "size": 13835
     },
     {
       "path": "consumer-bootstrap/generate_remediation.py",
       "sha256": "9d9a38511e0adaf2a495df717e3d2537beb12d9cec719f396f88904e75e07c02",
       "size": 9093
+    },
+    {
+      "path": "consumer-bootstrap/probe_install_identity.py",
+      "sha256": "ccdd36687d032879f3956f2450defcc859fee5ab806ddf61932898eacbf9efea",
+      "size": 9066
     },
     {
       "path": "consumer-bootstrap/schemas/consumer-audit.v1.json",
@@ -1188,8 +1193,8 @@
     },
     {
       "path": "consumer-bootstrap/validate_consumer.py",
-      "sha256": "71b3009a9e23aa939250f5064927ec0ae568e7b57880bddc8c4b8835963d3528",
-      "size": 15234
+      "sha256": "e0c7d06b64502d533fe50fd72d951431b33ac14edce66a90c8f652ad17cebd73",
+      "size": 15567
     },
     {
       "path": "CONSUMER-INTEGRATION.md",
@@ -1278,8 +1283,8 @@
     },
     {
       "path": "context-engine/ux_context_resolver.py",
-      "sha256": "bced0ee378c205c503149dc6030341a3e3e7a0618cf34121c51c8960a3e73d0f",
-      "size": 21842
+      "sha256": "f7a9273cff8d52a20cd7296caa3690f36874af6555fcd0bdc5bb4b5949cfe633",
+      "size": 25492
     },
     {
       "path": "context-engine/work_scope.py",
@@ -1638,8 +1643,8 @@
     },
     {
       "path": "tests/test_context_engine.py",
-      "sha256": "bd2bc55cb082548e256d6ff12e33e6b948242838838c296d2cbfadcbc2d64886",
-      "size": 9344
+      "sha256": "60b5377962df12e55c42fc0b090d62885524bfb5a832b89768d6187cced17306",
+      "size": 11189
     },
     {
       "path": "tests/test_install_finalization.py",
@@ -1650,6 +1655,11 @@
       "path": "tests/test_install_greenfield.py",
       "sha256": "39c4cf4eed0e1c71bc075907a9e7c071c796645ed7d16851f2c568ba8eaa8cc4",
       "size": 3239
+    },
+    {
+      "path": "tests/test_install_identity_probe.py",
+      "sha256": "6e322a05ffd5d6efb57bc3ab6174180c83d12d797ea559d1f4ae698d6593afba",
+      "size": 3033
     },
     {
       "path": "tests/test_package_v500.py",

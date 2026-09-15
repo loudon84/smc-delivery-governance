@@ -32,7 +32,7 @@ Classifier 仅用 package.json / vite / electron / next / nuxt / vue 静态信�
 
 每个 App 在 `.agents/ges/frontend/apps/<app-id>/` 下生成独立 baseline 文件集，禁止共享 Surface Registry。
 
-产物含 app-profile、ui-baseline、surface-registry、layout-map、navigation-map、component-registry、state-owner-map、design-system、baseline.lock。扫描为静态规则，不调用 LLM。见 [[engineeing-skills/context-engine/ux_context_resolver.py#generate_baseline]]。
+产物含 app-profile、ui-baseline、surface-registry、layout-map、navigation-map、component-registry、state-owner-map、design-system、baseline.lock。扫描为静态规则，不调用 LLM；排除 `out/`/`dist/`/`references/` 等构建树，并优先按 stack adapter `component_globs` 收紧组件清单。`ui-baseline` 带 `provenance=generated` 与 `calibration_status=PENDING`，在人工校准前不是 Production SOT。见 [[engineeing-skills/context-engine/ux_context_resolver.py#generate_baseline]]。
 
 ## Surface Registry
 
@@ -257,3 +257,7 @@ Frontend Context Engine 单元测试覆盖发现、隔离、reuse gate、增量�
 ### Context cache hit
 
 验证相同 content_sha256 时 cache hit。
+
+### Component scan excludes build artifacts
+
+验证 component-registry 排除 `out/`/`dist/`/`references/`，并保留 adapter glob 命中的 `src/renderer` 源文件；ui-baseline 标记 `provenance=generated` 与 `calibration_status=PENDING`。

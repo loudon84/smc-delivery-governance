@@ -4,7 +4,8 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from pathlib import Path
+from fnmatch import fnmatch
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from frontend_app_registry import (
@@ -28,6 +29,28 @@ BASELINE_SCHEMA = "smc.ges.per-app-baseline.v1"
 APP_PROFILE_SCHEMA = "smc.ges.app-profile.v2"
 APP_PROFILE_SCHEMA_LEGACY = "smc.ges.app-profile.v1"
 FEATURE_SCOPE_SCHEMA = "smc.ges.feature-scope.v1"
+
+# Build/output/docs trees are never UX baseline sources.
+_SKIP_DIR_NAMES = frozenset(
+    {
+        "node_modules",
+        "dist",
+        "out",
+        "build",
+        "coverage",
+        ".git",
+        ".agents",
+        "references",
+        "wiki",
+        "__pycache__",
+        ".vite",
+        ".turbo",
+        ".next",
+        ".nuxt",
+    }
+)
+
+_PACKAGE_ADAPTERS = Path(__file__).resolve().parent.parent / "frontend-adapters"
 
 
 def _norm(rel: str) -> str:
@@ -69,12 +92,81 @@ def _iter_source_files(app_fs_root: Path) -> list[Path]:
         for path in app_fs_root.glob(pattern):
             if not path.is_file():
                 continue
-            if "node_modules" in path.parts or "__tests__" in path.parts:
+            if any(part in _SKIP_DIR_NAMES for part in path.parts):
                 continue
+            if "__tests__" in path.parts or "test" == path.parent.name:
+                # Keep src/**/test helpers out of component inventories when nested under */test/*
+                if path.parent.name == "test" and "src" in path.parts:
+                    continue
             if path.name.endswith((".d.ts", ".test.tsx", ".test.ts", ".spec.ts", ".spec.tsx")):
                 continue
             out.append(path)
     return sorted(out)
+
+
+def _load_adapter(repo: Path, stack_adapter: str) -> dict[str, Any] | None:
+    if not stack_adapter:
+        return None
+    for base in (repo / ".agents" / "ges" / "frontend-adapters", _PACKAGE_ADAPTERS):
+        path = base / stack_adapter / "adapter.json"
+        data = _read_json(path)
+        if data:
+            return data
+    return None
+
+
+def _matches_any_glob(rel: str, patterns: list[str]) -> bool:
+    norm = _norm(rel).lstrip("./")
+    posix = PurePosixPath(norm)
+    for pattern in patterns:
+        pat = _norm(pattern).lstrip("./")
+        if not pat:
+            continue
+        if posix.match(pat) or fnmatch(norm, pat):
+            return True
+        # Path.match is anchored; also allow repo-style apps/*/… against full rel
+        if "*" in pat and fnmatch(norm, pat):
+            return True
+    return False
+
+
+def _filter_by_adapter_globs(
+    repo: Path,
+    paths: list[Path],
+    *,
+    app_root: str,
+    stack_adapter: str,
+) -> list[Path]:
+    """Prefer adapter component_globs (+ renderer) when present; else keep all."""
+    adapter = _load_adapter(repo, stack_adapter)
+    if not adapter:
+        return paths
+    globs = list(adapter.get("component_globs") or [])
+    # Renderer trees are always in-scope for Electron/web UX inventories.
+    globs.extend(list(adapter.get("renderer") or []))
+    # Deduplicate while preserving order
+    seen: set[str] = set()
+    uniq: list[str] = []
+    for g in globs:
+        key = _norm(str(g))
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append(key)
+    if not uniq:
+        return paths
+    app_fs = (repo / app_root).resolve() if app_root not in {".", ""} else repo
+    out: list[Path] = []
+    for path in paths:
+        rel = _norm(str(path.relative_to(repo)))
+        try:
+            app_rel = _norm(str(path.relative_to(app_fs)))
+        except ValueError:
+            app_rel = rel
+        if _matches_any_glob(app_rel, uniq) or _matches_any_glob(rel, uniq):
+            out.append(path)
+    # Fail open: if adapter globs match nothing, keep boundary scan (minus excludes).
+    return out if out else paths
 
 
 def _path_under_roots(rel: str, roots: list[str]) -> bool:
@@ -137,11 +229,17 @@ def _infer_ux_role(path: Path, rel: str) -> str | None:
             return "identity_control"
     if "setting" in name:
         return "settings"
-    if "nav" in name or "sidebar" in name:
+    # Avoid substring false positives (e.g. "unavailable" contains "nav")
+    if re.search(r"(^|[^a-z])(nav|navbar|navigation)([^a-z]|$)", name) or "sidebar" in name:
         return "navigation"
     if "header" in name:
         return "chrome"
     return None
+
+
+def _ui_surface_paths(paths: list[Path]) -> list[Path]:
+    """Surface/layout inference only uses UI source files, never .ts helpers."""
+    return [p for p in paths if p.suffix.lower() in {".tsx", ".jsx", ".vue"}]
 
 
 def _visual_position(rel: str, name: str) -> str:
@@ -165,7 +263,7 @@ def _scan_surfaces(
 ) -> list[dict[str, Any]]:
     surfaces: list[dict[str, Any]] = []
     layout_owner: str | None = None
-    for path in _iter_boundary_files(repo, allowed_roots, forbidden_roots):
+    for path in _ui_surface_paths(_iter_boundary_files(repo, allowed_roots, forbidden_roots)):
         rel = _norm(str(path.relative_to(repo)))
         if re.match(r"layout.*\.(tsx|jsx|vue)$", path.name, re.I):
             layout_owner = rel
@@ -216,9 +314,16 @@ def _scan_components(
     repo: Path,
     allowed_roots: list[str],
     forbidden_roots: list[str],
+    *,
+    app_root: str = ".",
+    stack_adapter: str = "",
 ) -> list[dict[str, Any]]:
     comps: list[dict[str, Any]] = []
-    for path in _iter_boundary_files(repo, allowed_roots, forbidden_roots):
+    paths = _iter_boundary_files(repo, allowed_roots, forbidden_roots)
+    paths = _filter_by_adapter_globs(
+        repo, paths, app_root=app_root, stack_adapter=stack_adapter
+    )
+    for path in paths:
         rel = _norm(str(path.relative_to(repo)))
         comps.append({"name": path.stem, "path": rel})
     return comps
@@ -231,7 +336,7 @@ def _scan_layouts(
 ) -> dict[str, Any]:
     regions: dict[str, Any] = {}
     owner = None
-    for path in _iter_boundary_files(repo, allowed_roots, forbidden_roots):
+    for path in _ui_surface_paths(_iter_boundary_files(repo, allowed_roots, forbidden_roots)):
         rel = _norm(str(path.relative_to(repo)))
         if re.match(r"layout.*\.(tsx|jsx|vue)$", path.name, re.I):
             owner = rel
@@ -266,7 +371,13 @@ def generate_baseline(repo: str | Path, app_id: str) -> dict[str, Any]:
     allowed = list(boundary.get("allowed_roots") or [app_root])
     forbidden = list(boundary.get("forbidden_roots") or [])
     surfaces = _scan_surfaces(root, app_id, allowed, forbidden)
-    components = _scan_components(root, allowed, forbidden)
+    components = _scan_components(
+        root,
+        allowed,
+        forbidden,
+        app_root=app_root,
+        stack_adapter=str(classified.get("stack_adapter") or ""),
+    )
     layouts = _scan_layouts(root, allowed, forbidden)
 
     out_dir = _app_dir(root, app_id)
@@ -285,6 +396,8 @@ def generate_baseline(repo: str | Path, app_id: str) -> dict[str, Any]:
         "surface_count": len(surfaces),
         "component_count": len(components),
         "adoption_mode": "OBSERVE",
+        "provenance": "generated",
+        "calibration_status": "PENDING",
     }
     surface_registry = {
         "schema": SURFACE_SCHEMA,
