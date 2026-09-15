@@ -41,7 +41,7 @@ Install 之后用 [[consumer-bootstrap]] 做平台级 Audit / Gap / Remediation 
 
 v5.0.6 起 Consumer UX Baseline 落在 `.agents/ges/frontend/`（JSON only），由 `consumer-bootstrap/frontend_audit.py` 与 [[frontend-context]] 维护，不由 installer overlay 强制覆盖。
 
-路径约定：`apps-registry.json`、`apps/<app-id>/` baseline 文件集、`shared/shared-ui-registry.json`。默认 Adoption Mode 为 OBSERVE。
+路径约定：`apps-registry.json`、`apps/<app-id>/` baseline 文件集、`shared/shared-ui-registry.json`。默认 Adoption Mode 为 OBSERVE。v5.0.7 起 installer 另将运行时安装到 `.agents/ges/frontend-runtime/` 与 `.agents/ges/frontend-adapters/`（与数据目录分离），见 [[frontend-context#Frontend Runtime Delivery]]。
 
 ## Install Lock v2
 

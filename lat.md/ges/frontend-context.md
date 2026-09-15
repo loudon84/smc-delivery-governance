@@ -2,13 +2,25 @@
 
 Frontend Context System 为每个前端应用建立可复用的 UX Baseline，使 Feature 先 Resolve target app 与 Surface，再决定 REUSE/EXTEND，而不是全仓扫描。
 
-权威需求见 `docs/prd/PRD-GES-v5.0.6-Adaptive-Governance-Frontend-Context-System-Complete.md`。Consumer 数据根目录固定为 `.agents/ges/frontend/`（仅 JSON）。实现位于 [[engineeing-skills/context-engine/work_scope.py]] 与 `frontend-adapters/`。
+权威需求见 `docs/prd/PRD-GES-v5.0.6-Adaptive-Governance-Frontend-Context-System-Complete.md` 与 `docs/prd/PRD-GES-v5.0.7-Frontend-Context-Scoped-Install.md`。Consumer 数据根目录固定为 `.agents/ges/frontend/`（仅 JSON）。实现位于 [[engineeing-skills/context-engine/work_scope.py]] 与 `frontend-adapters/`。
 
 ## Frontend Application Registry
 
-Registry 发现 `apps/*`、`packages/*`、`src/renderer` 与单包 Electron，产出 `smc.ges.frontend-app-registry.v1`，并强制跨 App Surface 隔离。
+Registry 发现 `apps/*`、`packages/*`、`src/renderer` 与单包 Electron，产出 `smc.ges.frontend-app-registry.v2`（兼容读 v1），并强制跨 App Surface 隔离。
 
-写入 `.agents/ges/frontend/apps-registry.json`。`cross_app_surface_allowed` 对 Surface 恒为 false。见 [[engineeing-skills/context-engine/frontend_app_registry.py#discover]]。
+写入 `.agents/ges/frontend/apps-registry.json`，含 `repository` 与每条 app 的 `baseline_status`（INITIALIZED / NOT_INITIALIZED / STALE）。`cross_app_surface_allowed` 对 Surface 恒为 false。见 [[engineeing-skills/context-engine/frontend_app_registry.py#discover]]。
+
+## Scoped Install
+
+Scoped Install 允许 `frontend_audit.py --app` 只为选中应用写 Baseline，同时 registry 仍记录全部发现的应用。
+
+`--app work` / `apps/work` / `apps/work/` 归一到同一 `app_id`；未知标识返回 `FRONTEND_SCOPE_APP_UNKNOWN` 且零写入；兄弟应用既有 Baseline 不删不改。见 [[engineeing-skills/context-engine/frontend_app_registry.py#resolve_scope_identifiers]]、[[engineeing-skills/consumer-bootstrap/frontend_audit.py#audit]]。
+
+## Application Boundary
+
+`app-profile.json` 使用 `smc.ges.app-profile.v2`，声明 `boundary.allowed_roots` 与 `forbidden_roots`；扫描仅限 allowed，冲突时 forbidden 优先。
+
+缺 boundary 的 v1 profile 兼容读，并在下次 `--apply` 时按推导规则补写。见 [[engineeing-skills/context-engine/frontend_app_registry.py#derive_boundary]]、[[engineeing-skills/context-engine/ux_context_resolver.py#generate_baseline]]。
 
 ## Stack Classifier
 
@@ -42,9 +54,21 @@ Visual Intent Binder 生成 `smc.ges.visual-intent.v1`，绑定 keep/modify/hide
 
 ## Shared UI Registry
 
-`packages/ui` 与 `packages/*-ui` 归类为 shared-ui-library，只索引共享组件，不记录业务 Surface。
+`packages/ui`、`packages/*-ui` 以及 `packages/` 下最多 3 层嵌套（如 `packages/shared/ui`）归类为 shared-ui-library，只索引共享组件，不记录业务 Surface。
 
 同 Stack / Shared Package 允许 Component Reuse；跨 App 不自动 Surface Reuse。见 [[engineeing-skills/context-engine/frontend_app_registry.py#resolve_shared_components]]。
+
+## Feature Scope Pipeline
+
+Feature Scope 把 Application → Surface → Layout Owner → Component Reuse 固化为 `smc.ges.feature-scope.v1` 单一入口。
+
+四段结果必须存在；同应用默认 EXTEND，跨应用不复用 Surface。见 [[engineeing-skills/context-engine/ux_context_resolver.py#resolve_feature_scope]]。
+
+## Frontend Runtime Delivery
+
+Installer 将 `context-engine/` 与 `frontend-adapters/` 安装到 `.agents/ges/frontend-runtime/` 与 `.agents/ges/frontend-adapters/`，纳入 `owned_files` 可回滚。
+
+运行时代码由 installer 拥有；`.agents/ges/frontend/` 数据仍由 consumer-bootstrap 拥有，互不覆盖。见 [[engineeing-skills/install_v500.py#_install_frontend_runtime]]。
 
 ## Incremental Refresh
 
@@ -157,6 +181,44 @@ Acceptance corpus G31–G42 覆盖敏感读、logout wiring、硬边界、Surfac
 ### UC-PROFILE-GOV Golden
 
 验证 BOUNDED/LEAN 与 identity surface EXTEND 决策。
+
+## Acceptance G43–G50
+
+Acceptance corpus G43–G50 覆盖指定 scope 安装、标识归一、嵌套 Shared UI、应用边界、Frontend Runtime 交付与 Feature Scope 管线。
+
+实现：[[engineeing-skills/acceptance/run_acceptance.py]]。
+
+### G43 Scoped Init Single App
+
+验证双应用 monorepo 仅 `--app work --apply` 时只生成 work baseline，admin 为 NOT_INITIALIZED，registry 仍含两条。
+
+### G44 Scoped Init Idempotent
+
+验证同一 scope 连续两次 apply 后 surface-registry.json 字节一致。
+
+### G45 Scoped Init Preserves Siblings
+
+验证先 work 再 admin 时 work baseline 不被改写。
+
+### G46 Scope Identifier Normalization
+
+验证 `work` / `apps/work` / `apps/work/` 归一，以及未知标识 fail-closed 零写入。
+
+### G47 Nested Shared UI Discovery
+
+验证 `packages/shared/ui` 登记为 shared-ui-library 且不成为前端应用。
+
+### G48 Application Boundary Deny
+
+验证 work.boundary 禁止 apps/admin，且 surface-registry 不含 admin 路径。
+
+### G49 Frontend Runtime Installed
+
+验证安装后 frontend-runtime 与 frontend-adapters 存在且纳入 records/owned。
+
+### G50 Feature Scope Pipeline
+
+验证 resolve_feature_scope 四段齐全且决策为 EXTEND。
 
 ## Tests
 

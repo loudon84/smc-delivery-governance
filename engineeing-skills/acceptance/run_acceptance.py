@@ -660,6 +660,181 @@ class GoldenCorpus(unittest.TestCase):
             for key in buckets:
                 self.assertIn(key, summary["cost_buckets"])
 
+    def _seed_dual_apps(self, root: Path) -> None:
+        _write(
+            root,
+            "apps/work/package.json",
+            json.dumps({"name": "work", "dependencies": {"react": "18.0.0", "electron": "28.0.0"}}) + "\n",
+        )
+        _write(root, "apps/work/src/Layout.tsx", "export function Layout(){return null}\n")
+        _write(root, "apps/work/src/ProfileSwitcher.tsx", "export function ProfileSwitcher(){return null}\n")
+        _write(root, "apps/work/src/UserCenter.tsx", "export function UserCenter(){return null}\n")
+        _write(
+            root,
+            "apps/admin/package.json",
+            json.dumps({"name": "admin", "dependencies": {"vue": "3.4.0"}}) + "\n",
+        )
+        _write(root, "apps/admin/src/App.vue", "<template><div/></template>\n")
+        _write(root, "apps/admin/src/UserCenter.vue", "<template><div/></template>\n")
+
+    def _frontend_audit(self, root: Path, *extra: str) -> subprocess.CompletedProcess:
+        cmd = [sys.executable, str(ROOT / "consumer-bootstrap" / "frontend_audit.py"), str(root), *extra]
+        return subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
+
+    def test_g43_scoped_init_single_app(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G43 Scoped Init Single App]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            proc = self._frontend_audit(root, "--app", "work", "--apply")
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertTrue((root / ".agents/ges/frontend/apps/work/surface-registry.json").is_file())
+            self.assertFalse((root / ".agents/ges/frontend/apps/admin").exists())
+            reg = json.loads((root / ".agents/ges/frontend/apps-registry.json").read_text(encoding="utf-8"))
+            ids = {a["app_id"]: a for a in reg["apps"]}
+            self.assertIn("work", ids)
+            self.assertIn("admin", ids)
+            self.assertEqual(ids["work"]["baseline_status"], "INITIALIZED")
+            self.assertEqual(ids["admin"]["baseline_status"], "NOT_INITIALIZED")
+
+    def test_g44_scoped_init_idempotent(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G44 Scoped Init Idempotent]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            self.assertEqual(self._frontend_audit(root, "--app", "work", "--apply").returncode, 0)
+            p = root / ".agents/ges/frontend/apps/work/surface-registry.json"
+            first = p.read_bytes()
+            self.assertEqual(self._frontend_audit(root, "--app", "work", "--apply").returncode, 0)
+            second = p.read_bytes()
+            self.assertEqual(first, second)
+
+    def test_g45_scoped_init_preserves_siblings(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G45 Scoped Init Preserves Siblings]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            self.assertEqual(self._frontend_audit(root, "--app", "work", "--apply").returncode, 0)
+            work_surf = (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes()
+            self.assertEqual(self._frontend_audit(root, "--app", "admin", "--apply").returncode, 0)
+            self.assertTrue((root / ".agents/ges/frontend/apps/admin/surface-registry.json").is_file())
+            self.assertEqual(
+                work_surf,
+                (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes(),
+            )
+
+    def test_g46_scope_identifier_normalization(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G46 Scope Identifier Normalization]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            registry_mod.discover(root, persist=True)
+            a = registry_mod.resolve_scope_identifiers(root, ["work"])
+            b = registry_mod.resolve_scope_identifiers(root, ["apps/work"])
+            c = registry_mod.resolve_scope_identifiers(root, ["apps/work/"])
+            self.assertEqual(a, b)
+            self.assertEqual(b, c)
+            self.assertEqual(a, ["work"])
+            with self.assertRaises(ValueError) as ctx:
+                registry_mod.resolve_scope_identifiers(root, ["does-not-exist"])
+            self.assertIn("FRONTEND_SCOPE_APP_UNKNOWN", str(ctx.exception))
+            before = list((root / ".agents/ges/frontend").rglob("*")) if (root / ".agents/ges/frontend").exists() else []
+            proc = self._frontend_audit(root, "--app", "nope", "--apply")
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn("FRONTEND_SCOPE_APP_UNKNOWN", proc.stderr)
+            after = list((root / ".agents/ges/frontend").rglob("*")) if (root / ".agents/ges/frontend").exists() else []
+            self.assertEqual(len(before), len(after))
+
+    def test_g47_nested_shared_ui_discovery(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G47 Nested Shared UI Discovery]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            _write(
+                root,
+                "apps/work/package.json",
+                json.dumps({"name": "work", "dependencies": {"react": "18.0.0"}}) + "\n",
+            )
+            _write(root, "apps/work/src/App.tsx", "export default function App(){return null}\n")
+            _write(root, "packages/shared/ui/package.json", json.dumps({"name": "@smc/shared-ui"}) + "\n")
+            _write(root, "packages/shared/ui/Button.tsx", "export function Button(){return null}\n")
+            data = registry_mod.discover(root)
+            roots = [s["root"] for s in data.get("shared_ui") or []]
+            self.assertIn("packages/shared/ui", roots)
+            app_ids = [a["app_id"] for a in data.get("apps") or []]
+            self.assertNotIn("ui", app_ids)
+            self.assertNotIn("shared", app_ids)
+
+    def test_g48_application_boundary_deny(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G48 Application Boundary Deny]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            registry_mod.discover(root)
+            ux_mod.generate_baseline(root, "work")
+            profile = json.loads(
+                (root / ".agents/ges/frontend/apps/work/app-profile.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(profile["schema"], "smc.ges.app-profile.v2")
+            self.assertIn("apps/work", profile["boundary"]["allowed_roots"])
+            self.assertIn("apps/admin", profile["boundary"]["forbidden_roots"])
+            surf = json.loads(
+                (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_text(encoding="utf-8")
+            )
+            for s in surf.get("surfaces") or []:
+                self.assertNotIn("apps/admin", str(s.get("owner") or ""))
+
+    def test_g49_frontend_runtime_installed(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G49 Frontend Runtime Installed]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            _write(root, "AGENTS.md", "# policy\n")
+            for name in ("code-review-and-quality", "verification-before-completion"):
+                _write(root, f".agents/skills/{name}/SKILL.md", f"---\nname: {name}\n---\n# stub\n")
+            # Minimal profile + domain packs via install_metadata path
+            backup = root / ".smc" / "skill-upgrade-backups" / "g49"
+            backup.mkdir(parents=True)
+            records: dict = {}
+            _, profile = installer.resolve_profile(root, "generic")
+            _, selected = installer.pack_context(profile)
+            installer.install_metadata(root, profile, selected, backup, records)
+            self.assertTrue((root / ".agents/ges/frontend-runtime/frontend_app_registry.py").is_file())
+            self.assertTrue((root / ".agents/ges/frontend-adapters/react-web/adapter.json").is_file())
+            owned = [
+                r
+                for r in records
+                if str(r).replace("\\", "/").startswith(".agents/ges/frontend-runtime/")
+                or str(r).replace("\\", "/").startswith(".agents/ges/frontend-adapters/")
+            ]
+            self.assertTrue(owned)
+
+    def test_g50_feature_scope_pipeline(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G50 Feature Scope Pipeline]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            registry_mod.discover(root)
+            ux_mod.generate_baseline(root, "work")
+            result = ux_mod.resolve_feature_scope(
+                root,
+                app_id="work",
+                ux_role="identity_control",
+                component_name="ProfileSwitcher",
+            )
+            self.assertEqual(result["schema"], "smc.ges.feature-scope.v1")
+            for key in ("application", "surface", "layout_owner", "component_reuse"):
+                self.assertIn(key, result)
+                self.assertIsNotNone(result[key])
+            self.assertEqual(result["decision"], "EXTEND")
+            self.assertTrue(result["ok"])
+
     def test_uc_profile_gov_golden(self):
         # @lat: [[frontend-context#Acceptance G31–G42#UC-PROFILE-GOV Golden]]
         out = route(
@@ -771,7 +946,7 @@ def main() -> int:
         "passed": result.wasSuccessful(),
         "tests": result.testsRun,
         "failures": len(result.failures) + len(result.errors),
-        "golden": "G01-G42",
+        "golden": "G01-G50",
         "chaos": True,
     }
     print(json.dumps(report, indent=2))

@@ -131,28 +131,47 @@ def audit(
     *,
     mode: str | None = None,
     apply: bool = False,
+    app_specs: list[str] | None = None,
 ) -> dict[str, Any]:
     # @lat: [[consumer-bootstrap#Frontend Audit]]
+    # @lat: [[frontend-context#Scoped Install]]
     project = project.resolve()
     adoption = (mode or _load_adoption(project)).upper()
     if adoption not in ADOPTION_MODES:
         raise ValueError(f"FRONTEND_ADOPTION_MODE_INVALID: {adoption}")
 
+    # Resolve scope before any writes (fail-closed, zero writes on unknown)
+    selected_ids: list[str] | None = None
+    if app_specs:
+        try:
+            selected_ids = registry_mod.resolve_scope_identifiers(project, app_specs)
+        except ValueError as exc:
+            raise ValueError(str(exc)) from exc
+
     applied: list[str] = []
     if apply:
         _write_adoption(project, adoption)
         applied.append(ADOPTION_REL)
-        # Discover + write registry, then per-app baselines.
+        # Discover + write full repository registry (never scoped-down)
         discovered = registry_mod.discover(project)
         applied.append(REGISTRY_REL)
-        for app in discovered.get("apps") or []:
+        apps = list(discovered.get("apps") or [])
+        targets = apps
+        if selected_ids is not None:
+            wanted = set(selected_ids)
+            targets = [a for a in apps if a.get("app_id") in wanted]
+        for app in targets:
             app_id = str(app.get("app_id") or "")
             if not app_id:
                 continue
             ux_mod.generate_baseline(project, app_id)
             applied.append(f"{C.FRONTEND_ROOT}/apps/{app_id}/")
+        # Shared UI always refreshed on any scoped or full apply
         registry_mod.resolve_shared_components(project)
+        # Force rewrite shared registry even if already present
+        registry_mod.discover(project)
         applied.append(f"{C.FRONTEND_ROOT}/shared/shared-ui-registry.json")
+        registry_mod.refresh_baseline_statuses(project)
 
     scan = _scan(project)
     # Prefer loaded registry after apply / existing install.
@@ -174,6 +193,12 @@ def audit(
         if adapter and not _adapter_available(adapter):
             missing.append(f"adapter:{adapter}")
 
+    not_initialized = [
+        str(a.get("app_id"))
+        for a in app_list
+        if a.get("baseline_status") == "NOT_INITIALIZED" and a.get("app_id")
+    ]
+
     layer_present = 1 if registry_present else 0
     layer_total = 1
     verdict = C.layer_verdict(layer_present, layer_total)
@@ -187,6 +212,8 @@ def audit(
         "adoption_mode": adoption,
         "applied": apply,
         "applied_paths": applied if apply else [],
+        "scope_apps": selected_ids,
+        "not_initialized_apps": not_initialized,
         "ok": bool(registry_present) or adoption == "OBSERVE",
         "layers": {
             "static_scan": {
@@ -282,13 +309,27 @@ def main() -> int:
         action="store_true",
         help="write registry + per-app baselines (dry-run by default)",
     )
+    ap.add_argument(
+        "--app",
+        action="append",
+        dest="apps",
+        default=None,
+        help="target app_id or path (repeatable); omit for full-repo apply",
+    )
     ap.add_argument("--json", action="store_true", help="print JSON to stdout")
     a = ap.parse_args()
     project = a.repo.resolve()
     if not (project / ".git").exists():
         print("FRONTEND_AUDIT_FAILED: TARGET_NOT_GIT_REPO", file=sys.stderr)
         return 2
-    report = audit(project, mode=a.mode, apply=a.apply)
+    try:
+        report = audit(project, mode=a.mode, apply=a.apply, app_specs=a.apps)
+    except ValueError as exc:
+        msg = str(exc)
+        print(msg, file=sys.stderr)
+        if msg.startswith("FRONTEND_SCOPE_APP_UNKNOWN"):
+            return 2
+        return 1
     jp, mp = write_reports(project, report)
     print(f"FRONTEND_AUDIT_JSON: {jp}")
     print(f"FRONTEND_AUDIT_MD: {mp}")
@@ -296,10 +337,14 @@ def main() -> int:
         print(json.dumps(report, indent=2, ensure_ascii=False))
     else:
         fc = report["layers"]["frontend_context"]
+        scope = ",".join(report.get("scope_apps") or []) or "(all)"
         print(
             f"frontend_context: {fc['verdict']} "
-            f"mode={report['adoption_mode']} apps={len(report['scan']['apps'])}"
+            f"mode={report['adoption_mode']} apps={len(report['scan']['apps'])} "
+            f"scope={scope}"
         )
+        if report.get("not_initialized_apps"):
+            print("not_initialized:", ",".join(report["not_initialized_apps"]))
         print("OVERALL:", "PASS" if report["ok"] else "GAPS")
     return 0 if report["ok"] else 1
 

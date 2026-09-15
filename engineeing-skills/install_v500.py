@@ -121,16 +121,39 @@ def record_before(project, target, backup, records):
 _previous_metadata = base.install_ges_metadata
 
 
+def _install_frontend_runtime(project, backup, records) -> int:
+    """Deliver context-engine + frontend-adapters into consumer (C25). Never writes frontend data dir."""
+    # @lat: [[frontend-context#Frontend Runtime Delivery]]
+    installed = project / ".agents/ges"
+    count = 0
+    ctx_src = PACKAGE_ROOT / "context-engine"
+    adapters_src = PACKAGE_ROOT / "frontend-adapters"
+    if ctx_src.is_dir():
+        count += base.copy_tree(
+            project, ctx_src, installed / "frontend-runtime", backup, records
+        )
+    if adapters_src.is_dir():
+        count += base.copy_tree(
+            project, adapters_src, installed / "frontend-adapters", backup, records
+        )
+    return count
+
+
 def install_metadata(project, profile, selected, backup, records):
     # @lat: [[install#Transactional Overlay]]
     # Preserve an in-place profile when reinstalling without --profile, but always
     # repair if profile.json or domain-packs/registry.json is missing (partial overlay).
+    # Frontend runtime/adapters are always refreshed (installer-owned, sibling of domain-runtime).
     installed = project / ".agents/ges"
     profile_ok = (installed / "profile.json").is_file()
     registry_ok = (installed / "domain-packs" / "registry.json").is_file()
+    count = 0
     if SELECTOR is None and profile_ok and registry_ok:
-        return base.copy_tree(project, base.DOMAIN_RUNTIME, installed / "domain-runtime", backup, records)
-    return _previous_metadata(project, profile, selected, backup, records)
+        count += base.copy_tree(project, base.DOMAIN_RUNTIME, installed / "domain-runtime", backup, records)
+    else:
+        count += _previous_metadata(project, profile, selected, backup, records)
+    count += _install_frontend_runtime(project, backup, records)
+    return count
 
 
 _previous_commands = base.validation_commands

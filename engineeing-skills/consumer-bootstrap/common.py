@@ -64,6 +64,8 @@ FORBIDDEN_WRITE_RELS = frozenset(
     {
         ".specify/spec.md",
         ".agents/ges/profile.json",  # installer-owned
+        ".agents/ges/frontend-runtime",  # installer-owned (C25)
+        ".agents/ges/frontend-adapters",  # installer-owned (C25)
     }
 )
 

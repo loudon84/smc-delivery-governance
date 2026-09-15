@@ -26,5 +26,7 @@
   "consumer_profile_contract": "smc.ges.consumer-profile.v3",
   "context_engine": "context-engine/",
   "frontend_adapters": "frontend-adapters/",
-  "frontend_context_root": ".agents/ges/frontend"
+  "frontend_context_root": ".agents/ges/frontend",
+  "frontend_runtime_install": ".agents/ges/frontend-runtime",
+  "frontend_adapters_install": ".agents/ges/frontend-adapters"
 }

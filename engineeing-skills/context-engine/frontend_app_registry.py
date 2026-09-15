@@ -7,11 +7,14 @@ from typing import Any
 
 from stack_classifier import classify
 
-SCHEMA = "smc.ges.frontend-app-registry.v1"
+SCHEMA = "smc.ges.frontend-app-registry.v2"
+SCHEMA_LEGACY = "smc.ges.frontend-app-registry.v1"
+ALLOWED_SCHEMAS = frozenset({SCHEMA, SCHEMA_LEGACY})
 SHARED_SCHEMA = "smc.ges.shared-ui-registry.v1"
 FRONTEND_ROOT = Path(".agents") / "ges" / "frontend"
 APPS_REGISTRY_REL = FRONTEND_ROOT / "apps-registry.json"
 SHARED_REGISTRY_REL = FRONTEND_ROOT / "shared" / "shared-ui-registry.json"
+BASELINE_STATUSES = frozenset({"INITIALIZED", "NOT_INITIALIZED", "STALE"})
 
 _FRONTEND_MARKERS = (
     "package.json",
@@ -32,7 +35,7 @@ _FRONTEND_MARKERS = (
 
 
 def _norm(rel: str) -> str:
-    return rel.replace("\\", "/")
+    return rel.replace("\\", "/").rstrip("/")
 
 
 def _write_json(path: Path, data: dict[str, Any]) -> None:
@@ -73,6 +76,26 @@ def _pkg_name(repo: Path, app_root: Path) -> str | None:
     return None
 
 
+def _repository_name(repo: Path) -> str:
+    return _pkg_name(repo, repo) or repo.name
+
+
+def _baseline_dir(repo: Path, app_id: str) -> Path:
+    return repo / FRONTEND_ROOT / "apps" / app_id
+
+
+def _detect_baseline_status(repo: Path, app_id: str) -> str:
+    app_dir = _baseline_dir(repo, app_id)
+    required = ("app-profile.json", "ui-baseline.json", "surface-registry.json")
+    if not all((app_dir / name).is_file() for name in required):
+        return "NOT_INITIALIZED"
+    lock = _read_json(app_dir / "baseline.lock") or _read_json(app_dir / "baseline.lock.json")
+    status = str((lock or {}).get("status") or "FRESH").upper()
+    if status in {"STALE", "DEPENDENCY_STALE"}:
+        return "STALE"
+    return "INITIALIZED"
+
+
 def _app_entry(repo: Path, app_id: str, root_rel: str) -> dict[str, Any]:
     classified = classify(repo, root_rel)
     return {
@@ -81,24 +104,61 @@ def _app_entry(repo: Path, app_id: str, root_rel: str) -> dict[str, Any]:
         "runtime": classified["runtime"],
         "framework": classified["framework"],
         "stack_adapter": classified["stack_adapter"],
+        "baseline_status": _detect_baseline_status(repo, app_id),
     }
 
 
-def _discover_shared_ui(repo: Path) -> list[dict[str, Any]]:
+def _shared_ui_roots(repo: Path) -> set[str]:
     packages = repo / "packages"
-    found: list[dict[str, Any]] = []
+    candidates: list[str] = []
     if not packages.is_dir():
-        return found
-    for child in sorted(packages.iterdir()):
-        if not child.is_dir() or child.name.startswith("."):
+        return set()
+
+    def walk(current: Path, depth: int) -> None:
+        if depth > 3:
+            return
+        try:
+            children = sorted(current.iterdir())
+        except OSError:
+            return
+        for child in children:
+            if not child.is_dir() or child.name.startswith(".") or child.name == "node_modules":
+                continue
+            rel_depth = len(Path(_norm(str(child.relative_to(packages)))).parts)
+            if rel_depth > 3:
+                continue
+            if _is_shared_ui_name(child.name):
+                candidates.append(_norm(str(child.relative_to(repo))))
+            walk(child, depth + 1)
+
+    walk(packages, 1)
+    # Prefer deepest path when parent/child both match (packages/ui vs packages/ui/nested-ui)
+    keep: set[str] = set()
+    for root in sorted(candidates, key=lambda r: (-len(Path(r).parts), r)):
+        # Skip shallower ancestor of an already-kept deeper root
+        if any(other != root and other.startswith(root.rstrip("/") + "/") for other in keep):
             continue
-        if not _is_shared_ui_name(child.name):
-            continue
-        components = _scan_shared_components(repo, child)
+        # Drop any already-kept shallower ancestors of this root
+        keep = {k for k in keep if not (k != root and root.startswith(k.rstrip("/") + "/"))}
+        keep.add(root)
+    return keep
+
+
+# @lat: [[frontend-context#Shared UI Registry]]
+def _discover_shared_ui(repo: Path) -> list[dict[str, Any]]:
+    """Discover shared UI under packages/ up to 3 levels deep (C22)."""
+    found: list[dict[str, Any]] = []
+    for root_rel in sorted(_shared_ui_roots(repo)):
+        pkg_root = repo / root_rel
+        package_id = Path(root_rel).name
+        # Disambiguate nested packages that share the leaf name "ui"
+        if root_rel.count("/") > 1:
+            package_id = _norm(root_rel).replace("/", "-")
+        components = _scan_shared_components(repo, pkg_root)
         found.append(
             {
-                "package_id": child.name,
-                "root": _norm(str(child.relative_to(repo))),
+                "package_id": package_id,
+                "root": root_rel,
                 "kind": "shared-ui-library",
                 "components": components,
             }
@@ -135,17 +195,25 @@ def _scan_shared_components(repo: Path, pkg_root: Path) -> list[dict[str, Any]]:
     return components
 
 
+def _shared_root_set(shared: list[dict[str, Any]]) -> set[str]:
+    return {_norm(str(s.get("root") or "")) for s in shared if s.get("root")}
+
+
 # @lat: [[frontend-context#Frontend Application Registry]]
 def discover(repo: str | Path, *, persist: bool = True) -> dict[str, Any]:
     """Discover frontend apps and shared UI packages under a consumer repo."""
     root = Path(repo).resolve()
     apps: list[dict[str, Any]] = []
     seen_roots: set[str] = set()
+    shared = _discover_shared_ui(root)
+    shared_roots = _shared_root_set(shared)
 
     def add_app(app_id: str, root_rel: str) -> None:
         key = _norm(root_rel)
         if key in seen_roots:
             return
+        if key in shared_roots:
+            return  # shared UI packages are never registered as apps
         seen_roots.add(key)
         apps.append(_app_entry(root, app_id, key))
 
@@ -158,16 +226,19 @@ def discover(repo: str | Path, *, persist: bool = True) -> dict[str, Any]:
             if _looks_frontend(child) or (child / "src").is_dir():
                 add_app(child.name, str(child.relative_to(root)))
 
-    # packages/* frontend apps (exclude shared UI)
+    # packages/* frontend apps (exclude shared UI at any nested depth)
     packages_dir = root / "packages"
     if packages_dir.is_dir():
         for child in sorted(packages_dir.iterdir()):
             if not child.is_dir() or child.name.startswith("."):
                 continue
+            rel = _norm(str(child.relative_to(root)))
+            if rel in shared_roots or any(rel == s or s.startswith(rel + "/") for s in shared_roots):
+                continue
             if _is_shared_ui_name(child.name):
                 continue
             if _looks_frontend(child):
-                add_app(child.name, str(child.relative_to(root)))
+                add_app(child.name, rel)
 
     # Single-package electron: src/renderer (+ optional src/main)
     renderer = root / "src" / "renderer"
@@ -175,17 +246,14 @@ def discover(repo: str | Path, *, persist: bool = True) -> dict[str, Any]:
         pkg_name = _pkg_name(root, root) or "desktop"
         add_app(pkg_name, "src/renderer")
 
-    # Electron main alone does not create a second app; fold into existing if present
-    # Already covered by renderer discovery for single-package.
-
     # Root single-package SPA (no apps/, no src/renderer)
     if not apps and _looks_frontend(root):
         pkg_name = _pkg_name(root, root) or "app"
         add_app(pkg_name, ".")
 
-    shared = _discover_shared_ui(root)
     data = {
         "schema": SCHEMA,
+        "repository": _repository_name(root),
         "apps": apps,
         "shared_ui": [{"package_id": s["package_id"], "root": s["root"], "kind": s["kind"]} for s in shared],
     }
@@ -200,8 +268,24 @@ def discover(repo: str | Path, *, persist: bool = True) -> dict[str, Any]:
 
 
 def load_registry(repo: str | Path) -> dict[str, Any] | None:
+    """Load apps-registry; accept v1 and v2 schemas (C21 compatibility)."""
     root = Path(repo).resolve()
-    return _read_json(root / APPS_REGISTRY_REL)
+    data = _read_json(root / APPS_REGISTRY_REL)
+    if not data:
+        return None
+    schema = data.get("schema")
+    if schema not in ALLOWED_SCHEMAS and schema is not None:
+        return data  # still return; callers may inspect
+    # Soft-upgrade in memory for v1 payloads
+    if schema == SCHEMA_LEGACY or "repository" not in data:
+        data = dict(data)
+        data.setdefault("repository", _repository_name(root))
+        data["schema"] = SCHEMA
+        for app in data.get("apps") or []:
+            if isinstance(app, dict) and "baseline_status" not in app:
+                app_id = str(app.get("app_id") or "")
+                app["baseline_status"] = _detect_baseline_status(root, app_id) if app_id else "NOT_INITIALIZED"
+    return data
 
 
 def save_registry(repo: str | Path, data: dict[str, Any]) -> Path:
@@ -209,11 +293,99 @@ def save_registry(repo: str | Path, data: dict[str, Any]) -> Path:
     path = root / APPS_REGISTRY_REL
     payload = dict(data)
     payload.setdefault("schema", SCHEMA)
+    payload.setdefault("repository", _repository_name(root))
+    for app in payload.get("apps") or []:
+        if isinstance(app, dict) and "baseline_status" not in app:
+            app_id = str(app.get("app_id") or "")
+            app["baseline_status"] = _detect_baseline_status(root, app_id) if app_id else "NOT_INITIALIZED"
     _write_json(path, payload)
     return path
 
 
-# @lat: [[frontend-context#Shared UI Registry]]
+def refresh_baseline_statuses(repo: str | Path) -> dict[str, Any] | None:
+    """Recompute baseline_status for all apps and persist registry."""
+    root = Path(repo).resolve()
+    data = load_registry(root)
+    if not data:
+        return None
+    for app in data.get("apps") or []:
+        app_id = str(app.get("app_id") or "")
+        if app_id:
+            app["baseline_status"] = _detect_baseline_status(root, app_id)
+    data["schema"] = SCHEMA
+    save_registry(root, data)
+    return data
+
+
+def resolve_scope_identifiers(repo: str | Path, specs: list[str] | None) -> list[str]:
+    """Normalize --app work / apps/work / apps/work/ to app_id list.
+
+    Raises ValueError with FRONTEND_SCOPE_APP_UNKNOWN when any spec cannot be resolved.
+    """
+    # @lat: [[frontend-context#Scoped Install]]
+    root = Path(repo).resolve()
+    registry = load_registry(root) or discover(root, persist=False)
+    apps = list(registry.get("apps") or [])
+    if not specs:
+        return [str(a.get("app_id")) for a in apps if a.get("app_id")]
+
+    by_id = {str(a.get("app_id")): a for a in apps if a.get("app_id")}
+    by_root = {_norm(str(a.get("root") or "")): str(a.get("app_id")) for a in apps if a.get("app_id")}
+    resolved: list[str] = []
+    seen: set[str] = set()
+    for raw in specs:
+        spec = _norm(str(raw or "").strip())
+        if not spec:
+            raise ValueError("FRONTEND_SCOPE_APP_UNKNOWN: empty")
+        app_id: str | None = None
+        if spec in by_id:
+            app_id = spec
+        elif spec in by_root:
+            app_id = by_root[spec]
+        else:
+            # strip leading apps/ variants already covered by by_root; also try basename
+            base = Path(spec).name
+            if base in by_id:
+                app_id = base
+            elif f"apps/{base}" in by_root:
+                app_id = by_root[f"apps/{base}"]
+        if not app_id:
+            raise ValueError(f"FRONTEND_SCOPE_APP_UNKNOWN: {raw}")
+        if app_id not in seen:
+            seen.add(app_id)
+            resolved.append(app_id)
+    return resolved
+
+
+def derive_boundary(
+    repo: str | Path,
+    app_id: str,
+    *,
+    registry: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Derive allowed_roots / forbidden_roots for an app (C24)."""
+    root = Path(repo).resolve()
+    data = registry or load_registry(root) or discover(root, persist=False)
+    app = next((a for a in (data.get("apps") or []) if a.get("app_id") == app_id), None)
+    if not app:
+        raise KeyError(f"unknown app_id: {app_id}")
+    app_root = _norm(str(app.get("root") or "."))
+    allowed = [app_root] if app_root else ["."]
+    for shared in data.get("shared_ui") or []:
+        shared_root = _norm(str(shared.get("root") or ""))
+        if shared_root and shared_root not in allowed:
+            allowed.append(shared_root)
+    forbidden: list[str] = []
+    for other in data.get("apps") or []:
+        other_id = str(other.get("app_id") or "")
+        other_root = _norm(str(other.get("root") or ""))
+        if other_id and other_id != app_id and other_root and other_root not in {".", ""}:
+            forbidden.append(other_root)
+    # Forbidden wins on conflict
+    allowed = [a for a in allowed if a not in forbidden]
+    return {"allowed_roots": allowed, "forbidden_roots": forbidden}
+
+
 def resolve_shared_components(repo: str | Path) -> dict[str, Any]:
     """Load or discover shared UI component registry (no business surfaces)."""
     root = Path(repo).resolve()
@@ -319,8 +491,10 @@ def is_shared_ui_path(repo: str | Path, rel_path: str) -> bool:
         shared_root = _norm(str(shared.get("root") or ""))
         if shared_root and (norm == shared_root or norm.startswith(shared_root.rstrip("/") + "/")):
             return True
-    # fallback pattern
+    # fallback pattern for nested packages/*/ui
     parts = Path(norm).parts
-    if len(parts) >= 2 and parts[0] == "packages" and _is_shared_ui_name(parts[1]):
-        return True
+    if len(parts) >= 2 and parts[0] == "packages":
+        for part in parts[1:4]:
+            if _is_shared_ui_name(part):
+                return True
     return False

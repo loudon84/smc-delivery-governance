@@ -9,10 +9,13 @@ from typing import Any
 
 from frontend_app_registry import (
     FRONTEND_ROOT,
+    component_reuse_automatic,
+    derive_boundary,
     discover,
     find_app_for_path,
     is_shared_ui_path,
     load_registry,
+    refresh_baseline_statuses,
     resolve_shared_components,
 )
 from stack_classifier import classify
@@ -22,6 +25,9 @@ UX_SURFACE_REUSE_REQUIRED = "UX_SURFACE_REUSE_REQUIRED"
 VISUAL_SCHEMA = "smc.ges.visual-intent.v1"
 SURFACE_SCHEMA = "smc.ges.surface-registry.v1"
 BASELINE_SCHEMA = "smc.ges.per-app-baseline.v1"
+APP_PROFILE_SCHEMA = "smc.ges.app-profile.v2"
+APP_PROFILE_SCHEMA_LEGACY = "smc.ges.app-profile.v1"
+FEATURE_SCOPE_SCHEMA = "smc.ges.feature-scope.v1"
 
 
 def _norm(rel: str) -> str:
@@ -71,6 +77,42 @@ def _iter_source_files(app_fs_root: Path) -> list[Path]:
     return sorted(out)
 
 
+def _path_under_roots(rel: str, roots: list[str]) -> bool:
+    norm = _norm(rel)
+    for root in roots:
+        r = _norm(root)
+        if r in {".", ""}:
+            continue
+        if norm == r or norm.startswith(r.rstrip("/") + "/"):
+            return True
+    return False
+
+
+def _iter_boundary_files(
+    repo: Path,
+    allowed_roots: list[str],
+    forbidden_roots: list[str],
+) -> list[Path]:
+    """Scan only allowed_roots; forbidden wins on conflict (C24)."""
+    out: list[Path] = []
+    seen: set[str] = set()
+    for root_rel in allowed_roots:
+        if _path_under_roots(root_rel, forbidden_roots):
+            continue
+        fs = (repo / root_rel).resolve() if root_rel not in {".", ""} else repo
+        for path in _iter_source_files(fs):
+            rel = _norm(str(path.relative_to(repo)))
+            if _path_under_roots(rel, forbidden_roots):
+                continue
+            if not _path_under_roots(rel, allowed_roots) and root_rel not in {".", ""}:
+                continue
+            if rel in seen:
+                continue
+            seen.add(rel)
+            out.append(path)
+    return sorted(out)
+
+
 def _infer_ux_role(path: Path, rel: str) -> str | None:
     name = path.name.lower()
     text_bits = f"{name} {rel.lower()}"
@@ -115,11 +157,15 @@ def _visual_position(rel: str, name: str) -> str:
     return "workspace"
 
 
-def _scan_surfaces(repo: Path, app_id: str, app_root_rel: str) -> list[dict[str, Any]]:
-    app_fs = (repo / app_root_rel).resolve() if app_root_rel not in {".", ""} else repo
+def _scan_surfaces(
+    repo: Path,
+    app_id: str,
+    allowed_roots: list[str],
+    forbidden_roots: list[str],
+) -> list[dict[str, Any]]:
     surfaces: list[dict[str, Any]] = []
     layout_owner: str | None = None
-    for path in _iter_source_files(app_fs):
+    for path in _iter_boundary_files(repo, allowed_roots, forbidden_roots):
         rel = _norm(str(path.relative_to(repo)))
         if re.match(r"layout.*\.(tsx|jsx|vue)$", path.name, re.I):
             layout_owner = rel
@@ -166,20 +212,26 @@ def _scan_surfaces(repo: Path, app_id: str, app_root_rel: str) -> list[dict[str,
     return list(by_id.values())
 
 
-def _scan_components(repo: Path, app_root_rel: str) -> list[dict[str, Any]]:
-    app_fs = (repo / app_root_rel).resolve() if app_root_rel not in {".", ""} else repo
+def _scan_components(
+    repo: Path,
+    allowed_roots: list[str],
+    forbidden_roots: list[str],
+) -> list[dict[str, Any]]:
     comps: list[dict[str, Any]] = []
-    for path in _iter_source_files(app_fs):
+    for path in _iter_boundary_files(repo, allowed_roots, forbidden_roots):
         rel = _norm(str(path.relative_to(repo)))
         comps.append({"name": path.stem, "path": rel})
     return comps
 
 
-def _scan_layouts(repo: Path, app_root_rel: str) -> dict[str, Any]:
-    app_fs = (repo / app_root_rel).resolve() if app_root_rel not in {".", ""} else repo
+def _scan_layouts(
+    repo: Path,
+    allowed_roots: list[str],
+    forbidden_roots: list[str],
+) -> dict[str, Any]:
     regions: dict[str, Any] = {}
     owner = None
-    for path in _iter_source_files(app_fs):
+    for path in _iter_boundary_files(repo, allowed_roots, forbidden_roots):
         rel = _norm(str(path.relative_to(repo)))
         if re.match(r"layout.*\.(tsx|jsx|vue)$", path.name, re.I):
             owner = rel
@@ -202,24 +254,30 @@ def _fingerprint(files: list[dict[str, Any]]) -> str:
 
 
 # @lat: [[frontend-context#Per-App UX Baseline]]
+# @lat: [[frontend-context#Application Boundary]]
 def generate_baseline(repo: str | Path, app_id: str) -> dict[str, Any]:
     """Generate per-app UX baseline artifacts under .agents/ges/frontend/apps/<app-id>/."""
     root = Path(repo).resolve()
+    registry = load_registry(root) or discover(root)
     app = _get_app(root, app_id)
     app_root = str(app.get("root") or ".")
     classified = classify(root, app_root)
-    surfaces = _scan_surfaces(root, app_id, app_root)
-    components = _scan_components(root, app_root)
-    layouts = _scan_layouts(root, app_root)
+    boundary = derive_boundary(root, app_id, registry=registry)
+    allowed = list(boundary.get("allowed_roots") or [app_root])
+    forbidden = list(boundary.get("forbidden_roots") or [])
+    surfaces = _scan_surfaces(root, app_id, allowed, forbidden)
+    components = _scan_components(root, allowed, forbidden)
+    layouts = _scan_layouts(root, allowed, forbidden)
 
     out_dir = _app_dir(root, app_id)
     app_profile = {
-        "schema": "smc.ges.app-profile.v1",
+        "schema": APP_PROFILE_SCHEMA,
         "app_id": app_id,
         "root": app_root,
         "runtime": classified["runtime"],
         "framework": classified["framework"],
         "stack_adapter": classified["stack_adapter"],
+        "boundary": boundary,
     }
     ui_baseline = {
         "schema": BASELINE_SCHEMA,
@@ -273,13 +331,127 @@ def generate_baseline(repo: str | Path, app_id: str) -> dict[str, Any]:
     _write_json(out_dir / "design-system.json", design_system)
     _write_json(out_dir / "baseline.lock", lock)
 
+    # Keep registry baseline_status in sync after writing
+    refresh_baseline_statuses(root)
+
     return {
         "schema": BASELINE_SCHEMA,
         "app_id": app_id,
         "dir": _norm(str(out_dir.relative_to(root))),
         "surfaces": surfaces,
         "stack_adapter": classified["stack_adapter"],
+        "boundary": boundary,
     }
+
+
+def load_app_profile(repo: str | Path, app_id: str) -> dict[str, Any]:
+    """Load app-profile with v1→v2 boundary derivation."""
+    root = Path(repo).resolve()
+    path = _app_dir(root, app_id) / "app-profile.json"
+    data = _read_json(path)
+    if not data:
+        return {}
+    if data.get("schema") == APP_PROFILE_SCHEMA_LEGACY or "boundary" not in data:
+        data = dict(data)
+        data["schema"] = APP_PROFILE_SCHEMA
+        data["boundary"] = derive_boundary(root, app_id)
+    return data
+
+
+# @lat: [[frontend-context#Feature Scope Pipeline]]
+def resolve_feature_scope(
+    repo: str | Path,
+    *,
+    app_id: str | None = None,
+    ux_role: str | None = None,
+    action_cluster: str | None = None,
+    component_name: str | None = None,
+    decision_request: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Unified Feature Scope pipeline: Application → Surface → Layout → Component Reuse."""
+    root = Path(repo).resolve()
+    registry = load_registry(root) or discover(root)
+    apps = list(registry.get("apps") or [])
+    if not app_id:
+        if len(apps) == 1:
+            app_id = str(apps[0].get("app_id"))
+        else:
+            raise ValueError("FEATURE_SCOPE_APP_REQUIRED")
+    app = next((a for a in apps if a.get("app_id") == app_id), None)
+    if not app:
+        raise KeyError(f"unknown app_id: {app_id}")
+
+    role = ux_role or "identity_control"
+    surfaces = resolve_surface(root, app_id, role, action_cluster=action_cluster)
+    primary = surfaces[0] if surfaces else None
+    layout_owner = (primary or {}).get("layout_owner")
+
+    req = dict(decision_request or {})
+    if surfaces and not req:
+        req = {
+            "same_ux_role": True,
+            "decision": "EXTEND",
+        }
+    elif not surfaces and not req:
+        req = {"decision": "ADD_NEW", "prefer_new": True}
+    gate = reuse_gate(req)
+
+    shared_hit = None
+    if component_name:
+        shared_hit = resolve_shared_components(root)
+        from frontend_app_registry import shared_ui_reuse_decision
+
+        shared_decision = shared_ui_reuse_decision(root, component_name)
+    else:
+        shared_decision = {
+            "decision": None,
+            "component": None,
+            "package_id": None,
+            "reason": "NO_COMPONENT_REQUESTED",
+        }
+
+    stack = str(app.get("stack_adapter") or "")
+    reuse = component_reuse_automatic(
+        stack,
+        stack,
+        via_shared_package=bool(shared_decision.get("package_id")),
+    )
+
+    result = {
+        "schema": FEATURE_SCOPE_SCHEMA,
+        "application": {
+            "app_id": app_id,
+            "root": app.get("root"),
+            "stack_adapter": stack,
+        },
+        "surface": {
+            "candidates": surfaces,
+            "primary": primary,
+            "gate": gate,
+        },
+        "layout_owner": {
+            "path": layout_owner,
+            "resolved": bool(layout_owner),
+        },
+        "component_reuse": {
+            "shared": shared_decision,
+            "policy": reuse,
+        },
+        "decision": gate.get("decision"),
+        "ok": bool(gate.get("ok")) and all(
+            [
+                app_id,
+                gate.get("decision") is not None,
+                "layout_owner" in {"layout_owner"},  # section always present
+                reuse is not None,
+            ]
+        ),
+    }
+    # Four sections must exist (PRD §10)
+    for key in ("application", "surface", "layout_owner", "component_reuse"):
+        if key not in result or result[key] is None:
+            result["ok"] = False
+    return result
 
 
 def _load_surfaces(repo: Path, app_id: str) -> list[dict[str, Any]]:

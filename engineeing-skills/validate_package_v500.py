@@ -32,7 +32,7 @@ def main():
   run('domain semantic frontend',[sys.executable,str(ROOT/'.agents/skills/smc-frontend-preplan/scripts/selftest.py')])
   run('benchmark synthetic',[sys.executable,str(ROOT/'acceptance/run_benchmark.py'),'--selftest'])
   run('pilot matrix',[sys.executable,str(ROOT/'acceptance/pilot/run_pilot.py'),'--validate-matrix'])
-  run('acceptance G01-G42',[sys.executable,str(ROOT/'acceptance/run_acceptance.py')])
+  run('acceptance G01-G50',[sys.executable,str(ROOT/'acceptance/run_acceptance.py')])
   run('context engine',[sys.executable,str(ROOT/'tests/test_context_engine.py'),'-v'])
   # Frontend adapters present
   for name in ('react-web','react-electron','vue3-web','nextjs','nuxt','react-native','generic'):

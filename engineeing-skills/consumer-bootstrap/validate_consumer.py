@@ -36,12 +36,13 @@ def _adoption_mode(project: Path) -> str:
     return "OBSERVE"
 
 
-def _frontend_adapters_available() -> bool:
-    adapters = PACKAGE / "frontend-adapters"
-    if not adapters.is_dir():
+def _frontend_adapters_available(project: Path) -> bool:
+    """Consumer-installed adapters only — no package-path fallback (C27)."""
+    local = project / ".agents" / "ges" / "frontend-adapters"
+    if not local.is_dir():
         return False
     required = ("react-web", "react-electron", "vue3-web", "generic")
-    return all((adapters / name / "adapter.json").is_file() for name in required)
+    return all((local / name / "adapter.json").is_file() for name in required)
 
 
 def _per_app_baseline_health(project: Path) -> tuple[bool, str]:
@@ -56,17 +57,23 @@ def _per_app_baseline_health(project: Path) -> tuple[bool, str]:
     if not apps:
         return True, "empty apps list"
     missing: list[str] = []
+    checked = 0
     for app in apps:
         app_id = str(app.get("app_id") or "")
         if not app_id:
             continue
+        status = str(app.get("baseline_status") or "INITIALIZED").upper()
+        # Only INITIALIZED apps are required to have baselines (scoped install)
+        if status == "NOT_INITIALIZED":
+            continue
+        checked += 1
         app_dir = project / C.FRONTEND_ROOT / "apps" / app_id
         for name in ("app-profile.json", "ui-baseline.json", "surface-registry.json"):
             if not (app_dir / name).is_file():
                 missing.append(f"{app_id}/{name}")
     if missing:
         return False, "missing: " + ", ".join(missing[:5])
-    return True, f"{len(apps)} app baseline(s) present"
+    return True, f"{checked} initialized app baseline(s) present"
 
 
 def _surface_registry_health(project: Path) -> tuple[bool, str]:
@@ -81,6 +88,9 @@ def _surface_registry_health(project: Path) -> tuple[bool, str]:
         app_id = str(app.get("app_id") or "")
         if not app_id:
             continue
+        status = str(app.get("baseline_status") or "INITIALIZED").upper()
+        if status == "NOT_INITIALIZED":
+            continue
         surf = project / C.FRONTEND_ROOT / "apps" / app_id / "surface-registry.json"
         if not surf.is_file():
             return False, f"missing surface-registry for {app_id}"
@@ -91,6 +101,45 @@ def _surface_registry_health(project: Path) -> tuple[bool, str]:
         except Exception as exc:
             return False, str(exc)
     return True, "surface registries healthy"
+
+
+def _boundary_health(project: Path) -> tuple[bool, str]:
+    registry_path = project / C.FRONTEND_ROOT / "apps-registry.json"
+    if not registry_path.is_file():
+        return True, "no registry"
+    try:
+        data = C.read_json(registry_path)
+    except Exception as exc:
+        return False, str(exc)
+    checked = 0
+    for app in data.get("apps") or []:
+        app_id = str(app.get("app_id") or "")
+        status = str(app.get("baseline_status") or "").upper()
+        if not app_id or status == "NOT_INITIALIZED":
+            continue
+        profile_path = project / C.FRONTEND_ROOT / "apps" / app_id / "app-profile.json"
+        if not profile_path.is_file():
+            return False, f"missing app-profile for {app_id}"
+        try:
+            profile = C.read_json(profile_path)
+        except Exception as exc:
+            return False, str(exc)
+        boundary = profile.get("boundary") or {}
+        if profile.get("schema") == "smc.ges.app-profile.v2":
+            if not isinstance(boundary.get("allowed_roots"), list):
+                return False, f"boundary.allowed_roots missing for {app_id}"
+        checked += 1
+    return True, f"{checked} app boundary profile(s)"
+
+
+def _frontend_runtime_health(project: Path) -> tuple[bool, str]:
+    runtime = project / ".agents" / "ges" / "frontend-runtime"
+    if not runtime.is_dir():
+        return False, "frontend-runtime missing"
+    marker = runtime / "frontend_app_registry.py"
+    if not marker.is_file():
+        return False, "frontend-runtime incomplete"
+    return True, "frontend-runtime present"
 
 
 def validate(project: Path) -> dict[str, Any]:
@@ -215,26 +264,40 @@ def validate(project: Path) -> dict[str, Any]:
         )
     )
 
-    adapters_ok = _frontend_adapters_available()
-    # Also accept consumer-installed copy under .agents/ges/frontend-adapters
-    if not adapters_ok:
-        local = project / ".agents" / "ges" / "frontend-adapters"
-        adapters_ok = local.is_dir() and any(local.glob("*/adapter.json"))
+    adapters_ok = _frontend_adapters_available(project)
+    has_initialized = False
+    if registry_ok:
+        try:
+            reg = C.read_json(project / C.FRONTEND_ROOT / "apps-registry.json")
+            has_initialized = any(
+                str(a.get("baseline_status") or "").upper() == "INITIALIZED"
+                for a in (reg.get("apps") or [])
+            )
+        except Exception:
+            has_initialized = False
+    # OBSERVE without initialized baselines: adapters optional
+    if not adapters_ok and adoption == "OBSERVE" and not has_initialized:
+        adapters_ok = True
+        adapters_detail = f"skipped (adoption={adoption})"
+    else:
+        adapters_detail = ".agents/ges/frontend-adapters (consumer-installed)"
     checks.append(
         _row(
             "Stack Adapter availability",
             "PASS" if adapters_ok else "FAIL",
-            "engineeing-skills/frontend-adapters or installed copy",
+            adapters_detail,
         )
     )
 
     if registry_ok:
         baseline_ok, baseline_detail = _per_app_baseline_health(project)
         surface_ok, surface_detail = _surface_registry_health(project)
+        boundary_ok, boundary_detail = _boundary_health(project)
     else:
         # OBSERVE without registry: non-blocking health
         baseline_ok, baseline_detail = True, f"skipped (adoption={adoption})"
         surface_ok, surface_detail = True, f"skipped (adoption={adoption})"
+        boundary_ok, boundary_detail = True, f"skipped (adoption={adoption})"
     checks.append(
         _row(
             "Per-App baseline health",
@@ -247,6 +310,32 @@ def validate(project: Path) -> dict[str, Any]:
             "Surface registry health",
             "PASS" if surface_ok else "FAIL",
             surface_detail,
+        )
+    )
+    checks.append(
+        _row(
+            "Scoped Baseline",
+            "PASS" if baseline_ok else "FAIL",
+            "INITIALIZED apps only; NOT_INITIALIZED allowed",
+        )
+    )
+    checks.append(
+        _row(
+            "Application Boundary",
+            "PASS" if boundary_ok else "FAIL",
+            boundary_detail,
+        )
+    )
+
+    runtime_ok, runtime_detail = _frontend_runtime_health(project)
+    if not runtime_ok and adoption == "OBSERVE" and not has_initialized:
+        runtime_ok = True
+        runtime_detail = f"skipped (adoption={adoption})"
+    checks.append(
+        _row(
+            "Frontend Runtime",
+            "PASS" if runtime_ok else "FAIL",
+            runtime_detail,
         )
     )
 

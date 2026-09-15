@@ -59,12 +59,14 @@ class ContextEngineTests(unittest.TestCase):
         write(self.r, "src/renderer/App.tsx", "export default function App(){return null}\n")
         write(self.r, "src/main/index.ts", "console.log('main')\n")
         data = registry_mod.discover(self.r)
-        self.assertEqual(data["schema"], "smc.ges.frontend-app-registry.v1")
+        self.assertEqual(data["schema"], "smc.ges.frontend-app-registry.v2")
+        self.assertIn("repository", data)
         self.assertEqual(len(data["apps"]), 1)
         app = data["apps"][0]
         self.assertEqual(app["app_id"], "desktop")
         self.assertEqual(app["root"], "src/renderer")
         self.assertEqual(app["stack_adapter"], "react-electron")
+        self.assertIn(app.get("baseline_status"), {"INITIALIZED", "NOT_INITIALIZED", "STALE"})
         self.assertTrue((self.r / ".agents/ges/frontend/apps-registry.json").is_file())
 
     # @lat: [[frontend-context#Tests#Monorepo app isolation]]

@@ -20,7 +20,7 @@ Consumer Bootstrap 把 GES 从 Skill Package 升级为可审计、可补齐、�
 
 Frontend Audit 用 context-engine 静态扫描 App / Stack / Surface，并按 OBSERVE / GUIDED / ENFORCED 采纳模式写入 `.agents/ges/frontend/`。
 
-CLI：[[engineeing-skills/consumer-bootstrap/frontend_audit.py]]。默认 dry-run；`--apply` 写 registry 与 per-app baseline。报告：`.smc/consumer-bootstrap/frontend-audit.{json,md}`。Validate 仅在 ENFORCED 且缺 registry 时失败；OBSERVE 对旧 fixture 非阻断。
+CLI：[[engineeing-skills/consumer-bootstrap/frontend_audit.py]]。默认 dry-run；`--apply` 写 registry 与 per-app baseline；可重复 `--app` 做指定 scope 安装（registry 仍记录全部应用）。报告：`.smc/consumer-bootstrap/frontend-audit.{json,md}`。Validate 仅检查 INITIALIZED 应用的 baseline；OBSERVE 对旧 fixture 非阻断。详见 [[frontend-context#Scoped Install]]。
 
 ## Consumer Audit
 
@@ -38,7 +38,7 @@ Gap 把 audit 转成机器可读分层 verdict 与 claim，禁止用模糊的 �
 
 Remediation 用 GES 自有模板补齐缺口，不 vendor 上游字节，不覆盖已有文件。
 
-允许写：`.specify/constitution.md`、`templates/`、`scripts/`、`specs/README.md`；`.agents/skills/<shim>/SKILL.md`；`.agents/ges/{spec-kit-binding,superpowers-binding,governance-policy,spec-superpower-ges}.json`。禁止写：`.specify/spec.md`（第二套 requirements SOT）、`.agents/ges/profile.json`（installer 独占）。这是对 v5.0.3「不得创建第二 requirements SOT」不变量的契约收窄，不是推翻 probe/import 禁令。
+允许写：`.specify/constitution.md`、`templates/`、`scripts/`、`specs/README.md`；`.agents/skills/<shim>/SKILL.md`；`.agents/ges/{spec-kit-binding,superpowers-binding,governance-policy,spec-superpower-ges}.json`。禁止写：`.specify/spec.md`（第二套 requirements SOT）、`.agents/ges/profile.json`（installer 独占）、`.agents/ges/frontend-runtime/` 与 `.agents/ges/frontend-adapters/`（installer 独占运行时）。这是对 v5.0.3「不得创建第二 requirements SOT」不变量的契约收窄，不是推翻 probe/import 禁令。
 
 ## Consumer Validation
 
