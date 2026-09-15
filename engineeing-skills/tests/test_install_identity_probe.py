@@ -85,6 +85,19 @@ class InstallIdentityProbeTests(unittest.TestCase):
         self.assertEqual(report["source"], "filesystem")
         self.assertIn("5.0.7", report["verdict"]["not_ok_to_claim_as_bundle"])
 
+    def test_infers_509_runtime_cost_slice(self) -> None:
+        write(self.r, ".agents/ges/frontend-runtime/budget_controller.py", "# budget\n")
+        write(self.r, ".agents/ges/frontend-runtime/context_cache.py", "# cache\n")
+        write(self.r, ".agents/ges/frontend-runtime/policies/context-budget.v1.json", "{}\n")
+        write(self.r, ".agents/ges/frontend-runtime/model_dispatch.py", "def self_check_modules():\n return {'model_dispatch': True, 'context_envelope': True, 'stage_cost_closure': True, 'harness_contract': True}\n")
+        write(self.r, ".agents/ges/frontend-runtime/context_envelope.py", "# env\n")
+        write(self.r, ".agents/ges/frontend-runtime/stage_cost_closure.py", "# scc\n")
+        write(self.r, ".agents/ges/frontend-runtime/harness_contract.py", "# harness\n")
+        report = probe_mod.probe(self.r)
+        self.assertIn("5.0.6", report["feature_slices_inferred"])
+        self.assertIn("5.0.8", report["feature_slices_inferred"])
+        self.assertIn("5.0.9", report["feature_slices_inferred"])
+
 
 if __name__ == "__main__":
     raise SystemExit(unittest.main())

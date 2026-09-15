@@ -44,6 +44,26 @@ def collect(plan: Path) -> dict:
     done = sum(1 for x in todo_rows if x["status"] == "completed")
     evid = {vid: evidence_status(plan, vid)[0] for vid in blocking_verifications(plan)}
     run = load_run(plan) or {}; resume = execution_resume(plan)
+    cost_closure = None
+    try:
+        ctx = Path(__file__).resolve().parents[3] / "context-engine"
+        if not ctx.is_dir():
+            ctx = Path(__file__).resolve().parents[4] / "engineeing-skills" / "context-engine"
+        if str(ctx) not in sys.path:
+            sys.path.insert(0, str(ctx))
+        from stage_cost_closure import evaluate_stage
+
+        # Advisory status only — in-flight Plans without dispatches stay visible.
+        for stage in ("PLANNING", "IMPLEMENTATION", "REVIEW"):
+            try:
+                closure = evaluate_stage(plan=plan, stage=stage)
+                if closure.get("dispatch_count", 0) > 0:
+                    cost_closure = cost_closure or {}
+                    cost_closure[stage] = closure.get("status")
+            except Exception:
+                pass
+    except Exception:
+        cost_closure = None
     return {
         "schema": "smc.delivery.readiness.v2",
         "plan_id": plan_id(plan), "plan": repo_relative_path(plan, root),
@@ -55,6 +75,7 @@ def collect(plan: Path) -> dict:
         "execution_context": {"active_todo": resume.get("active_todo"), "next_step": resume.get("next_step"), "last_event": resume.get("last_event")},
         "completion_audit": completion, "implementation_review": implementation_review, "verification": evid,
         "implementation_commit": run.get("implementation_commit"), "roadmap": "DONE" if run.get("state") == "ROADMAP_DONE" else "PENDING",
+        "stage_cost_closure": cost_closure,
     }
 
 

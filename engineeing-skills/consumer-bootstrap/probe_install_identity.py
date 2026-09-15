@@ -73,9 +73,8 @@ def _calibration_status(project: Path) -> dict[str, Any]:
 
 def _feature_slices(project: Path, lock: dict[str, Any] | None) -> list[str]:
     slices: list[str] = []
-    if (project / ".agents/ges/frontend-adapters").is_dir() or (
-        project / ".agents/ges/frontend-runtime"
-    ).is_dir():
+    runtime = project / ".agents/ges/frontend-runtime"
+    if (project / ".agents/ges/frontend-adapters").is_dir() or runtime.is_dir():
         slices.append("5.0.6")
     if (project / C.FRONTEND_ROOT / "apps-registry.json").is_file():
         try:
@@ -83,8 +82,35 @@ def _feature_slices(project: Path, lock: dict[str, Any] | None) -> list[str]:
             if str(reg.get("schema") or "").endswith(".v2") or reg.get("repository"):
                 slices.append("5.0.7")
         except Exception:
-            if (project / ".agents/ges/frontend-runtime").is_dir():
+            if runtime.is_dir():
                 slices.append("5.0.7")
+    # v5.0.8: budget controller + capsule cache present under frontend-runtime
+    if (runtime / "budget_controller.py").is_file() and (runtime / "context_cache.py").is_file():
+        if (runtime / "policies" / "context-budget.v1.json").is_file() or (
+            runtime / "policies"
+        ).is_dir():
+            slices.append("5.0.8")
+    # v5.0.9: runtime cost closure markers
+    if (
+        (runtime / "model_dispatch.py").is_file()
+        and (runtime / "context_envelope.py").is_file()
+        and (runtime / "stage_cost_closure.py").is_file()
+    ):
+        try:
+            sys_path_added = False
+            import sys
+
+            if str(runtime) not in sys.path:
+                sys.path.insert(0, str(runtime))
+                sys_path_added = True
+            import model_dispatch as md  # noqa: WPS433
+
+            ok = all(md.self_check_modules().values())
+            if ok:
+                slices.append("5.0.9")
+        except Exception:
+            if (runtime / "harness_contract.py").is_file():
+                slices.append("5.0.9")
     # Deduplicate preserve order
     out: list[str] = []
     for s in slices:
@@ -92,8 +118,14 @@ def _feature_slices(project: Path, lock: dict[str, Any] | None) -> list[str]:
             out.append(s)
     # Package CHANGES presence (when probing from package checkout) is advisory only
     if (PACKAGE / "CHANGES-v5.0.7-frontend-context-scoped-install.md").is_file() and "5.0.7" not in out:
-        if lock and (project / ".agents/ges/frontend-runtime").is_dir():
+        if lock and runtime.is_dir():
             out.append("5.0.7")
+    if (PACKAGE / "CHANGES-v5.0.8-adaptive-governance-context-budget.md").is_file() and "5.0.8" not in out:
+        if lock and (runtime / "budget_controller.py").is_file():
+            out.append("5.0.8")
+    if (PACKAGE / "CHANGES-v5.0.9-runtime-cost-closure.md").is_file() and "5.0.9" not in out:
+        if lock and (runtime / "model_dispatch.py").is_file():
+            out.append("5.0.9")
     return out
 
 

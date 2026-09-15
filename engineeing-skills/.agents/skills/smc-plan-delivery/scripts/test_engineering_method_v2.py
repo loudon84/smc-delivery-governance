@@ -118,8 +118,11 @@ class RuntimeV5Tests(unittest.TestCase):
  def test_stale_revise_cannot_route_none(self):
   review_record.record('plan',self.p,'REVISE','reviewer','fix required')
   self.p.write_text(PLAN+'\nChanged scope.\n',encoding='utf-8')
-  self.assertEqual('FULL',review(self.p)['depth'])
+  # v5.0.9: REVISE defaults to DELTA; cannot collapse to NONE
+  self.assertEqual('DELTA',review(self.p)['depth'])
+  # Without bound semantic snapshot, packet build fail-closes DELTA→FULL
   self.assertEqual('FULL',build(self.p,'NONE')['review_depth'])
+  self.assertNotEqual('NONE',build(self.p,'NONE')['review_depth'])
  def test_snapshot_binding_and_tamper(self):
   review_record.record('plan',self.p,'PASS','reviewer');accept(self.p)
   self.p.write_text(PLAN+'\nSmall change.\n',encoding='utf-8')

@@ -131,6 +131,18 @@ def build(plan: Path, requested_depth: str = "AUTO") -> dict:
             else "Read the canonical Plan and approved inputs; this packet is metadata, not a second Plan."
         ),
     }
+    if depth in {"DELTA", "FULL"}:
+        try:
+            from assess_plan_review import record_review_round
+
+            packet["loop"] = record_review_round(plan, depth)
+        except ValueError as exc:
+            if str(exc) == "REVIEW_LOOP_EXCEEDED":
+                packet["review_depth"] = depth
+                packet["reasons"] = list(packet.get("reasons") or []) + ["REVIEW_LOOP_EXCEEDED", "PLAN_REVISE_REQUIRED"]
+                packet["blocked"] = "REVIEW_LOOP_EXCEEDED"
+            else:
+                raise
     out = packet_path(plan)
     atomic_write(out, json.dumps(packet, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     return packet

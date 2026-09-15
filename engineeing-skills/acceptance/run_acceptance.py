@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic Acceptance Closure golden + chaos cases (G01–G60 real behavior)."""
+"""Deterministic Acceptance Closure golden + chaos cases (G01–G80 real behavior)."""
 from __future__ import annotations
 
 import hashlib
@@ -38,6 +38,17 @@ import context_cache as cache_mod  # noqa: E402
 import classification_state as class_state  # noqa: E402
 import contract_resolver  # noqa: E402
 import work_facts as wf  # noqa: E402
+import model_dispatch as md  # noqa: E402
+import context_envelope as env_mod  # noqa: E402
+import stage_cost_closure as scc  # noqa: E402
+import harness_contract as harness  # noqa: E402
+import execution_context as exec_ctx  # noqa: E402
+PONY_SCRIPTS = ROOT / ".agents/skills/smc-plan-from-approved-prd-ponytail/scripts"
+sys.path.insert(0, str(PONY_SCRIPTS))
+import plan_author_cost as pac  # noqa: E402
+REVIEW_SCRIPTS = ROOT / ".agents/skills/smc-plan-review/scripts"
+sys.path.insert(0, str(REVIEW_SCRIPTS))
+from assess_plan_review import classify as review_classify, record_review_round  # noqa: E402
 
 
 def safe_facts(**extra):
@@ -1104,6 +1115,356 @@ class GoldenCorpus(unittest.TestCase):
             self.assertNotIn("secret prompt", blob)
             self.assertNotIn("password", blob)
 
+    def test_g61_plan_author_dispatch_required(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G61 Plan Author Dispatch Required]]
+        with self.assertRaises(ValueError) as ctx:
+            pac.require_dispatch_for_model_call(None)
+        self.assertIn("MODEL_DISPATCH_PERMIT_MISSING", str(ctx.exception))
+
+    def test_g62_plan_budget_enforced(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G62 Plan Budget Enforced]]
+        prepared = md.prepare_dispatch(
+            work_item_id="g62",
+            plan_id="g62",
+            phase="PLAN",
+            governance_profile="LEAN",
+            candidates=[{"path": f"src/{i}.ts", "tokens": 50000, "artifact_kind": "SOURCE"} for i in range(80)],
+        )
+        self.assertEqual(prepared["permit"]["status"], "BLOCKED")
+        self.assertIn("CONTEXT_BUDGET_INSUFFICIENT", prepared["permit"].get("reason") or "")
+
+    def test_g63_deterministic_seed_digest(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G63 Deterministic Seed]]
+        a = env_mod.plan_envelope(
+            plan_id="g63",
+            governance_profile="FULL",
+            prd_summary={"digest": "sha256:prd"},
+            unresolved_decisions=[{"change_id": "C01", "decision": "KEEP"}],
+        )
+        b = env_mod.plan_envelope(
+            plan_id="g63",
+            governance_profile="FULL",
+            prd_summary={"digest": "sha256:prd"},
+            unresolved_decisions=[{"change_id": "C01", "decision": "KEEP"}],
+        )
+        self.assertEqual(a["content_digest"], b["content_digest"])
+
+    def test_g64_structured_plan_patch(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G64 Structured Plan Patch]]
+        text = MIN_PLAN
+        out = pac.apply_structured_patches(
+            text,
+            [{"change_id": "C01", "owner": "app.py", "action": "MODIFY", "decision": "MINIMAL", "evidence_digest": "sha256:x"}],
+        )
+        self.assertIn("Structured Decision Patches", out)
+        self.assertIn("C01", out)
+        self.assertIn(MIN_PLAN.split("## Todo")[0].strip()[:40], out[:200] or MIN_PLAN[:40])
+
+    def test_g65_no_full_plan_reauthor(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G65 No Full-Plan Reauthor]]
+        patched = pac.apply_structured_patches(MIN_PLAN, [{"change_id": "C07", "owner": "a", "action": "CREATE", "decision": "NEW"}])
+        self.assertTrue(patched.startswith("---"))
+        self.assertIn("## Todo T1", patched)
+        self.assertIn("Structured Decision Patches", patched)
+
+    def test_g66_worker_task_brief_only(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G66 Worker Task Brief Only]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            path = exec_ctx.create_worker_context_envelope(plan, "T1")
+            data = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(data["todo"], "T1")
+            self.assertIn("task_brief_only", data["constraints"])
+            brief = (root / data["task_brief"]).read_text(encoding="utf-8")
+            self.assertIn("Todo T1", brief)
+            self.assertNotIn("## Change Matrix", brief)
+
+    def test_g67_worker_scope_violation(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G67 Worker Scope Violation]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            exec_ctx.create_worker_context_envelope(plan, "T1")
+            with self.assertRaises(ValueError) as ctx:
+                exec_ctx.assert_worker_scope(plan, "T1", ["other/secret.py"])
+            self.assertIn("WORKER_CONTEXT_SCOPE_VIOLATION", str(ctx.exception))
+
+    def test_g68_capsule_hit(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G68 Capsule Hit]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = cache_mod.CapsuleStore(repo=root, work_item_id="g68")
+            pol = budget_ctrl.policy_digest()
+            key = dict(
+                repo_identity="r",
+                artifact_kind="SOURCE",
+                scope_digest="s",
+                identity="app.py",
+                content_sha256="abc",
+                extractor_version="1.0.0",
+                policy_digest=pol,
+            )
+            store.put_capsule(**key, value={"summary": "x"})
+            prepared = md.prepare_dispatch(
+                work_item_id="g68",
+                phase="IMPLEMENT",
+                governance_profile="LEAN",
+                candidates=[{"path": "app.py", "content_sha256": "abc", "tokens": 10, "artifact_kind": "SOURCE"}],
+                repo_identity="r",
+                feature_scope_digest="s",
+                store=store,
+            )
+            self.assertGreaterEqual(prepared["cache"]["hits"], 1)
+
+    def test_g69_capsule_stale(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G69 Capsule Stale]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = cache_mod.CapsuleStore(repo=root, work_item_id="g69")
+            key = dict(
+                repo_identity="r",
+                artifact_kind="SOURCE",
+                scope_digest="s",
+                identity="app.py",
+                content_sha256="old",
+                extractor_version="1.0.0",
+                policy_digest="p",
+            )
+            store.put_capsule(**key, value={"summary": "old"})
+            mem_key = next(iter(store._memory))
+            store._memory[mem_key]["stored_at"] = 0
+            hit = store.get_capsule(**key)
+            self.assertIsNone(hit)
+            self.assertGreaterEqual(store.stale, 1)
+
+    def test_g70_dispatch_result_pair(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G70 Dispatch Result Pair]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            prepared = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                todo_id="T1",
+                phase="IMPLEMENT",
+                governance_profile="LEAN",
+                candidates=[{"path": "app.py", "tokens": 50, "artifact_kind": "SOURCE"}],
+                repo=root,
+            )
+            out = md.run_managed_call(plan=plan, prepared=prepared, adapter=harness.fake_enforced_adapter())
+            summary = telemetry.summarize(plan)
+            self.assertTrue(summary.get("complete"))
+            self.assertEqual(summary.get("dispatch_result_pair_rate"), 1.0)
+            self.assertEqual(out["result"]["dispatch_id"], prepared["dispatch"]["dispatch_id"])
+
+    def test_g71_usage_unavailable_not_zero(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G71 Usage Unavailable]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            prepared = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                phase="PLAN",
+                governance_profile="LEAN",
+                candidates=[{"path": "prd.md", "tokens": 20, "artifact_kind": "PRD_SECTION"}],
+                repo=root,
+            )
+            adapter = harness.fake_enforced_adapter(
+                usage={
+                    "usage_unavailable_reason": "TOKEN_ACCOUNTING_UNAVAILABLE",
+                    "provider": "cursor",
+                    "model": "agent",
+                    "actual_tier": "STANDARD",
+                    "outcome": "OK",
+                    "retry_count": 0,
+                    "latency_ms": 1,
+                }
+            )
+            md.run_managed_call(plan=plan, prepared=prepared, adapter=adapter)
+            summary = telemetry.summarize(plan)
+            self.assertEqual(summary.get("usage_status"), "UNAVAILABLE")
+            self.assertIsNone(summary.get("prompt_tokens"))
+            self.assertIsNone(summary.get("completion_tokens"))
+
+    def test_g72_review_first_full(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G72 Review First FULL]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            depth = review_classify(plan)["depth"]
+            self.assertEqual(depth, "FULL")
+
+    def test_g73_review_revision_delta(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G73 Review Revision DELTA]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            review_record.record("plan", plan, "REVISE", "reviewer", "fix")
+            self.assertEqual(review_classify(plan)["depth"], "DELTA")
+
+    def test_g74_review_full_reentry(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G74 Review FULL Re-entry]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            text = MIN_PLAN.replace("governance_profile: FULL", "governance_profile: FULL\nreview_full_reentry: true")
+            plan = _write(root, "p.plan.md", text)
+            review_record.record("plan", plan, "REVISE", "reviewer", "fix")
+            self.assertEqual(review_classify(plan)["depth"], "FULL")
+
+    def test_g75_review_loop_cap(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G75 Review Loop Cap]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            record_review_round(plan, "FULL")
+            with self.assertRaises(ValueError) as ctx:
+                record_review_round(plan, "FULL")
+            self.assertIn("REVIEW_LOOP_EXCEEDED", str(ctx.exception))
+
+    def test_g76_stage_cost_closure_orphan(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G76 Stage Cost Closure]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            telemetry.dispatch(
+                plan,
+                phase="IMPLEMENT",
+                todo="T1",
+                requested_tier="STANDARD",
+                dispatch_id="orphan",
+                agent="acc",
+                context_envelope_digest="sha256:env",
+                managed=True,
+                harness_mode="ENFORCED",
+            )
+            closure = scc.evaluate_stage(plan=plan, stage="IMPLEMENTATION")
+            self.assertEqual(closure["status"], "BLOCKED")
+            self.assertIn("TELEMETRY_DISPATCH_UNPAIRED", closure["reasons"])
+
+    def test_g77_managed_call_ratio(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G77 Managed Call Ratio]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            prepared = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                phase="REVIEW",
+                governance_profile="LEAN",
+                candidates=[{"path": "diff", "tokens": 10, "artifact_kind": "PLAN_SECTION"}],
+                review_depth="DELTA",
+                repo=root,
+            )
+            md.run_managed_call(plan=plan, prepared=prepared, adapter=harness.fake_enforced_adapter())
+            summary = telemetry.summarize(plan)
+            self.assertEqual(summary.get("managed_dispatch_count"), summary.get("dispatch_count") or 1)
+            self.assertEqual(summary.get("unmanaged_call_count"), 0)
+
+    def test_g78_consumer_upgrade_baseline_stable(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G78 Consumer Upgrade]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            self.assertEqual(self._frontend_audit(root, "--app", "work", "--apply").returncode, 0)
+            before = (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes()
+            shutil.copytree(CONTEXT_ENGINE, root / ".agents/ges/frontend-runtime")
+            after = (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes()
+            self.assertEqual(before, after)
+            self.assertTrue((root / ".agents/ges/frontend-runtime/model_dispatch.py").is_file())
+
+    def test_g79_install_rollback_runtime_cost(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G79 Install Rollback]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            self.assertEqual(self._frontend_audit(root, "--app", "work", "--apply").returncode, 0)
+            sibling = (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes()
+            _write(root, "AGENTS.md", "# Project policy\n")
+            for skill in ("code-review-and-quality", "verification-before-completion"):
+                _write(root, f".agents/skills/{skill}/SKILL.md", "# consumer-owned\n")
+            (root / ".cursor/skills").mkdir(parents=True, exist_ok=True)
+            shutil.copytree(ROOT / "domain-packs", root / ".agents/ges/domain-packs")
+            profile = json.loads((ROOT / "consumers/generic.json").read_text(encoding="utf-8"))
+            _write(root, ".agents/ges/profile.json", json.dumps(profile))
+            shutil.copytree(ROOT / "domain-runtime", root / ".agents/ges/domain-runtime")
+            shutil.copytree(ROOT / ".agents/skills", root / ".agents/skills", dirs_exist_ok=True)
+            _, loaded = installer.resolve_profile(root, None)
+            _, packs = installer.pack_context(loaded)
+            backup = root / ".smc" / "skill-upgrade-backups" / "g79"
+            backup.mkdir(parents=True)
+            records: dict = {}
+            installer._FINALIZATION_FAULT = "receipt"
+            try:
+                with self.assertRaises(RuntimeError):
+                    installer.build_install_lock(root, loaded, packs, records, backup)
+                installer.base.restore(root, backup, records)
+            finally:
+                installer._FINALIZATION_FAULT = None
+            self.assertFalse((root / ".agents/ges/frontend-runtime").exists())
+            self.assertEqual(sibling, (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes())
+
+    def test_g80_golden_consumer_cost_summary(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G80 Golden Consumer]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            # Plan Author
+            prep_plan = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                phase="PLAN",
+                governance_profile="FULL",
+                candidates=[{"path": "prd", "tokens": 40, "artifact_kind": "PRD_SECTION"}],
+                repo=root,
+            )
+            md.run_managed_call(plan=plan, prepared=prep_plan, adapter=harness.fake_enforced_adapter())
+            # Delivery
+            exec_ctx.create_worker_context_envelope(plan, "T1")
+            prep_impl = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                todo_id="T1",
+                phase="IMPLEMENT",
+                governance_profile="FULL",
+                candidates=[{"path": "app.py", "tokens": 40, "artifact_kind": "SOURCE"}],
+                allowed_roots=["app.py"],
+                repo=root,
+            )
+            md.run_managed_call(plan=plan, prepared=prep_impl, adapter=harness.fake_enforced_adapter())
+            # Review
+            prep_rev = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                phase="REVIEW",
+                governance_profile="FULL",
+                candidates=[{"path": "packet", "tokens": 20, "artifact_kind": "PLAN_SECTION"}],
+                review_depth="FULL",
+                repo=root,
+            )
+            md.run_managed_call(plan=plan, prepared=prep_rev, adapter=harness.fake_enforced_adapter())
+            summary = telemetry.summarize(plan)
+            self.assertTrue(summary.get("complete"))
+            self.assertEqual(summary.get("dispatch_result_pair_rate"), 1.0)
+            self.assertGreaterEqual(summary.get("managed_dispatch_count") or 0, 3)
+            for stage in ("PLANNING", "IMPLEMENTATION", "REVIEW"):
+                closure = scc.evaluate_stage(plan=plan, stage=stage)
+                self.assertIn(closure["status"], {"PASS", "PASS_USAGE_UNAVAILABLE"})
+
     def test_uc_profile_gov_golden(self):
         # @lat: [[frontend-context#Acceptance G31–G42#UC-PROFILE-GOV Golden]]
         out = route(
@@ -1215,7 +1576,7 @@ def main() -> int:
         "passed": result.wasSuccessful(),
         "tests": result.testsRun,
         "failures": len(result.failures) + len(result.errors),
-        "golden": "G01-G60",
+        "golden": "G01-G80",
         "chaos": True,
     }
     print(json.dumps(report, indent=2))

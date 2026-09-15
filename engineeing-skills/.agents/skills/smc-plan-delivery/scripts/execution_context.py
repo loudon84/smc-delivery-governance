@@ -133,6 +133,110 @@ def create_task_brief(plan: Path, todo: str) -> Path:
     return path
 
 
+def _read_targets(todo_block: str) -> list[str]:
+    raw: list[str] = []
+    inline = re.search(r"^\*\*Reads\*\*\s*:\s*(.+?)\s*$", todo_block, re.M | re.I)
+    if inline:
+        raw.extend(re.split(r"[,;]", inline.group(1)))
+    block = re.search(
+        r"^\*\*Reads\*\*\s*:?[ \t]*$\n(.*?)(?=^\*\*|^##\s+|\Z)",
+        todo_block,
+        re.M | re.S | re.I,
+    )
+    if block:
+        for line in block.group(1).splitlines():
+            m = re.match(r"^\s*[-*+]\s+(.+?)\s*$", line)
+            if m:
+                raw.append(m.group(1))
+    paths: list[str] = []
+    for value in raw:
+        value = value.strip().strip("`").strip().split("#", 1)[0].strip().replace("\\", "/")
+        while value.startswith("./"):
+            value = value[2:]
+        if value and value not in paths:
+            paths.append(value)
+    return paths
+
+
+def worker_envelope_path(plan: Path, todo: str) -> Path:
+    return run_dir(plan) / "briefs" / f"{_normalize_todo(todo)}-worker-context-envelope.json"
+
+
+# @lat: [[runtime-cost-closure-v509#Delivery Worker Cost Closure]]
+def create_worker_context_envelope(
+    plan: Path,
+    todo: str,
+    *,
+    governance_profile: str = "FULL",
+    engineering_method: str = "",
+    budget: dict | None = None,
+    require_brief: bool = True,
+) -> Path:
+    """Mandatory worker input: Task Brief + Todo-owned envelope (not full Plan)."""
+    tid = _normalize_todo(todo)
+    brief = create_task_brief(plan, tid)
+    if require_brief and not brief.is_file():
+        raise ValueError("WORKER_TASK_BRIEF_REQUIRED")
+    text = plan.read_text(encoding="utf-8")
+    block = _todo_block(text, tid)
+    writes = _write_targets(block)
+    reads = _read_targets(block)
+    symbols = []
+    for line in block.splitlines():
+        if "#" in line and any(x in line for x in ("Writes", "-", "*")):
+            for part in re.findall(r"`?([A-Za-z0-9_./-]+#[A-Za-z0-9_]+)`?", line):
+                symbols.append(part)
+    roots = sorted({*(writes or []), *(reads or [])})
+    envelope = {
+        "schema": "smc.ges.worker-context-envelope.v1",
+        "todo": tid,
+        "plan_id": plan_id(plan),
+        "governance_profile": governance_profile.upper(),
+        "task_brief": str(brief.relative_to(find_repo_root(plan))).replace("\\", "/"),
+        "write_paths": writes,
+        "read_paths": reads,
+        "symbols": symbols,
+        "verification": [],
+        "engineering_method": engineering_method or "",
+        "allowed_roots": roots,
+        "budget": budget or {},
+        "constraints": ["task_brief_only", "no_full_plan"],
+    }
+    path = worker_envelope_path(plan, tid)
+    atomic_write(path, json.dumps(envelope, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    return path
+
+
+def assert_worker_scope(plan: Path, todo: str, accessed_paths: list[str]) -> None:
+    """Fail closed when worker reads outside Todo allowed_roots."""
+    path = worker_envelope_path(plan, todo)
+    if not path.is_file():
+        raise ValueError("CONTEXT_ENVELOPE_MISSING")
+    env = json.loads(path.read_text(encoding="utf-8"))
+    allowed = [r.replace("\\", "/").rstrip("/") for r in env.get("allowed_roots") or []]
+    for raw in accessed_paths:
+        p = raw.replace("\\", "/").lstrip("./")
+        if not allowed:
+            raise ValueError("WORKER_CONTEXT_SCOPE_VIOLATION")
+        if not any(p == a or p.startswith(a + "/") for a in allowed):
+            raise ValueError("WORKER_CONTEXT_SCOPE_VIOLATION")
+
+
+def request_discovery_escalation(plan: Path, todo: str, reason: str) -> dict:
+    """Worker must not expand repo scan; orchestrator recomputes envelope."""
+    rec = {
+        "schema": "smc.ges.discovery-escalation.v1",
+        "todo": _normalize_todo(todo),
+        "plan_id": plan_id(plan),
+        "code": "DISCOVERY_ESCALATION_REQUESTED",
+        "reason": reason,
+        "at": utc_now(),
+    }
+    out = run_dir(plan) / "briefs" / f"{_normalize_todo(todo)}-discovery-escalation.json"
+    atomic_write(out, json.dumps(rec, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    return rec
+
+
 def ensure_report_path(plan: Path, todo: str) -> Path:
     path = report_path(plan, todo)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -374,6 +478,7 @@ def main() -> int:
     p = sub.add_parser("event"); p.add_argument("plan", type=Path); p.add_argument("--event", required=True); p.add_argument("--agent", default="main"); p.add_argument("--todo", default=""); p.add_argument("--summary", default=""); p.add_argument("--file", action="append", default=[])
     p = sub.add_parser("gate"); p.add_argument("plan", type=Path); p.add_argument("--cap", type=int, default=20); p.add_argument("--json", action="store_true")
     p = sub.add_parser("brief"); p.add_argument("plan", type=Path); p.add_argument("--todo", required=True); p.add_argument("--json", action="store_true")
+    p = sub.add_parser("worker-envelope"); p.add_argument("plan", type=Path); p.add_argument("--todo", required=True); p.add_argument("--json", action="store_true")
     p = sub.add_parser("report-path"); p.add_argument("plan", type=Path); p.add_argument("--todo", required=True); p.add_argument("--json", action="store_true")
     p = sub.add_parser("review-package"); p.add_argument("plan", type=Path); p.add_argument("--todo", required=True); p.add_argument("--json", action="store_true")
     args = ap.parse_args(); plan = args.plan.resolve()
@@ -385,12 +490,14 @@ def main() -> int:
         elif args.cmd == "event": data = append_event(plan, args.event, agent=args.agent, todo=args.todo, summary=args.summary, files=args.file)
         elif args.cmd == "gate": data = continuation_gate(plan, max(1, args.cap))
         elif args.cmd == "brief": data = {"path": str(create_task_brief(plan, args.todo)), "todo": _normalize_todo(args.todo)}
+        elif args.cmd == "worker-envelope":
+            data = {"path": str(create_worker_context_envelope(plan, args.todo)), "todo": _normalize_todo(args.todo)}
         elif args.cmd == "report-path": data = {"path": str(ensure_report_path(plan, args.todo)), "todo": _normalize_todo(args.todo)}
         else: data = {"path": str(build_task_review_package(plan, args.todo)), "todo": _normalize_todo(args.todo)}
     except (OSError, ValueError, RuntimeError) as exc:
         print(str(exc), file=sys.stderr); return 1
 
-    if args.cmd in {"brief", "report-path", "review-package"}:
+    if args.cmd in {"brief", "worker-envelope", "report-path", "review-package"}:
         if getattr(args, "json", False):
             print(json.dumps(data, ensure_ascii=False, indent=2))
         else:

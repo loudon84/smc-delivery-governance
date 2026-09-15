@@ -1,5 +1,5 @@
 {
-  "file_count": 350,
+  "file_count": 356,
   "files": [
     {
       "path": ".agents/skills/executing-plans/SKILL.md",
@@ -298,8 +298,8 @@
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/execution_context.py",
-      "sha256": "ee0e759295287618cee66cfc751070c401decfd8df84460119bfb06f713479c2",
-      "size": 16618
+      "sha256": "97803fc87b2b1ade7c99d435648519fa26d3447df8c90349c9a789bf0401fa8b",
+      "size": 21010
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/migrate_legacy_plan.py",
@@ -313,8 +313,8 @@
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/readiness.py",
-      "sha256": "c916bf1a3a706511095f1bba49b52d40b14e8af6016abb5fa16b991f53b113f1",
-      "size": 5414
+      "sha256": "a370ca1e1d3b198930aef6c6295c477e1ec9f389905c839ee52cdbed5feb457d",
+      "size": 6322
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/residual_gap.py",
@@ -338,8 +338,8 @@
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/runtime_metrics.py",
-      "sha256": "b984fa1678ab7465660799a28f7a4304a6beafdd25cd11e7b3d2ec6c6717b67a",
-      "size": 15880
+      "sha256": "719cf757408be583229e8b642f91a08b90d88620828778aeb8b82e6d7216472e",
+      "size": 19697
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/source_context.py",
@@ -363,8 +363,8 @@
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/test_engineering_method_v2.py",
-      "sha256": "60c297d3a72cc45793f3d055f1bca040665a662a70cf1b2e7dc77072e0c4636c",
-      "size": 7908
+      "sha256": "c85aebc5af6bde85363370068243abd5193727539a9e91c2b11ed68c64fac656",
+      "size": 8113
     },
     {
       "path": ".agents/skills/smc-plan-delivery/scripts/tests/test_acceptance_governance.py",
@@ -477,19 +477,24 @@
       "size": 11766
     },
     {
+      "path": ".agents/skills/smc-plan-from-approved-prd-ponytail/scripts/plan_author_cost.py",
+      "sha256": "ff9bb8001ba9d8e26db4b914ac458d55f832944c55116dfac107f55a0a8b38da",
+      "size": 4729
+    },
+    {
       "path": ".agents/skills/smc-plan-from-approved-prd-ponytail/SKILL.md",
       "sha256": "3c21ed686469f18de7ba236c973e4cd88ffcfa2747b33fb93ba189ba360e4e39",
       "size": 3771
     },
     {
       "path": ".agents/skills/smc-plan-review/scripts/assess_plan_review.py",
-      "sha256": "73b81f9274d79a000ee0d366e44b7b6892f5d4f6a53311039729dc6b249e8aa9",
-      "size": 8431
+      "sha256": "af85f0fd20be9f7e9058d19b9bf4622b519bbad0f2b143db45a9839b22f37e4d",
+      "size": 12128
     },
     {
       "path": ".agents/skills/smc-plan-review/scripts/build_review_packet.py",
-      "sha256": "fce79eb0dcd897a52a343a51d56e49b9efd1aca5b973be8a2e75a501a36b7ad4",
-      "size": 7311
+      "sha256": "56f4a001bcdf677942ede6038efce5f2e2d162ef5e4ce2a7abe6ced67f691d07",
+      "size": 7837
     },
     {
       "path": ".agents/skills/smc-plan-review/scripts/selftest.py",
@@ -843,8 +848,8 @@
     },
     {
       "path": "acceptance/run_acceptance.py",
-      "sha256": "343be7a8143c5f2a84da28fe493988d237317bde8e4a541e391628c0446801f5",
-      "size": 56155
+      "sha256": "45e75a1d50459d393065d8ae063cfd961452236de48268db2952d1bfd23a9606",
+      "size": 74013
     },
     {
       "path": "acceptance/run_benchmark.py",
@@ -1012,6 +1017,11 @@
       "size": 2182
     },
     {
+      "path": "CHANGES-v5.0.9-runtime-cost-closure.md",
+      "sha256": "9ce74e336dbd6847658b864e606230de3e8b650f911fde0c67c94351fd1472ed",
+      "size": 1626
+    },
+    {
       "path": "consumer-baseline/code-review-and-quality/SKILL.md",
       "sha256": "d75bcfe756341856099e17ea64205e16b5a82582c8dd40603796d4db69067f9b",
       "size": 1063
@@ -1048,8 +1058,8 @@
     },
     {
       "path": "consumer-bootstrap/probe_install_identity.py",
-      "sha256": "ccdd36687d032879f3956f2450defcc859fee5ab806ddf61932898eacbf9efea",
-      "size": 9066
+      "sha256": "e439c1ccbda178654dbc896337c7169242abbef2f130815ec940576d45fe239f",
+      "size": 10460
     },
     {
       "path": "consumer-bootstrap/schemas/consumer-audit.v1.json",
@@ -1237,9 +1247,24 @@
       "size": 10148
     },
     {
+      "path": "context-engine/context_envelope.py",
+      "sha256": "5f18c37fc400a463b63f6191d117702c94f316616b2a180d5658d004ba3a1cd9",
+      "size": 7408
+    },
+    {
       "path": "context-engine/frontend_app_registry.py",
       "sha256": "3a945c4f707a973c65be7ed8311b83a4df7e834ef7f12ec3c820d7f14874a7f9",
       "size": 18360
+    },
+    {
+      "path": "context-engine/harness_contract.py",
+      "sha256": "a9acee1ae7c1fa51cd04e185d51b56f588c7892e0850297a2c2a905da3ae3ffe",
+      "size": 4318
+    },
+    {
+      "path": "context-engine/model_dispatch.py",
+      "sha256": "378f4b6aeb77acfe28996833202d99eafdf61ec2e66e35bab3a982c6c4d7427c",
+      "size": 15494
     },
     {
       "path": "context-engine/policies/context-budget.v1.json",
@@ -1290,6 +1315,11 @@
       "path": "context-engine/stack_classifier.py",
       "sha256": "9a7907dc64a5f2be9057cd718467bc1feb49d61a96119bbfe4ad4fd87ef6cf09",
       "size": 4023
+    },
+    {
+      "path": "context-engine/stage_cost_closure.py",
+      "sha256": "a3fe30344e3f59fa4ced8c0a8558678cb04486e31b61f6beabbd6346d711f907",
+      "size": 7015
     },
     {
       "path": "context-engine/token_budget.py",
@@ -1673,8 +1703,8 @@
     },
     {
       "path": "tests/test_install_identity_probe.py",
-      "sha256": "6e322a05ffd5d6efb57bc3ab6174180c83d12d797ea559d1f4ae698d6593afba",
-      "size": 3033
+      "sha256": "840d4e0802ba6bfc81fefc106c4a6cee6c177c81eda78498565afca5b6b03e62",
+      "size": 4076
     },
     {
       "path": "tests/test_package_v500.py",
@@ -1743,7 +1773,7 @@
     },
     {
       "path": "validate_package_v500.py",
-      "sha256": "3d5d858368c0112f2cca27b9bba34c0106312d8c746e765832fbb9a1d4de10aa",
+      "sha256": "1bb386cdd852b7183c012e50a2e02bdf7067d3170907b5adceebf28118056b6f",
       "size": 7959
     },
     {
