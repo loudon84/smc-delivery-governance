@@ -1,5 +1,5 @@
 {
-  "file_count": 344,
+  "file_count": 345,
   "files": [
     {
       "path": ".agents/skills/executing-plans/SKILL.md",
@@ -1225,6 +1225,11 @@
       "path": "context-engine/frontend_app_registry.py",
       "sha256": "3a945c4f707a973c65be7ed8311b83a4df7e834ef7f12ec3c820d7f14874a7f9",
       "size": 18360
+    },
+    {
+      "path": "context-engine/schemas/feature-scope.v1.json",
+      "sha256": "0adef76361c00be2176cfccc230c5f1818aa0be930f0c197429178119cf4a248",
+      "size": 594
     },
     {
       "path": "context-engine/schemas/frontend-app-registry.v1.json",
