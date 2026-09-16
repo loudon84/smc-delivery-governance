@@ -3,14 +3,18 @@ from __future__ import annotations
 import argparse
 import sys
 
-from ges import __version__
-from ges.cli import analyze, apply, check, diff, init, legacy, remove
+from ges import __distribution_version__, __product_version__, __version__
+from ges.cli import analyze, apply, check, diff, doctor, init, legacy, remove
 from ges.errors import GesError
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="ges", description="GES 6 Composer")
-    parser.add_argument("--version", action="version", version=__version__)
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"{__product_version__} (distribution {__distribution_version__})",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     init_p = sub.add_parser("init", help="analyze, resolve, confirm, apply, check")
@@ -36,6 +40,11 @@ def build_parser() -> argparse.ArgumentParser:
     check_p = sub.add_parser("check", help="validate composed project state")
     _repo(check_p)
     check_p.set_defaults(func=check.run)
+
+    doctor_p = sub.add_parser("doctor", help="runtime readiness observation")
+    _repo(doctor_p)
+    doctor_p.add_argument("--preflight", action="store_true")
+    doctor_p.set_defaults(func=doctor.run)
 
     remove_p = sub.add_parser("remove", help="remove GES-owned projection")
     _repo(remove_p)

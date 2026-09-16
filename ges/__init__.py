@@ -2,3 +2,5 @@
 
 __version__ = "6.0.0-alpha.1"
 __release__ = "6.0.0-alpha.1"
+__product_version__ = "6.0.0-alpha.1"
+__distribution_version__ = "1.2.1"

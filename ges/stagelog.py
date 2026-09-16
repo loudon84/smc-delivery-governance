@@ -5,15 +5,35 @@ import sys
 from datetime import datetime, timezone
 from typing import Any, TextIO
 
+PREFLIGHT = "PREFLIGHT"
 ANALYZE = "ANALYZE"
 RESOLVE = "RESOLVE"
 FETCH = "FETCH"
+RENDER = "RENDER"
 PROJECT = "PROJECT"
+COLLISION_CHECK = "COLLISION_CHECK"
+PLAN = "PLAN"
+APPLY = "APPLY"
 RECONCILE = "RECONCILE"
 CHECK = "CHECK"
+DOCTOR = "DOCTOR"
 REMOVE = "REMOVE"
 
-STAGES = (ANALYZE, RESOLVE, FETCH, PROJECT, RECONCILE, CHECK, REMOVE)
+STAGES = (
+    PREFLIGHT,
+    ANALYZE,
+    RESOLVE,
+    FETCH,
+    RENDER,
+    PROJECT,
+    COLLISION_CHECK,
+    PLAN,
+    APPLY,
+    RECONCILE,
+    CHECK,
+    DOCTOR,
+    REMOVE,
+)
 
 
 def emit(stage: str, event: str, **fields: Any) -> None:

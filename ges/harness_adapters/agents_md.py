@@ -9,14 +9,48 @@ from ges.paths import AGENTS_BEGIN, AGENTS_END
 STACK_BODY = """
 ## AI Engineering Stack
 
-Requirement clarification and domain modeling:
-use Matt Pocock engineering skills.
+Discovery / requirement grilling:
+grill-with-docs
+grilling
+domain-modeling
 
-Feature specification and technical intent:
-use Spec Kit.
+Architecture / codebase design:
+codebase-design
 
-Implementation planning, TDD, debugging and code review:
-use the installed Superpowers execution skills.
+Work decomposition:
+to-tickets
+
+Project principles / constitution:
+speckit-constitution
+
+Feature specification:
+speckit-specify
+
+Requirement clarification:
+speckit-clarify
+
+Technical intent planning:
+speckit-plan
+
+Implementation plan methodology:
+writing-plans
+
+Execution:
+subagent-driven-development
+
+TDD:
+test-driven-development
+
+Debug:
+systematic-debugging
+
+Review:
+requesting-code-review
+receiving-code-review
+
+Completion:
+verification-before-completion
+finishing-a-development-branch
 
 GES manages composition and governance metadata.
 GES does not generate Specs, implementation plans or code.
@@ -46,8 +80,6 @@ def count_markers(text: str) -> int:
 def apply_marker(current: str, *, last_applied_hash: str | None) -> str:
     desired = marker_block()
     if AGENTS_BEGIN not in current:
-        if current and not current.endswith("\n"):
-            current += "\n"
         return current + desired
     existing = extract_section(current)
     if not existing:

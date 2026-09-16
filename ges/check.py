@@ -7,11 +7,14 @@ from ges.compose import compose
 from ges.errors import GES_CHECK_FAILED, GES_CHECK_PASS, GesError
 from ges.harness_adapters.agents_md import count_markers, read_agents, section_hash
 from ges.io import sha256_file
+from ges.reconciler.apply import snapshot_business_sources
 from ges.reconciler.guard import assert_allowed, assert_not_business_source
 from ges.reconciler.hashes import artifact_index
 from ges.reconciler.state import read_lock, read_profile, read_project, read_receipt, validate_payload
 from ges.resolver.capability_graph import detect_conflicts
-from ges.source_adapters.cache import ensure_source
+from ges.resolver.selection import resolve_selection
+from ges.source_adapters.cache import ensure_source, verify_manifest
+from ges.source_adapters.speckit_render import SELECTED_COMMANDS, command_rel, script_rel
 from ges.stagelog import CHECK, emit
 
 
@@ -30,16 +33,22 @@ def run_check(repo: Path) -> str:
     validate_payload("ges.install-receipt.v2.json", receipt, code=GES_CHECK_FAILED)
 
     catalog = load_catalog()
-    for source_id, meta in (lock.get("sources") or {}).items():
-        pin = catalog.sources[source_id]
-        if meta.get("commit_sha") != pin.commit_sha:
-            pass
-        ensure_source(pin)
-
+    product = catalog.profiles[project.get("profile") or "brownfield-product-app"]
+    requested = list((project.get("capabilities") or {}).get("requested") or [])
+    resolution = resolve_selection(catalog, product, requested=requested)
     closed = list(lock.get("resolved_capabilities") or lock.get("capabilities") or [])
+    if resolution.closed != closed:
+        raise GesError(GES_CHECK_FAILED, "desired closure does not match lock")
     conflicts = detect_conflicts(catalog, closed)
     if conflicts:
         raise GesError(GES_CHECK_FAILED, "ownership conflict present in lock", details={"conflicts": conflicts})
+
+    for source_id, meta in (lock.get("sources") or {}).items():
+        pin = catalog.sources[source_id]
+        if meta.get("commit_sha") != pin.commit_sha:
+            raise GesError(GES_CHECK_FAILED, f"lock SHA for {source_id} does not match catalog pin")
+        root = ensure_source(pin)
+        verify_manifest(root, pin)
 
     for cap_id in closed:
         cap = catalog.get(cap_id)
@@ -48,6 +57,13 @@ def run_check(repo: Path) -> str:
         skill_dir = repo / ".agents" / "skills" / cap.skill_name
         if not skill_dir.exists():
             raise GesError(GES_CHECK_FAILED, f"capability {cap_id} is not projected")
+
+    for command in SELECTED_COMMANDS:
+        if f"speckit.{command}" not in closed:
+            continue
+        for rel in (command_rel(command), script_rel(command)):
+            if not (repo / rel).is_file():
+                raise GesError(GES_CHECK_FAILED, f"Spec Kit runtime missing: {rel}")
 
     for rel, meta in artifact_index(receipt).items():
         path = repo / rel
@@ -66,6 +82,11 @@ def run_check(repo: Path) -> str:
     agents = read_agents(repo)
     if count_markers(agents) != 1:
         raise GesError(GES_CHECK_FAILED, "AGENTS.md must contain exactly one GES marker")
+
+    stored = lock.get("business_source_fingerprint")
+    if stored:
+        if snapshot_business_sources(repo) != stored:
+            raise GesError(GES_CHECK_FAILED, "business source bytes changed")
 
     ctx = compose(repo, persist_profile=False)
     if not ctx.plan.noop:

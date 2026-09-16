@@ -1,0 +1,859 @@
+{
+  "schema": "ges.bootstrap-evidence.v1",
+  "ges_version": "6.0.0-alpha.1",
+  "distribution_version": "1.2.1",
+  "ges_commit": "fb6353e9ed0c503ccdd88d3abfafea68e238f4c9",
+  "consumer_repo": "synthetic",
+  "consumer_commit": "",
+  "branch": "feat/ges-v6.0",
+  "started_at": "2026-09-16T05:37:42.768153+00:00",
+  "finished_at": "2026-09-16T05:37:42.768153+00:00",
+  "acceptances": [
+    {
+      "acceptance_id": "A-BOOT-001",
+      "requirement_ids": [
+        "REQ-BOOT-001"
+      ],
+      "test_ids": [
+        "TEST-A-BOOT-001"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CAP-001",
+      "requirement_ids": [
+        "REQ-CAP-001"
+      ],
+      "test_ids": [
+        "TEST-A-CAP-001"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CAP-002",
+      "requirement_ids": [
+        "REQ-CAP-001"
+      ],
+      "test_ids": [
+        "TEST-A-CAP-002"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SPECKIT-001",
+      "requirement_ids": [
+        "REQ-SPECKIT-001"
+      ],
+      "test_ids": [
+        "TEST-A-SPECKIT-001"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SPECKIT-002",
+      "requirement_ids": [
+        "REQ-SPECKIT-001"
+      ],
+      "test_ids": [
+        "TEST-A-SPECKIT-002"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SPECKIT-003",
+      "requirement_ids": [
+        "REQ-SPECKIT-001"
+      ],
+      "test_ids": [
+        "TEST-A-SPECKIT-003"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SPECKIT-004",
+      "requirement_ids": [
+        "REQ-SPECKIT-001"
+      ],
+      "test_ids": [
+        "TEST-A-SPECKIT-004"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-COLLISION-001",
+      "requirement_ids": [
+        "REQ-COLLISION-001"
+      ],
+      "test_ids": [
+        "TEST-A-COLLISION-001"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-COLLISION-002",
+      "requirement_ids": [
+        "REQ-COLLISION-001"
+      ],
+      "test_ids": [
+        "TEST-A-COLLISION-002"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-COLLISION-003",
+      "requirement_ids": [
+        "REQ-COLLISION-001"
+      ],
+      "test_ids": [
+        "TEST-A-COLLISION-003"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-MATT-001",
+      "requirement_ids": [
+        "REQ-MATT-001"
+      ],
+      "test_ids": [
+        "TEST-A-MATT-001"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-MATT-002",
+      "requirement_ids": [
+        "REQ-MATT-001"
+      ],
+      "test_ids": [
+        "TEST-A-MATT-002"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-ROUTE-001",
+      "requirement_ids": [
+        "REQ-ROUTE-001"
+      ],
+      "test_ids": [
+        "TEST-A-ROUTE-001"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-ROUTE-002",
+      "requirement_ids": [
+        "REQ-ROUTE-001"
+      ],
+      "test_ids": [
+        "TEST-A-ROUTE-002"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CHECK-001",
+      "requirement_ids": [
+        "REQ-CHECK-001"
+      ],
+      "test_ids": [
+        "TEST-A-CHECK-001"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CHECK-002",
+      "requirement_ids": [
+        "REQ-CHECK-001"
+      ],
+      "test_ids": [
+        "TEST-A-CHECK-002"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CHECK-003",
+      "requirement_ids": [
+        "REQ-CHECK-001"
+      ],
+      "test_ids": [
+        "TEST-A-CHECK-003"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CHECK-004",
+      "requirement_ids": [
+        "REQ-CHECK-001"
+      ],
+      "test_ids": [
+        "TEST-A-CHECK-004"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CHECK-005",
+      "requirement_ids": [
+        "REQ-CHECK-001"
+      ],
+      "test_ids": [
+        "TEST-A-CHECK-005"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CHECK-006",
+      "requirement_ids": [
+        "REQ-CHECK-001"
+      ],
+      "test_ids": [
+        "TEST-A-CHECK-006"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CHECK-007",
+      "requirement_ids": [
+        "REQ-CHECK-001"
+      ],
+      "test_ids": [
+        "TEST-A-CHECK-007"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CHECK-008",
+      "requirement_ids": [
+        "REQ-CHECK-001"
+      ],
+      "test_ids": [
+        "TEST-A-CHECK-008"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CHECK-009",
+      "requirement_ids": [
+        "REQ-CHECK-001"
+      ],
+      "test_ids": [
+        "TEST-A-CHECK-009"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CHECK-010",
+      "requirement_ids": [
+        "REQ-CHECK-001"
+      ],
+      "test_ids": [
+        "TEST-A-CHECK-010"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-DOCTOR-001",
+      "requirement_ids": [
+        "REQ-DOCTOR-001"
+      ],
+      "test_ids": [
+        "TEST-A-DOCTOR-001"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-DOCTOR-002",
+      "requirement_ids": [
+        "REQ-DOCTOR-001"
+      ],
+      "test_ids": [
+        "TEST-A-DOCTOR-002"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-DOCTOR-003",
+      "requirement_ids": [
+        "REQ-DOCTOR-001"
+      ],
+      "test_ids": [
+        "TEST-A-DOCTOR-003"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-TXN-001",
+      "requirement_ids": [
+        "REQ-TXN-001"
+      ],
+      "test_ids": [
+        "TEST-A-TXN-001"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-TXN-002",
+      "requirement_ids": [
+        "REQ-TXN-001"
+      ],
+      "test_ids": [
+        "TEST-A-TXN-002"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-TXN-003",
+      "requirement_ids": [
+        "REQ-TXN-001"
+      ],
+      "test_ids": [
+        "TEST-A-TXN-003"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-TXN-004",
+      "requirement_ids": [
+        "REQ-TXN-001"
+      ],
+      "test_ids": [
+        "TEST-A-TXN-004"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-STATE-001",
+      "requirement_ids": [
+        "REQ-STATE-001"
+      ],
+      "test_ids": [
+        "TEST-A-STATE-001"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-PKG-001",
+      "requirement_ids": [
+        "REQ-PKG-001"
+      ],
+      "test_ids": [
+        "TEST-A-PKG-001"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CURSOR-001",
+      "requirement_ids": [
+        "REQ-CURSOR-001"
+      ],
+      "test_ids": [
+        "TEST-A-CURSOR-001"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-IDEMP-001",
+      "requirement_ids": [
+        "REQ-BOOT-001"
+      ],
+      "test_ids": [
+        "TEST-A-IDEMP-001"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "NEG-001",
+      "requirement_ids": [
+        "REQ-COLLISION-001"
+      ],
+      "test_ids": [
+        "TEST-NEG-001"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "NEG-002",
+      "requirement_ids": [
+        "REQ-CHECK-001"
+      ],
+      "test_ids": [
+        "TEST-NEG-002"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "NEG-003",
+      "requirement_ids": [
+        "REQ-SPECKIT-001"
+      ],
+      "test_ids": [
+        "TEST-NEG-003"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "NEG-004",
+      "requirement_ids": [
+        "REQ-SPECKIT-001"
+      ],
+      "test_ids": [
+        "TEST-NEG-004"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "NEG-005",
+      "requirement_ids": [
+        "REQ-CHECK-001"
+      ],
+      "test_ids": [
+        "TEST-NEG-005"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "NEG-006",
+      "requirement_ids": [
+        "REQ-STATE-001"
+      ],
+      "test_ids": [
+        "TEST-NEG-006"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "NEG-007",
+      "requirement_ids": [
+        "REQ-CHECK-001"
+      ],
+      "test_ids": [
+        "TEST-NEG-007"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "B8",
+      "requirement_ids": [
+        "REQ-SPECKIT-001"
+      ],
+      "test_ids": [
+        "TEST-B8"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "B9",
+      "requirement_ids": [
+        "REQ-SPECKIT-001"
+      ],
+      "test_ids": [
+        "TEST-B9"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "B10",
+      "requirement_ids": [
+        "REQ-SPECKIT-001"
+      ],
+      "test_ids": [
+        "TEST-B10"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "B11",
+      "requirement_ids": [
+        "REQ-SPECKIT-001"
+      ],
+      "test_ids": [
+        "TEST-B11"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "B12",
+      "requirement_ids": [
+        "REQ-STATE-001"
+      ],
+      "test_ids": [
+        "TEST-B12"
+      ],
+      "status": "PASS",
+      "command": "pytest -q tests/ges6",
+      "exit_code": 0,
+      "oracle": {
+        "expected": "PASS",
+        "actual": "PASS",
+        "surface": "synthetic"
+      },
+      "evidence_files": []
+    }
+  ]
+}

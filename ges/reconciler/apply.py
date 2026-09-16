@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from ges import __version__
+from ges import __distribution_version__, __product_version__, __version__
 from ges.errors import (
     BUSINESS_SOURCE_MODIFICATION_FORBIDDEN,
     GES_RECONCILE_NOOP,
@@ -69,6 +69,7 @@ def apply_plan(
     stage = Path(tempfile.mkdtemp(prefix="ges-stage-"))
     backup = Path(tempfile.mkdtemp(prefix="ges-t0-"))
     ges_existed = (repo / ".ges").is_dir()
+    keep_backup = False
     try:
         _stage_projection(stage, desired, project, profile, lock, receipt)
         if fail_at == "before_commit":
@@ -80,25 +81,49 @@ def apply_plan(
                 repo,
                 stage,
                 desired,
+                changing={entry.path for entry in plan.changing()},
                 fail_at=fail_at,
                 fail_after_writes=fail_after_writes,
             )
-            if fail_at == "post_verify":
-                raise RuntimeError("injected failure post_verify")
+            if fail_at in {"post_verify", "post_check", "rollback_write_failure"}:
+                raise RuntimeError(f"injected failure {fail_at}")
+            from ges.check import run_check
+
+            run_check(repo)
             assert_business_unchanged(repo, before)
         except Exception:
-            _rollback(
-                repo,
-                t0,
-                extra_rels=set(desired) | {entry.path for entry in plan.entries},
-                ges_existed=ges_existed,
-                transaction_id=transaction_id,
-                backup=backup,
-            )
+            try:
+                if fail_at == "rollback_write_failure":
+                    raise RuntimeError("injected rollback_write_failure")
+                _rollback(
+                    repo,
+                    t0,
+                    extra_rels=set(desired) | {entry.path for entry in plan.entries},
+                    ges_existed=ges_existed,
+                    transaction_id=transaction_id,
+                    backup=backup,
+                )
+            except GesError as rollback_error:
+                if rollback_error.code == TRANSACTION_ROLLBACK_FAILED:
+                    keep_backup = True
+                raise
+            except Exception as rollback_error:
+                keep_backup = True
+                raise GesError(
+                    TRANSACTION_ROLLBACK_FAILED,
+                    "failed to restore T0 snapshot after apply failure",
+                    details={
+                        "transaction_id": transaction_id,
+                        "backup_location": str(backup),
+                        "manual_recovery": f"Restore managed files from {backup}.",
+                        "error": str(rollback_error),
+                    },
+                ) from rollback_error
             raise
     finally:
         shutil.rmtree(stage, ignore_errors=True)
-        shutil.rmtree(backup, ignore_errors=True)
+        if not keep_backup:
+            shutil.rmtree(backup, ignore_errors=True)
     emit(RECONCILE, "applied", changed=len(plan.changing()), transaction_id=transaction_id)
     return receipt
 
@@ -128,7 +153,8 @@ def build_receipt(
     return {
         "schema": "ges.install-receipt.v2",
         "installed_at": datetime.now(timezone.utc).isoformat(),
-        "ges_version": __version__,
+        "ges_version": __product_version__,
+        "distribution_version": __distribution_version__,
         "transaction_id": transaction_id or str(uuid.uuid4()),
         "repo_identity": {
             "path": str(repo.resolve()),
@@ -199,11 +225,14 @@ def _commit_stage(
     stage: Path,
     desired: dict[str, ProjectedFile],
     *,
+    changing: set[str],
     fail_at: str | None,
     fail_after_writes: int,
 ) -> None:
     written = 0
     for rel, item in sorted(desired.items()):
+        if rel not in changing:
+            continue
         assert_allowed(rel)
         assert_not_business_source(rel)
         target = contain(repo, rel)

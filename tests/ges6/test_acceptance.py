@@ -28,6 +28,7 @@ from ges.errors import (
     GES_CHECK_PASS,
     MANAGED_CONTENT_MODIFIED,
     PROJECTION_PATH_CONFLICT,
+    RECONFIGURE_NOT_SUPPORTED,
     SOURCE_CACHE_INTEGRITY_FAILED,
     GesError,
 )
@@ -36,7 +37,7 @@ from ges.io import write_text
 from ges.legacy.v5 import LEGACY_OWNERSHIP_UNKNOWN, OWNED_ABSENT, OWNED_UNMODIFIED, inspect_legacy
 from ges.paths import AGENTS_BEGIN
 from ges.reconciler.apply import apply_plan, consumer_tree
-from ges.reconciler.state import read_lock, read_project, write_project
+from ges.reconciler.state import read_lock, read_project
 from ges.remove import run_remove
 from ges.source_adapters.base import ProjectedFile, Projection
 from ges.source_adapters.cache import write_manifest
@@ -177,7 +178,7 @@ def test_a14_user_modification_conflict(brownfield, offline_cache):
     apply_recommended(brownfield)
     text = (brownfield / "AGENTS.md").read_text(encoding="utf-8")
     (brownfield / "AGENTS.md").write_text(
-        text.replace("use Matt Pocock engineering skills.", "USER CHANGED THIS"),
+        text.replace("grill-with-docs", "USER CHANGED THIS"),
         encoding="utf-8",
     )
     with pytest.raises(GesError) as captured:
@@ -245,24 +246,11 @@ def test_a17_read_only_command_purity(brownfield, offline_cache, monkeypatch):
 # @lat: [[ges6-tests#A18 — Desired State Authority]]
 def test_a18_desired_state_authority(brownfield, offline_cache):
     apply_recommended(brownfield)
-    project = read_project(brownfield)
-    dropped = "matt.to-tickets"
-    assert dropped in project["capabilities"]["requested"]
-    project["capabilities"]["requested"] = [
-        item for item in project["capabilities"]["requested"] if item != dropped
-    ]
-    write_project(brownfield, project)
     before = consumer_tree(brownfield)
-    ctx = compose(brownfield)
-    assert dropped not in ctx.resolution.selected
-    assert dropped not in ctx.project["capabilities"]["requested"]
-    prepare_apply(ctx)
-    if not ctx.plan.noop:
-        apply_plan(brownfield, ctx.plan, ctx.desired, project=ctx.project, profile=ctx.profile, lock=ctx.lock)
-    project_after = read_project(brownfield)
-    assert dropped not in project_after["capabilities"]["requested"]
-    assert dropped not in compose(brownfield).resolution.selected
-    assert before != consumer_tree(brownfield) or ctx.plan.noop
+    with pytest.raises(GesError) as captured:
+        compose(brownfield, exclude=["matt.to-tickets"])
+    assert captured.value.code == RECONFIGURE_NOT_SUPPORTED
+    assert consumer_tree(brownfield) == before
 
 
 # @lat: [[ges6-tests#A19 — Optional Selection Semantics]]
@@ -293,7 +281,7 @@ def test_a20_section_scoped_hashing(brownfield, offline_cache):
     assert "NEW USER ROUTING TEXT" in (brownfield / "AGENTS.md").read_text(encoding="utf-8")
     mutated = (brownfield / "AGENTS.md").read_text(encoding="utf-8")
     (brownfield / "AGENTS.md").write_text(
-        mutated.replace("use Matt Pocock engineering skills.", "USER CHANGED THIS"),
+        mutated.replace("grill-with-docs", "USER CHANGED THIS"),
         encoding="utf-8",
     )
     with pytest.raises(GesError) as captured:

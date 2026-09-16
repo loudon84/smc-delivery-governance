@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ges import __version__
+from ges import __distribution_version__, __version__
 from ges.analyzer.repo_profile import analyze_repo
 from ges.catalog.loader import Catalog, load_catalog
 from ges.harness_adapters.agents_md import apply_marker, read_agents
@@ -17,7 +17,8 @@ from ges.paths import AGENTS_BEGIN, AGENTS_END
 from ges.reconciler.apply import snapshot_business_sources
 from ges.reconciler.hashes import artifact_index
 from ges.reconciler.plan import InstallPlan, build_plan
-from ges.reconciler.state import read_project, read_receipt
+from ges.errors import RECONFIGURE_NOT_SUPPORTED, GesError
+from ges.reconciler.state import read_lock, read_project, read_receipt
 from ges.resolver.capability_graph import Resolution, assert_no_conflicts
 from ges.resolver.selection import project_desired_state, resolve_selection
 from ges.source_adapters.base import ProjectedFile, Projection
@@ -92,11 +93,20 @@ def compose(
         extra=extra,
     )
     emit(RESOLVE, "complete", selected=resolution.closed, conflicts=resolution.conflicts)
+    installed = read_lock(repo) or {}
+    frozen = installed.get("requested")
+    if frozen is not None and set(resolution.selected) != set(frozen):
+        raise GesError(
+            RECONFIGURE_NOT_SUPPORTED,
+            "Alpha.1 bootstrap desired state is frozen after first install",
+            details={"installed": frozen, "requested": resolution.selected},
+        )
     project = project_desired_state(product, resolution, profile.get("agents") or [])
     desired = project_files(repo, catalog, resolution, profile)
-    lock = build_lock(catalog, resolution, desired)
+    business = snapshot_business_sources(repo)
+    lock = build_lock(catalog, resolution, desired, business=business)
     legacy = inspect_legacy(repo)
-    guard = {"roots": profile.get("source_roots") or [], "fingerprint_count": len(snapshot_business_sources(repo))}
+    guard = {"roots": profile.get("source_roots") or [], "fingerprint_count": len(business)}
     plan = build_plan(
         repo,
         desired,
@@ -176,7 +186,13 @@ def _project_agents_md(repo: Path, shared: Projection) -> None:
     )
 
 
-def build_lock(catalog: Catalog, resolution: Resolution, desired: dict[str, ProjectedFile]) -> dict[str, Any]:
+def build_lock(
+    catalog: Catalog,
+    resolution: Resolution,
+    desired: dict[str, ProjectedFile],
+    *,
+    business: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     used_sources = {catalog.get(cap_id).source for cap_id in resolution.closed}
     sources = {}
     for source_id in sorted(used_sources):
@@ -194,9 +210,12 @@ def build_lock(catalog: Catalog, resolution: Resolution, desired: dict[str, Proj
     return {
         "schema": "ges.lock.v1",
         "ges_version": __version__,
+        "distribution_version": __distribution_version__,
         "sources": sources,
+        "requested": list(resolution.selected),
         "capabilities": resolution.closed,
         "resolved_capabilities": resolution.closed,
+        "business_source_fingerprint": business or {},
         "content_identity": {
             rel: sha256_bytes(item.content)
             for rel, item in desired.items()

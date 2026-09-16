@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ges.readiness.v1",
+  "title": "GES Readiness Observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "ges_version", "checked_at", "overall", "checks"],
+  "properties": {
+    "schema": { "const": "ges.readiness.v1" },
+    "ges_version": { "type": "string" },
+    "mode": { "type": "string" },
+    "repo_head": { "type": "string" },
+    "checked_at": { "type": "string" },
+    "overall": { "type": "string", "enum": ["READY", "BOOTSTRAP_PENDING", "BLOCKED", "PASS"] },
+    "checks": { "type": "object", "additionalProperties": { "type": "string" } },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  }
+}
