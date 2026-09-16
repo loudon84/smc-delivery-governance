@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import subprocess
 from argparse import Namespace
 from pathlib import Path
 
@@ -400,17 +399,8 @@ def test_a26_spec_kit_pinned_adoption(brownfield, offline_cache):
 
 
 # @lat: [[ges6-tests#A27 — Golden Consumer]]
-def test_a27_golden_consumer_blocked():
-    repo = Path("E:/git/smc-copilot")
-    if repo.is_dir():
-        result = subprocess.run(
-            ["git", "status", "--porcelain"],
-            cwd=repo,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if not result.stdout.strip():
-            pytest.skip("A27 apply is out of this hardening run even if the worktree is clean")
-    assert True
+def test_a27_golden_consumer_current():
+    from ges.acceptance.release_gate import assert_current_status_current
+
+    assert_current_status_current(Path(__file__).resolve().parents[2])
 

@@ -47,8 +47,7 @@ def write_evidence(root: Path, exit_code: int, *, acceptances: dict[str, str] | 
         "exit_code": exit_code,
         "acceptances": acceptances
         or {
-            **{item: ("PASS" if exit_code == 0 else "FAIL") for item in ACCEPTANCES if item != "A27"},
-            "A27": "BLOCKED",
+            **{item: ("PASS" if exit_code == 0 else "FAIL") for item in ACCEPTANCES},
         },
     }
     out_dir = root / "audit" / "ges6" / "acceptance"

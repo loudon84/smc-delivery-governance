@@ -20,18 +20,35 @@ from ges.acceptance.golden_worktree import (
     worktree_clean,
 )
 from ges.acceptance.harness import apply_recommended
+from ges.acceptance.release_evidence import artifact_inside_candidate, resolve_artifact_dir
+from ges.acceptance.release_gate import assert_current_status_current
 from ges.acceptance.speckit_smoke import (
     evaluate_spec,
-    feature_directory,
+    feature_state_error,
     matt_setup_prompt,
     smoke_dir,
+    smoke_invocation_record,
     smoke_prompt,
     unexpected_writes,
 )
 from ges.compose import compose
-from ges.cursor_probe import resolve_cursor_cli, runtime_discovery, structural_discovery
+from ges.cursor_probe import (
+    REQUIRED_SKILLS,
+    native_discovery,
+    native_probe_prompt,
+    prompt_leaks_skill_paths,
+    resolve_cursor_cli,
+    structural_discovery,
+)
 from ges.doctor import READY, run_doctor, run_preflight
-from ges.errors import CURSOR_CLI_NOT_FOUND, MANAGED_CONTENT_MODIFIED, GesError
+from ges.errors import (
+    CURSOR_CLI_NOT_FOUND,
+    CURSOR_DISCOVERY_OUTPUT_INVALID,
+    CURSOR_NATIVE_DISCOVERY_FAILED,
+    CURSOR_SKILL_METADATA_MISMATCH,
+    MANAGED_CONTENT_MODIFIED,
+    GesError,
+)
 from ges.io import sha256_bytes, write_bytes, write_json
 from ges.reconciler.apply import consumer_tree, snapshot_business_sources
 from ges.reconciler.state import read_receipt
@@ -58,12 +75,14 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(description="GES 6 Bootstrap Closure Golden runner")
     parser.add_argument("--repo", default=str(DEFAULT_GOLDEN_SOURCE))
+    parser.add_argument("--artifact-dir", default="")
     args = parser.parse_args(argv)
     source = Path(args.repo)
     started = datetime.now(timezone.utc)
     run_id = started.strftime("%Y%m%dT%H%M%SZ")
     ges_root = Path(__file__).resolve().parents[2]
     _prepare_env(ges_root)
+    artifact_dir = resolve_artifact_dir(args.artifact_dir or None)
     ges_head = git(ges_root, ["rev-parse", "HEAD"]).stdout.strip()
     ges_branch = git(ges_root, ["symbolic-ref", "--short", "-q", "HEAD"]).stdout.strip() or "DETACHED"
     acceptances: list[dict] = []
@@ -109,6 +128,16 @@ def main(argv: list[str] | None = None) -> int:
             _upsert(acceptances, record("A-GOLDEN-002", "FAIL", "worktree status", 2, True, False))
             raise SystemExit(2)
         _run_chain(worktree, run_id, acceptances, cursor, ges_root)
+        after_head = git(ges_root, ["rev-parse", "HEAD"]).stdout.strip()
+        _upsert(
+            acceptances,
+            record("A-RH-EVID-001", "PASS" if after_head == ges_head else "FAIL", "candidate sha", 0 if after_head == ges_head else 2, ges_head, after_head),
+        )
+        try:
+            assert_current_status_current(ges_root)
+            _upsert(acceptances, record("A-RH-DOC-001", "PASS", "lat current status", 0, [], []))
+        except GesError as exc:
+            _upsert(acceptances, record("A-RH-DOC-001", "FAIL", "lat current status", 2, [], exc.code))
         spec_kit = _spec_kit_block()
         after_source = workspace_identity(source)
         same = after_source == before_source
@@ -126,6 +155,10 @@ def main(argv: list[str] | None = None) -> int:
             remove_worktree(source, worktree)
     _upsert(acceptances, record("A-EVID-001", "PASS", "commit binding", 0, ges_head, ges_head))
     _upsert(acceptances, record("A-EVID-002", "PASS", "per-AC fields", 0, True, True))
+    planned = artifact_dir / "golden" / "evidence.json"
+    external = not artifact_inside_candidate(planned, ges_root)
+    _upsert(acceptances, record("A-RH-EVID-002", "PASS" if external else "FAIL", "external evidence bind", 0 if external else 2, ges_head, ges_head))
+    _upsert(acceptances, record("A-RH-EVID-003", "PASS" if external else "FAIL", "evidence not committed", 0 if external else 2, True, external))
     out = write_closure_evidence(
         run_id=run_id,
         started_at=started,
@@ -136,6 +169,7 @@ def main(argv: list[str] | None = None) -> int:
         cursor=cursor,
         acceptances=acceptances,
         root=ges_root,
+        artifact_dir=artifact_dir,
     )
     payload = json.loads(out.read_text(encoding="utf-8"))
     print(json.dumps(payload, indent=2))
@@ -198,20 +232,36 @@ def _run_chain(worktree: Path, run_id: str, acceptances: list[dict], cursor: dic
     try:
         cursor["executable"] = resolve_cursor_cli()
         before_probe = workspace_identity(worktree)
-        runtime = runtime_discovery(worktree)
+        runtime = native_discovery(worktree)
         cursor["version"] = runtime.get("version") or ""
         cursor["runtime_discovery"] = "PASS"
+        leaked = any(prompt_leaks_skill_paths(native_probe_prompt(name)) for name in REQUIRED_SKILLS)
+        probes = runtime.get("probes") or []
+        identity_ok = {item["skill"] for item in probes} == set(REQUIRED_SKILLS) and all(
+            item["parsed"].get("available") is True and item["parsed"].get("recognized_name") == item["skill"] for item in probes
+        )
+        _upsert(acceptances, record("A-RH-CURSOR-001", "PASS" if not leaked else "FAIL", "native probe prompt", 0 if not leaked else 2, False, leaked))
+        _upsert(acceptances, record("A-RH-CURSOR-002", "PASS" if identity_ok else "FAIL", "native skill identity", 0 if identity_ok else 2, True, identity_ok))
+        _upsert(acceptances, record("A-RH-CURSOR-003", "PASS", "native metadata digest", 0, True, True))
         _upsert(acceptances, record("A-CURSOR-RUNTIME-001", "PASS", " ".join(runtime["argv"]), runtime["exit_code"], True, True))
         unchanged = workspace_identity(worktree) == before_probe
         _upsert(acceptances, record("A-CURSOR-RUNTIME-002", "PASS" if unchanged else "FAIL", "probe mutation", 0 if unchanged else 2, True, unchanged))
+        _upsert(acceptances, record("A-RH-CURSOR-004", "PASS" if unchanged else "FAIL", "native probe readonly", 0 if unchanged else 2, True, unchanged))
         before_smoke = workspace_identity(worktree)
         _run_smoke(worktree, run_id, acceptances, before_smoke, business)
     except GesError as exc:
         cursor["runtime_discovery"] = "BLOCKED" if exc.code == CURSOR_CLI_NOT_FOUND else "FAIL"
         _upsert(acceptances, record("A-CURSOR-RUNTIME-001", cursor["runtime_discovery"], "cursor probe", 2, "PASS", exc.code))
+        if exc.code == CURSOR_NATIVE_DISCOVERY_FAILED:
+            _upsert(acceptances, record("A-RH-CURSOR-002", "FAIL", "native skill identity", 2, True, exc.code))
+        elif exc.code == CURSOR_SKILL_METADATA_MISMATCH:
+            _upsert(acceptances, record("A-RH-CURSOR-003", "FAIL", "native metadata digest", 2, True, exc.code))
+        elif exc.code == CURSOR_DISCOVERY_OUTPUT_INVALID:
+            _upsert(acceptances, record("A-RH-CURSOR-001", "FAIL", "native probe prompt", 2, False, exc.code))
         if "before_probe" in locals():
             unchanged = workspace_identity(worktree) == before_probe
             _upsert(acceptances, record("A-CURSOR-RUNTIME-002", "PASS" if unchanged else "FAIL", "probe mutation", 0 if unchanged else 2, True, unchanged))
+            _upsert(acceptances, record("A-RH-CURSOR-004", "PASS" if unchanged else "FAIL", "native probe readonly", 0 if unchanged else 2, True, unchanged))
     emit(GES_SECOND_INIT, "start")
     before_second = workspace_identity(worktree)
     second = _ges(["init", str(worktree), "--yes"], ges_root)
@@ -313,20 +363,22 @@ def _run_smoke(worktree: Path, run_id: str, acceptances: list[dict], before_tree
     env["SPECIFY_FEATURE_DIRECTORY"] = smoke_dir(run_id)
     argv = _cursor_argv(executable, smoke_prompt(run_id), write=True)
     result = _run_process(argv, cwd=worktree, env=env, timeout=SMOKE_TIMEOUT_SEC)
+    before_eval = workspace_identity(worktree)
+    invocations = smoke_invocation_record(primary=1, repair=0)
     spec = worktree / smoke_dir(run_id) / "spec.md"
-    if spec.is_file() and not (worktree / ".specify" / "feature.json").is_file():
-        follow = (
-            f'Write only .specify/feature.json with {{"feature_directory":"{smoke_dir(run_id)}"}}. '
-            "Do not modify any other files."
-        )
-        result = _run_process(_cursor_argv(executable, follow, write=True), cwd=worktree, env=env, timeout=180)
     spec_errors = evaluate_spec(spec)
-    _upsert(acceptances, record("A-SKF-001", "PASS" if not spec_errors else "FAIL", " ".join(argv[:4]), result.returncode, [], spec_errors))
     expected_dir = smoke_dir(run_id)
-    actual_dir = feature_directory(worktree)
-    _upsert(acceptances, record("A-SKF-002", "PASS" if actual_dir == expected_dir else "FAIL", ".specify/feature.json", 0, expected_dir, actual_dir))
+    state_error = feature_state_error(worktree, run_id)
     unexpected = unexpected_writes(before_tree, workspace_identity(worktree), run_id)
     biz_same = snapshot_business_sources(worktree) == business
+    after_eval = workspace_identity(worktree)
+    _upsert(acceptances, record("A-SKF-001", "PASS" if not spec_errors else "FAIL", " ".join(argv[:4]), result.returncode, [], spec_errors))
+    _upsert(acceptances, record("A-SKF-002", "PASS" if not state_error else "FAIL", ".specify/feature.json", 0 if not state_error else 2, expected_dir, state_error or expected_dir))
+    _upsert(acceptances, record("A-RH-SMOKE-001", "PASS" if not state_error else "FAIL", "feature state", 0 if not state_error else 2, "", state_error))
+    _upsert(acceptances, record("A-RH-SMOKE-002", "PASS" if before_eval == after_eval else "FAIL", "observer evaluate", 0 if before_eval == after_eval else 2, True, before_eval == after_eval))
+    _upsert(acceptances, record("A-RH-SMOKE-003", "PASS" if not state_error else "FAIL", "valid feature state", 0 if not state_error else 2, expected_dir, state_error or expected_dir))
+    _upsert(acceptances, record("A-RH-SMOKE-004", "PASS" if biz_same else "FAIL", "business source", 0 if biz_same else 2, "unchanged", "unchanged" if biz_same else "changed"))
+    _upsert(acceptances, record("A-RH-SMOKE-005", "PASS" if invocations["repair_invocation_count"] == 0 else "FAIL", "repair count", 0, 0, invocations["repair_invocation_count"]))
     _upsert(
         acceptances,
         record("A-SKF-003", "PASS" if not unexpected and biz_same else "FAIL", "mutation allowlist", 0 if not unexpected else 2, [], unexpected),

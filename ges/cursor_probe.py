@@ -10,29 +10,22 @@ from typing import Any
 
 from ges.errors import (
     CURSOR_CLI_NOT_FOUND,
-    CURSOR_DISCOVERY_FAILED,
     CURSOR_DISCOVERY_OUTPUT_INVALID,
+    CURSOR_NATIVE_DISCOVERY_FAILED,
     CURSOR_RUNTIME_UNAVAILABLE,
+    CURSOR_SKILL_METADATA_MISMATCH,
     GesError,
 )
-from ges.stagelog import CURSOR_RUNTIME_DISCOVERY, CURSOR_STRUCTURAL_DISCOVERY, emit
+from ges.io import sha256_bytes
+from ges.stagelog import CURSOR_NATIVE_DISCOVERY, CURSOR_RUNTIME_DISCOVERY, CURSOR_STRUCTURAL_DISCOVERY, emit
 
-PROBE_ID = "GES_CURSOR_DISCOVERY_PROBE_V1"
+PROBE_ID = "GES_CURSOR_NATIVE_SKILL_PROBE_V2"
+FORBIDDEN_PROMPT_TOKENS = (".agents/skills", ".cursor/skills", "SKILL.md")
 REQUIRED_SKILLS = {
     "grill-with-docs": Path(".agents/skills/grill-with-docs/SKILL.md"),
     "speckit-specify": Path(".cursor/skills/speckit-specify/SKILL.md"),
     "writing-plans": Path(".agents/skills/writing-plans/SKILL.md"),
 }
-PROBE_PROMPT = (
-    "Do not edit files. Read these project skill files if they exist: "
-    ".agents/skills/grill-with-docs/SKILL.md, "
-    ".cursor/skills/speckit-specify/SKILL.md, "
-    ".agents/skills/writing-plans/SKILL.md. "
-    "Return only a machine-readable JSON object. "
-    f'The object MUST be {{"probe":"{PROBE_ID}","skills":{{'
-    '"grill-with-docs":true,"speckit-specify":true,"writing-plans":true}}. '
-    "Set a skill true only if that SKILL.md exists and you can follow it now."
-)
 
 
 def resolve_cursor_cli() -> str:
@@ -77,53 +70,85 @@ def structural_discovery(repo: Path) -> dict[str, Any]:
     return {"status": "PASS" if ok else "FAIL", "skills": results}
 
 
+def native_probe_prompt(skill: str) -> str:
+    return (
+        f'Use project skill "{skill}". '
+        "Return only discovery proof; do not modify files. "
+        "Return only a JSON object with keys probe, requested_skill, available, "
+        "recognized_name, and description. "
+        f'probe must be "{PROBE_ID}". requested_skill must be "{skill}". '
+        "description must be the skill's declared description text exactly."
+    )
+
+
+def prompt_leaks_skill_paths(prompt: str) -> bool:
+    return any(token in prompt for token in FORBIDDEN_PROMPT_TOKENS)
+
+
+def expected_skill_description(repo: Path, skill: str) -> str:
+    path = repo / REQUIRED_SKILLS[skill]
+    if not path.is_file():
+        return ""
+    return _parse_frontmatter(path.read_text(encoding="utf-8")).get("description") or ""
+
+
 def runtime_discovery(repo: Path) -> dict[str, Any]:
+    return native_discovery(repo)
+
+
+# @lat: [[release-hardening#Native Cursor Discovery]]
+def native_discovery(repo: Path) -> dict[str, Any]:
+    emit(CURSOR_NATIVE_DISCOVERY, "start", repo=str(repo))
     emit(CURSOR_RUNTIME_DISCOVERY, "start", repo=str(repo))
-    last_error: GesError | None = None
-    for attempt in range(3):
-        try:
-            payload = _runtime_discovery_once(repo)
-            emit(CURSOR_RUNTIME_DISCOVERY, "complete", status="PASS", attempt=attempt + 1)
-            return payload
-        except GesError as exc:
-            last_error = exc
-            if exc.code != CURSOR_DISCOVERY_FAILED or attempt == 2:
-                emit(CURSOR_RUNTIME_DISCOVERY, "complete", status="FAIL", attempt=attempt + 1)
-                raise
-    assert last_error is not None
-    raise last_error
-
-
-def _runtime_discovery_once(repo: Path) -> dict[str, Any]:
     executable = resolve_cursor_cli()
-    argv = [executable, "-p", "--output-format", "json", "--trust", "--workspace", str(repo)]
-    if _supports_ask(executable):
-        argv.extend(["--mode", "ask"])
-    argv.append(PROBE_PROMPT)
-    try:
-        version = _cli_version(executable)
-        result = _run_cli(argv, cwd=repo, timeout=300)
-    except OSError as exc:
-        raise GesError(CURSOR_RUNTIME_UNAVAILABLE, f"Cursor runtime unavailable: {exc}") from exc
-    parsed = _parse_probe_json(result.stdout)
-    skills = parsed.get("skills") if isinstance(parsed.get("skills"), dict) else {}
-    if parsed.get("probe") != PROBE_ID:
-        raise GesError(CURSOR_DISCOVERY_OUTPUT_INVALID, "probe id missing or invalid", details={"stdout": result.stdout})
-    missing = [name for name in REQUIRED_SKILLS if name not in skills]
-    if missing:
-        raise GesError(CURSOR_DISCOVERY_OUTPUT_INVALID, f"probe omitted skills: {missing[0]}", details={"parsed": parsed})
-    if any(skills.get(name) is not True for name in REQUIRED_SKILLS):
-        raise GesError(CURSOR_DISCOVERY_FAILED, "Cursor runtime did not report all required skills", details={"skills": skills, "stdout": result.stdout[-2000:]})
-    return {
+    version = _cli_version(executable)
+    probes = []
+    argv_all: list[str] = []
+    for skill in REQUIRED_SKILLS:
+        prompt = native_probe_prompt(skill)
+        if prompt_leaks_skill_paths(prompt):
+            raise GesError(CURSOR_DISCOVERY_OUTPUT_INVALID, "native probe prompt leaked a skill path")
+        argv = [executable, "-p", "--output-format", "json", "--trust", "--workspace", str(repo)]
+        if _supports_ask(executable):
+            argv.extend(["--mode", "ask"])
+        argv.append(prompt)
+        argv_all = argv
+        try:
+            result = _run_cli(argv, cwd=repo, timeout=300)
+        except OSError as exc:
+            raise GesError(CURSOR_RUNTIME_UNAVAILABLE, f"Cursor runtime unavailable: {exc}") from exc
+        parsed = _parse_probe_json(result.stdout)
+        if parsed.get("probe") != PROBE_ID:
+            raise GesError(CURSOR_DISCOVERY_OUTPUT_INVALID, "probe id missing or invalid", details={"stdout": result.stdout})
+        if parsed.get("available") is not True or parsed.get("recognized_name") != skill:
+            raise GesError(
+                CURSOR_NATIVE_DISCOVERY_FAILED,
+                f"Cursor native discovery failed for {skill}",
+                details={"parsed": parsed},
+            )
+        expected = expected_skill_description(repo, skill)
+        actual = parsed.get("description")
+        if not isinstance(actual, str) or sha256_bytes(actual.encode("utf-8")) != sha256_bytes(expected.encode("utf-8")):
+            raise GesError(
+                CURSOR_SKILL_METADATA_MISMATCH,
+                f"native description digest mismatch for {skill}",
+                details={"skill": skill},
+            )
+        probes.append({"skill": skill, "parsed": parsed, "exit_code": result.returncode, "prompt": prompt})
+    payload = {
         "status": "PASS",
         "executable": executable,
         "version": version,
-        "argv": argv,
-        "exit_code": result.returncode,
-        "parsed": parsed,
-        "stdout": result.stdout,
-        "stderr": result.stderr,
+        "argv": argv_all,
+        "exit_code": 0,
+        "parsed": {"probe": PROBE_ID, "skills": {item["skill"]: item["parsed"] for item in probes}},
+        "probes": probes,
+        "stdout": "",
+        "stderr": "",
     }
+    emit(CURSOR_NATIVE_DISCOVERY, "complete", status="PASS")
+    emit(CURSOR_RUNTIME_DISCOVERY, "complete", status="PASS")
+    return payload
 
 
 def _valid_skill_name(name: str) -> bool:

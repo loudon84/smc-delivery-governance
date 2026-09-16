@@ -12,6 +12,7 @@ SMOKE_FEATURE = (
 )
 ALLOW_PREFIXES = ("specs/_ges-smoke/", ".specify/feature.json", ".specify/")
 DENY_PREFIXES = ("apps/", "src/", "services/", "packages/", "contracts/")
+FORBIDDEN_REPAIR_PROMPT = "Write only .specify/feature.json"
 
 
 def smoke_dir(run_id: str) -> str:
@@ -29,6 +30,21 @@ def smoke_prompt(run_id: str) -> str:
         f'Write .specify/feature.json as {{"feature_directory":"{target}"}}. '
         f"{SMOKE_FEATURE}"
     )
+
+
+def smoke_invocation_record(*, primary: int = 1, repair: int = 0) -> dict[str, int]:
+    return {"primary_invocation_count": primary, "repair_invocation_count": repair}
+
+
+# @lat: [[release-hardening#Strict Spec Kit Smoke]]
+def feature_state_error(repo: Path, run_id: str) -> str:
+    path = repo / ".specify" / "feature.json"
+    if not path.is_file():
+        return "SPEC_KIT_SMOKE_FEATURE_STATE_MISSING"
+    actual = feature_directory(repo)
+    if actual != smoke_dir(run_id):
+        return "SPEC_KIT_SMOKE_FEATURE_STATE_INVALID"
+    return ""
 
 
 def matt_setup_prompt() -> str:

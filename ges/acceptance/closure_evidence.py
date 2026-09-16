@@ -30,6 +30,19 @@ REQUIRED_ACCEPTANCES = (
     ("A-IDEMP-CLI-001", ["REQ-GOLDEN-002"], ["TEST-A-IDEMP-CLI-001"]),
     ("A-EVID-001", ["REQ-EVID-001"], ["TEST-A-EVID-001"]),
     ("A-EVID-002", ["REQ-EVID-001"], ["TEST-A-EVID-002"]),
+    ("A-RH-EVID-001", ["REQ-RH-EVID-001"], ["TEST-A-RH-EVID-001"]),
+    ("A-RH-EVID-002", ["REQ-RH-EVID-001"], ["TEST-A-RH-EVID-002"]),
+    ("A-RH-EVID-003", ["REQ-RH-EVID-001"], ["TEST-A-RH-EVID-003"]),
+    ("A-RH-SMOKE-001", ["REQ-RH-SMOKE-001"], ["TEST-A-RH-SMOKE-001"]),
+    ("A-RH-SMOKE-002", ["REQ-RH-SMOKE-001"], ["TEST-A-RH-SMOKE-002"]),
+    ("A-RH-SMOKE-003", ["REQ-RH-SMOKE-001"], ["TEST-A-RH-SMOKE-003"]),
+    ("A-RH-SMOKE-004", ["REQ-RH-SMOKE-001"], ["TEST-A-RH-SMOKE-004"]),
+    ("A-RH-SMOKE-005", ["REQ-RH-SMOKE-002"], ["TEST-A-RH-SMOKE-005"]),
+    ("A-RH-CURSOR-001", ["REQ-RH-CURSOR-001"], ["TEST-A-RH-CURSOR-001"]),
+    ("A-RH-CURSOR-002", ["REQ-RH-CURSOR-001"], ["TEST-A-RH-CURSOR-002"]),
+    ("A-RH-CURSOR-003", ["REQ-RH-CURSOR-001"], ["TEST-A-RH-CURSOR-003"]),
+    ("A-RH-CURSOR-004", ["REQ-RH-CURSOR-001"], ["TEST-A-RH-CURSOR-004"]),
+    ("A-RH-DOC-001", ["REQ-RH-DOC-001"], ["TEST-A-RH-DOC-001"]),
 )
 
 
@@ -85,6 +98,7 @@ def write_closure_evidence(
     cursor: dict[str, Any],
     acceptances: list[dict[str, Any]],
     root: Path,
+    artifact_dir: Path | None = None,
 ) -> Path:
     emit(EVIDENCE_WRITE, "start", run_id=run_id)
     known = {item["acceptance_id"] for item in acceptances}
@@ -128,7 +142,7 @@ def write_closure_evidence(
     }
     bind_commits(payload, ges_head=ges_head, consumer_head=consumer["commit_sha"])
     validate_payload("ges.bootstrap-closure-evidence.v1.json", payload)
-    out_dir = root / "audit" / "ges6" / "bootstrap-closure" / run_id
+    out_dir = Path(artifact_dir) / "golden" if artifact_dir is not None else root / "audit" / "ges6" / "bootstrap-closure" / run_id
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / "evidence.json"
     out.write_text(__import__("json").dumps(payload, indent=2) + "\n", encoding="utf-8")

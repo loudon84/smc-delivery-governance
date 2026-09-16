@@ -4,7 +4,7 @@ lat:
 ---
 # GES 6 Acceptance Tests
 
-A01–A26 prove the spec-hardened Composer on a synthetic brownfield fixture. A27 stays BLOCKED while the Golden Consumer worktree is dirty.
+A01–A26 prove the spec-hardened Composer on a synthetic brownfield fixture. A27 records the Golden Consumer detached-HEAD contract.
 
 ## A01 — Brownfield Detection
 
@@ -112,4 +112,4 @@ Selected Spec Kit commands live under `.specify/.ges/commands` and wrappers cite
 
 ## A27 — Golden Consumer
 
-Real `smc-copilot` end-to-end apply stays BLOCKED while the worktree is dirty. SKIPPED/BLOCKED is not PASS.
+Detached Golden HEAD on `smc-copilot-desktop` is the current consumer contract. Current status must not say the Golden Consumer is BLOCKED.
