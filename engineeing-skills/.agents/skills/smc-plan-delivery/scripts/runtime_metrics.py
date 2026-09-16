@@ -9,9 +9,22 @@ from pathlib import Path
 
 from common import find_repo_root, plan_id, utc_now
 
-SCHEMA = "smc.execution.telemetry.v1"
-COMPLETENESS_SCHEMA = "smc.execution.telemetry-completeness.v1"
+SCHEMA = "smc.execution.telemetry.v2"
+SCHEMA_LEGACY = "smc.execution.telemetry.v1"
+COMPLETENESS_SCHEMA = "smc.execution.telemetry-completeness.v2"
 FORBIDDEN = ("prompt", "source", "secret", "token_value", "api_key", "password")
+COST_BUCKETS = (
+    "ROUTING",
+    "BASELINE_LOOKUP",
+    "GROUNDING",
+    "PRD",
+    "PLAN",
+    "IMPLEMENT",
+    "TDD",
+    "DEBUG",
+    "REVIEW",
+    "DELIVERY",
+)
 DISPATCH_REQUIRED = ("plan_id", "todo", "phase", "requested_tier", "dispatch_id", "agent")
 RESULT_REQUIRED = (
     "dispatch_id",
@@ -26,11 +39,38 @@ RESULT_REQUIRED = (
     "cache_read_tokens",
     "cache_write_tokens",
 )
-OPTIONAL_USAGE = (
-    "tool_tokens",
-    "subagent_tokens",
-    "reviewer_tokens",
-    "usage_kind",
+V2_OPTIONAL = (
+    "cost_bucket",
+    "context_files_read",
+    "unique_context_files",
+    "repeated_context_reads",
+    "target_app_ids",
+    "surface_candidates",
+    "selected_surface",
+    "governance_profile",
+    "engineering_method",
+    "review_mode",
+    "tdd_mode",
+    # v5.0.8 adaptive governance / context budget (digests and counters only)
+    "work_route_digest",
+    "policy_digest",
+    "phase",
+    "phase_allocated_tokens",
+    "phase_actual_tokens",
+    "context_cache_hits",
+    "context_cache_misses",
+    "context_cache_stale",
+    "budget_upgrade_reason",
+    "budget_block_reason",
+    # v5.0.9 runtime cost closure
+    "context_envelope_digest",
+    "budget_decision_digest",
+    "permit_status",
+    "harness_mode",
+    "managed",
+    "unmanaged_call",
+    "estimated_context_tokens",
+    "review_depth",
 )
 
 
@@ -52,6 +92,10 @@ def _append(plan: Path, event: dict) -> Path:
 
 
 def dispatch(plan: Path, **fields) -> Path:
+    # @lat: [[frontend-context#Telemetry v2]]
+    for key in FORBIDDEN:
+        if key in fields:
+            raise ValueError("TELEMETRY_SCHEMA_INVALID: forbidden field " + key)
     did = fields.get("dispatch_id") or uuid.uuid4().hex
     payload = {
         "kind": "dispatch",
@@ -61,10 +105,55 @@ def dispatch(plan: Path, **fields) -> Path:
         "dispatch_id": did,
         "agent": fields.get("agent", ""),
     }
+    for key in V2_OPTIONAL:
+        if key in fields and fields[key] is not None:
+            payload[key] = fields[key]
+    if "cost_bucket" not in payload:
+        phase = str(payload.get("phase") or "").upper()
+        mapping = {
+            "ROUTING": "ROUTING",
+            "GROUNDING": "GROUNDING",
+            "PRD": "PRD",
+            "PLAN": "PLAN",
+            "IMPLEMENT": "IMPLEMENT",
+            "TDD": "TDD",
+            "DEBUG": "DEBUG",
+            "REVIEW": "REVIEW",
+            "DELIVERY": "DELIVERY",
+            "BASELINE": "BASELINE_LOOKUP",
+        }
+        payload["cost_bucket"] = mapping.get(phase, "IMPLEMENT")
+    return _append(plan, payload)
+
+
+def dispatch_blocked(plan: Path, **fields) -> Path:
+    """Record a blocked budget decision even when no dispatch occurred."""
+    for key in FORBIDDEN:
+        if key in fields:
+            raise ValueError("TELEMETRY_SCHEMA_INVALID: forbidden field " + key)
+    payload = {"kind": "dispatch-blocked", **fields}
+    if "cost_bucket" not in payload:
+        phase = str(payload.get("phase") or "").upper()
+        mapping = {
+            "ROUTING": "ROUTING",
+            "GROUNDING": "GROUNDING",
+            "PRD": "PRD",
+            "PLAN": "PLAN",
+            "IMPLEMENT": "IMPLEMENT",
+            "TDD": "TDD",
+            "DEBUG": "DEBUG",
+            "REVIEW": "REVIEW",
+            "DELIVERY": "DELIVERY",
+            "BASELINE": "BASELINE_LOOKUP",
+        }
+        payload["cost_bucket"] = mapping.get(phase, "IMPLEMENT")
     return _append(plan, payload)
 
 
 def result(plan: Path, **fields) -> Path:
+    for key in FORBIDDEN:
+        if key in fields:
+            raise ValueError("TELEMETRY_SCHEMA_INVALID: forbidden field " + key)
     payload = {"kind": "result", **fields}
     if "dispatch_id" not in payload:
         raise ValueError("TELEMETRY_REQUIRED_FIELD_MISSING: dispatch_id")
@@ -79,6 +168,9 @@ def result(plan: Path, **fields) -> Path:
             raise ValueError("TELEMETRY_TOKEN_ACCOUNTING_MISSING")
     if fields.get("usage_unavailable_reason") in {"TOKEN_ACCOUNTING_UNAVAILABLE", "unavailable"}:
         payload["usage_unavailable_reason"] = fields.get("usage_unavailable_reason") or "TOKEN_ACCOUNTING_UNAVAILABLE"
+    for key in V2_OPTIONAL:
+        if key in fields and fields[key] is not None:
+            payload[key] = fields[key]
     return _append(plan, payload)
 
 
@@ -109,10 +201,16 @@ def ingest(plan: Path, event: dict) -> Path:
     raise ValueError("TELEMETRY_SCHEMA_INVALID: unknown kind")
 
 
+def _usage_unavailable(r: dict) -> bool:
+    reason = r.get("usage_unavailable_reason")
+    return bool(reason) and reason not in {"", None}
+
+
 def summarize(plan: Path) -> dict:
     # @lat: [[acceptance-hardening#Runtime Telemetry]]
     # @lat: [[acceptance-closure#Telemetry Dispatch Correlation]]
     # @lat: [[governance-architecture-closure]]
+    # @lat: [[runtime-cost-closure-v509#Telemetry Usage Semantics]]
     path = telemetry_path(plan)
     if not path.is_file():
         return {
@@ -121,23 +219,21 @@ def summarize(plan: Path) -> dict:
             "status": "TELEMETRY_INCOMPLETE",
             "code": "TELEMETRY_INCOMPLETE",
             "events": 0,
+            "usage_status": "UNAVAILABLE",
+            "prompt_tokens": None,
+            "completion_tokens": None,
+            "cache_read_tokens": None,
+            "cache_write_tokens": None,
         }
     events = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    totals = {
-        "prompt_tokens": 0,
-        "completion_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_write_tokens": 0,
-        "tool_tokens": 0,
-        "subagent_tokens": 0,
-        "reviewer_tokens": 0,
+    non_token_totals = {
         "retry_count": 0,
         "source_context_hits": 0,
         "source_context_misses": 0,
         "reviewer_seats": 0,
     }
     for ev in events:
-        for k in totals:
+        for k in non_token_totals:
             val = ev.get(k)
             if val is None:
                 continue
@@ -149,7 +245,7 @@ def summarize(plan: Path) -> dict:
                     "code": "TELEMETRY_INCOMPLETE",
                     "detail": "negative metric",
                 }
-            totals[k] += int(val)
+            non_token_totals[k] += int(val)
 
     dispatches = {e.get("dispatch_id"): e for e in events if e.get("kind") == "dispatch" and e.get("dispatch_id")}
     results = [e for e in events if e.get("kind") == "result"]
@@ -158,6 +254,54 @@ def summarize(plan: Path) -> dict:
         did = e.get("dispatch_id")
         if did:
             result_by_id.setdefault(did, []).append(e)
+
+    available_count = 0
+    unavailable_count = 0
+    token_sums = {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+    }
+    estimated_context_tokens = 0
+    for r in results:
+        if _usage_unavailable(r):
+            unavailable_count += 1
+            estimated_context_tokens += int(r.get("estimated_context_tokens") or r.get("phase_actual_tokens") or 0)
+            continue
+        has_any = any(k in r and r.get(k) is not None for k in token_sums)
+        if has_any:
+            available_count += 1
+            for k in token_sums:
+                val = r.get(k)
+                if val is None:
+                    continue
+                if int(val) < 0:
+                    return {
+                        "schema": COMPLETENESS_SCHEMA,
+                        "complete": False,
+                        "status": "TELEMETRY_INCOMPLETE",
+                        "code": "TELEMETRY_INCOMPLETE",
+                        "detail": "negative metric",
+                    }
+                token_sums[k] += int(val)
+        else:
+            unavailable_count += 1
+        estimated_context_tokens += int(r.get("estimated_context_tokens") or 0)
+
+    if results and unavailable_count and not available_count:
+        usage_status = "UNAVAILABLE"
+        usage_totals = {k: None for k in token_sums}
+    elif results and available_count and unavailable_count:
+        usage_status = "MIXED"
+        usage_totals = dict(token_sums)
+    elif results and available_count:
+        usage_status = "AVAILABLE"
+        usage_totals = dict(token_sums)
+    else:
+        usage_status = "UNAVAILABLE"
+        usage_totals = {k: None for k in token_sums}
+
     errors = []
     for did, d in dispatches.items():
         missing = [k for k in DISPATCH_REQUIRED if not d.get(k)]
@@ -166,21 +310,18 @@ def summarize(plan: Path) -> dict:
         matched = result_by_id.get(did) or []
         if not matched:
             errors.append({"code": "TELEMETRY_DISPATCH_UNPAIRED", "detail": did})
-            # compat alias
             errors.append({"code": "TELEMETRY_ORPHAN_DISPATCH", "detail": did})
         elif len(matched) > 1:
             errors.append({"code": "TELEMETRY_RESULT_DUPLICATE", "detail": did})
     for r in results:
         did = r.get("dispatch_id")
         if did not in dispatches:
-            errors.append({"code": "TELEMETRY_DISPATCH_UNPAIRED", "detail": str(did)})
+            errors.append({"code": "TELEMETRY_RESULT_UNPAIRED", "detail": str(did)})
             errors.append({"code": "TELEMETRY_ORPHAN_RESULT", "detail": str(did)})
         if not r.get("provider") and not r.get("model") and not r.get("model_identity_unavailable"):
             errors.append({"code": "TELEMETRY_MODEL_IDENTITY_MISSING", "detail": str(did)})
         missing = [k for k in RESULT_REQUIRED if k not in r]
-        if r.get("usage_unavailable_reason") in {"TOKEN_ACCOUNTING_UNAVAILABLE", "unavailable"} or r.get(
-            "usage_unavailable_reason"
-        ):
+        if _usage_unavailable(r):
             missing = [
                 k
                 for k in missing
@@ -192,14 +333,106 @@ def summarize(plan: Path) -> dict:
         if missing:
             errors.append({"code": "TELEMETRY_REQUIRED_FIELD_MISSING", "detail": ",".join(missing)})
     kinds = {e.get("kind") for e in events}
+    cost_buckets: dict[str, int] = {b: 0 for b in COST_BUCKETS}
+    for e in events:
+        bucket = str(e.get("cost_bucket") or "").upper()
+        if bucket in cost_buckets:
+            if _usage_unavailable(e):
+                if e.get("kind") == "dispatch":
+                    cost_buckets[bucket] += 1
+                continue
+            cost_buckets[bucket] += int(e.get("prompt_tokens") or 0) + int(e.get("completion_tokens") or 0)
+            if e.get("kind") == "dispatch" and not any(k.endswith("_tokens") for k in e):
+                cost_buckets[bucket] += 1
+    context_files_read = sum(int(e.get("context_files_read") or 0) for e in events)
+    unique_context_files = sum(int(e.get("unique_context_files") or 0) for e in events)
+    repeated_context_reads = sum(int(e.get("repeated_context_reads") or 0) for e in events)
+    # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G60 Telemetry Redacted]]
+    budget_fields = {
+        "work_route_digest": next((e.get("work_route_digest") for e in events if e.get("work_route_digest")), None),
+        "policy_digest": next((e.get("policy_digest") for e in events if e.get("policy_digest")), None),
+        "phase_allocated_tokens": sum(int(e.get("phase_allocated_tokens") or 0) for e in events),
+        "phase_actual_tokens": sum(int(e.get("phase_actual_tokens") or 0) for e in events),
+        "context_cache_hits": sum(int(e.get("context_cache_hits") or 0) for e in events),
+        "context_cache_misses": sum(int(e.get("context_cache_misses") or 0) for e in events),
+        "context_cache_stale": sum(int(e.get("context_cache_stale") or 0) for e in events),
+        "budget_upgrade_reason": next(
+            (e.get("budget_upgrade_reason") for e in events if e.get("budget_upgrade_reason")), None
+        ),
+        "budget_block_reason": next(
+            (e.get("budget_block_reason") for e in events if e.get("budget_block_reason")), None
+        ),
+    }
+    paired = sum(1 for did in dispatches if len(result_by_id.get(did) or []) == 1)
+    managed_dispatch_count = sum(1 for e in dispatches.values() if e.get("managed") is True)
+    unmanaged_call_count = sum(
+        1 for e in events if e.get("unmanaged_call") or e.get("harness_mode") == "UNMANAGED" or e.get("managed") is False
+    )
+    review_full_rounds = sum(
+        1
+        for e in events
+        if e.get("kind") == "dispatch"
+        and str(e.get("phase") or "").upper() == "REVIEW"
+        and str(e.get("review_depth") or e.get("review_mode") or "").upper() == "FULL"
+    )
+    review_delta_rounds = sum(
+        1
+        for e in events
+        if e.get("kind") == "dispatch"
+        and str(e.get("phase") or "").upper() == "REVIEW"
+        and str(e.get("review_depth") or e.get("review_mode") or "").upper() == "DELTA"
+    )
+    context_envelope_count = sum(1 for e in events if e.get("context_envelope_digest"))
+    budget_pass_count = sum(
+        1
+        for e in events
+        if e.get("kind") == "dispatch" and e.get("permit_status") == "PERMITTED"
+    )
+    budget_block_count = sum(
+        1
+        for e in events
+        if e.get("kind") == "dispatch-blocked"
+        or (e.get("kind") == "dispatch" and (e.get("budget_block_reason") or e.get("permit_status") == "BLOCKED"))
+    )
+    closure_fields = {
+        "usage_status": usage_status,
+        "estimated_context_tokens": estimated_context_tokens or None,
+        "managed_dispatch_count": managed_dispatch_count,
+        "unmanaged_call_count": unmanaged_call_count,
+        "dispatch_result_pair_rate": (paired / len(dispatches)) if dispatches else 0.0,
+        "review_full_rounds": review_full_rounds,
+        "review_delta_rounds": review_delta_rounds,
+        "context_envelope_count": context_envelope_count,
+        "budget_pass_count": budget_pass_count,
+        "budget_block_count": budget_block_count,
+    }
+    base_out = {
+        "events": len(events),
+        "cost_buckets": cost_buckets,
+        **non_token_totals,
+        **usage_totals,
+        **budget_fields,
+        **closure_fields,
+    }
+    # Refuse to surface forbidden content fields even if a buggy writer appended them.
+    for e in events:
+        for key in FORBIDDEN:
+            if key in e:
+                return {
+                    "schema": COMPLETENESS_SCHEMA,
+                    "complete": False,
+                    "status": "TELEMETRY_INCOMPLETE",
+                    "code": "TELEMETRY_SCHEMA_INVALID",
+                    "detail": f"forbidden field {key}",
+                    **base_out,
+                }
     if kinds <= {"cache-hit", "cache-miss", "reviewer-seat"} or not dispatches:
         return {
             "schema": COMPLETENESS_SCHEMA,
             "complete": False,
             "status": "TELEMETRY_INCOMPLETE",
             "code": "TELEMETRY_INCOMPLETE",
-            "events": len(events),
-            **totals,
+            **base_out,
         }
     if errors:
         return {
@@ -208,16 +441,17 @@ def summarize(plan: Path) -> dict:
             "status": "TELEMETRY_INCOMPLETE",
             "code": errors[0]["code"],
             "errors": errors,
-            "events": len(events),
-            **totals,
+            **base_out,
         }
     return {
         "schema": COMPLETENESS_SCHEMA,
         "complete": True,
         "status": "COMPLETE",
-        "events": len(events),
         "dispatch_count": len(dispatches),
-        **totals,
+        "context_files_read": context_files_read,
+        "unique_context_files": unique_context_files,
+        "repeated_context_reads": repeated_context_reads,
+        **base_out,
     }
 
 

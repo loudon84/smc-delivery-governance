@@ -1,0 +1,384 @@
+{
+  "schema": "ges.bootstrap-closure-evidence.v1",
+  "run_id": "20260916T071546Z",
+  "started_at": "2026-09-16T07:15:46.724107+00:00",
+  "finished_at": "2026-09-16T07:20:35.206916+00:00",
+  "ges": {
+    "repository": "loudon84/smc-delivery-governance",
+    "branch": "feat/ges-v6.0",
+    "commit_sha": "d799bdb580f0e206fe5bb75178474d0394116c1e",
+    "product_version": "6.0.0-alpha.1",
+    "distribution_version": "1.2.1"
+  },
+  "golden_consumer": {
+    "source_path": "E:\\git\\smc-copilot-desktop",
+    "repo_identity": "loudon84/smc-copilot-desktop",
+    "source_branch": "master",
+    "commit_sha": "737409b14e7499723db25fcb0414fa3e7026a86f",
+    "source_worktree_dirty": false,
+    "source_worktree_status_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "test_worktree_path": "C:\\Users\\SMC-SZ~1\\AppData\\Local\\Temp\\ges-golden-wt-yxkdcu1j",
+    "test_worktree_clean_at_start": true
+  },
+  "spec_kit": {
+    "repo": "https://github.com/github/spec-kit.git",
+    "commit_sha": "1d5106f59e1b148ee23ab136638932dd790ff1b6",
+    "specify_cli_version": "1.0.8.dev0",
+    "integration": "cursor-agent",
+    "official_render_manifest_digest": "18e379cfe588ee24d7d9a13ab1b799a620937850a09d2c67317c9b9280cacc6a",
+    "projected_manifest_digest": "122b070c55eabb9959b3f2971f79269509b346867388d59746404dedeeb5dd6f"
+  },
+  "cursor": {
+    "executable": "C:\\Users\\smc-sz-hr21007\\AppData\\Local\\cursor-agent\\agent.cmd",
+    "version": "",
+    "structural_discovery": "PASS",
+    "runtime_discovery": "FAIL"
+  },
+  "acceptances": [
+    {
+      "acceptance_id": "A-GOLDEN-001",
+      "requirement_ids": [
+        "REQ-GOLDEN-001"
+      ],
+      "test_ids": [
+        "TEST-A-GOLDEN-001"
+      ],
+      "status": "PASS",
+      "command": "git rev-parse HEAD",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "E:\\git\\smc-copilot-desktop",
+        "actual": "E:\\git\\smc-copilot-desktop"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-GOLDEN-002",
+      "requirement_ids": [
+        "REQ-GOLDEN-001"
+      ],
+      "test_ids": [
+        "TEST-A-GOLDEN-002"
+      ],
+      "status": "PASS",
+      "command": "git status --porcelain",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "continue-if-dirty",
+        "actual": "clean"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SK-003",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-001"
+      ],
+      "test_ids": [
+        "TEST-A-SK-003"
+      ],
+      "status": "PASS",
+      "command": "official_stage",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": true,
+        "actual": true
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SK-001",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-001"
+      ],
+      "test_ids": [
+        "TEST-A-SK-001"
+      ],
+      "status": "PASS",
+      "command": "specify --version",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "1.0.8.dev0",
+        "actual": "1.0.8.dev0"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SK-002",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-001"
+      ],
+      "test_ids": [
+        "TEST-A-SK-002"
+      ],
+      "status": "PASS",
+      "command": "manifest compare",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": 0,
+        "actual": 0
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SKM-002",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-002"
+      ],
+      "test_ids": [
+        "TEST-A-SKM-002"
+      ],
+      "status": "PASS",
+      "command": "compose drifted stub",
+      "exit_code": 2,
+      "oracle": {
+        "type": "equals",
+        "expected": "MANAGED_CONTENT_MODIFIED",
+        "actual": "MANAGED_CONTENT_MODIFIED"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SKM-001",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-002"
+      ],
+      "test_ids": [
+        "TEST-A-SKM-001"
+      ],
+      "status": "PASS",
+      "command": "migrate unmodified stub",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": true,
+        "actual": true
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-GOLDEN-003",
+      "requirement_ids": [
+        "REQ-GOLDEN-002"
+      ],
+      "test_ids": [
+        "TEST-A-GOLDEN-003"
+      ],
+      "status": "PASS",
+      "command": "ges doctor",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "READY",
+        "actual": "READY"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CURSOR-STRUCT-001",
+      "requirement_ids": [
+        "REQ-CURSOR-001"
+      ],
+      "test_ids": [
+        "TEST-A-CURSOR-STRUCT-001"
+      ],
+      "status": "PASS",
+      "command": "structural discovery",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "PASS",
+        "actual": "PASS"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CURSOR-RUNTIME-001",
+      "requirement_ids": [
+        "REQ-CURSOR-002"
+      ],
+      "test_ids": [
+        "TEST-A-CURSOR-RUNTIME-001"
+      ],
+      "status": "FAIL",
+      "command": "cursor probe",
+      "exit_code": 2,
+      "oracle": {
+        "type": "equals",
+        "expected": "PASS",
+        "actual": "CURSOR_DISCOVERY_FAILED"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-IDEMP-CLI-001",
+      "requirement_ids": [
+        "REQ-GOLDEN-002"
+      ],
+      "test_ids": [
+        "TEST-A-IDEMP-CLI-001"
+      ],
+      "status": "PASS",
+      "command": "ges init --yes",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "GES_RECONCILE_NOOP",
+        "actual": "GES_RECONCILE_NOOP"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-GOLDEN-004",
+      "requirement_ids": [
+        "REQ-GOLDEN-002"
+      ],
+      "test_ids": [
+        "TEST-A-GOLDEN-004"
+      ],
+      "status": "PASS",
+      "command": "business snapshot",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "unchanged",
+        "actual": "unchanged"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-GOLDEN-005",
+      "requirement_ids": [
+        "REQ-GOLDEN-001"
+      ],
+      "test_ids": [
+        "TEST-A-GOLDEN-005"
+      ],
+      "status": "PASS",
+      "command": "source workspace identity",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "unchanged",
+        "actual": "unchanged"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-EVID-001",
+      "requirement_ids": [
+        "REQ-EVID-001"
+      ],
+      "test_ids": [
+        "TEST-A-EVID-001"
+      ],
+      "status": "PASS",
+      "command": "commit binding",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "d799bdb580f0e206fe5bb75178474d0394116c1e",
+        "actual": "d799bdb580f0e206fe5bb75178474d0394116c1e"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-EVID-002",
+      "requirement_ids": [
+        "REQ-EVID-001"
+      ],
+      "test_ids": [
+        "TEST-A-EVID-002"
+      ],
+      "status": "PASS",
+      "command": "per-AC fields",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": true,
+        "actual": true
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CURSOR-RUNTIME-002",
+      "requirement_ids": [
+        "REQ-CURSOR-002"
+      ],
+      "test_ids": [
+        "TEST-A-CURSOR-RUNTIME-002"
+      ],
+      "status": "BLOCKED",
+      "command": "not-executed",
+      "exit_code": 2,
+      "oracle": {
+        "type": "equals",
+        "expected": "PASS",
+        "actual": "missing"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SKF-001",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-003"
+      ],
+      "test_ids": [
+        "TEST-A-SKF-001"
+      ],
+      "status": "BLOCKED",
+      "command": "not-executed",
+      "exit_code": 2,
+      "oracle": {
+        "type": "equals",
+        "expected": "PASS",
+        "actual": "missing"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SKF-002",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-003"
+      ],
+      "test_ids": [
+        "TEST-A-SKF-002"
+      ],
+      "status": "BLOCKED",
+      "command": "not-executed",
+      "exit_code": 2,
+      "oracle": {
+        "type": "equals",
+        "expected": "PASS",
+        "actual": "missing"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SKF-003",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-003"
+      ],
+      "test_ids": [
+        "TEST-A-SKF-003"
+      ],
+      "status": "BLOCKED",
+      "command": "not-executed",
+      "exit_code": 2,
+      "oracle": {
+        "type": "equals",
+        "expected": "PASS",
+        "actual": "missing"
+      },
+      "evidence_files": []
+    }
+  ],
+  "release_gate": {
+    "status": "FAIL"
+  }
+}

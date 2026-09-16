@@ -44,6 +44,8 @@ class RuntimeV5Tests(unittest.TestCase):
   self.assertEqual(0,m.tdd_run(self.p,'T1','RED',self.cmd)[0])
   (self.r/'a.txt').write_text('good',encoding='utf-8')
   self.assertEqual(0,m.tdd_run(self.p,'T1','GREEN',self.cmd)[0])
+  import execution_context as ec
+  ec.create_worker_context_envelope(self.p,'T1')
  def test_multiline_and_inline_writes(self):
   self.assertEqual(['a.txt','check.py'],m.write_paths(self.p,'T1'))
   self.p.write_text(PLAN.replace('**Writes**\n- a.txt\n- check.py','**Writes:** a.txt, check.py'),encoding='utf-8')
@@ -78,11 +80,18 @@ class RuntimeV5Tests(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'MIGRATION_REQUIRED'):m.load_method(self.p,'T1')
   m.migrate(self.p,'T1','approved v37 migration')
   self.assertTrue(list((m.edir(self.p)/'history').glob('*.json')))
+  loaded=m.load_method(self.p,'T1')
+  self.assertEqual(loaded['schema'],'smc.execution.engineering-method.v3')
+  self.assertEqual(loaded['profile'],'BOUNDED_BEHAVIOR')
+  # BOUNDED_BEHAVIOR uses TDD_PREFERRED (empty ok); force required cycle for gate check.
+  m.classify(self.p,'T1',profile_override='BUG_FIX',write=True)
   self.assertNotEqual(0,m.tdd_check(self.p,'T1')[0])
  def test_empty_scope_fails_closed(self):
   self.p.write_text(PLAN.replace('**Writes**','**Reads**'),encoding='utf-8')
   with self.assertRaisesRegex(ValueError,'SCOPE_MISSING'):m.tdd_run(self.p,'T1','RED',self.cmd)
  def test_completion_state_interlock(self):
+  # Require focused TDD cycle; keep debug ON_FAILURE so empty debug does not block.
+  m.classify(self.p,'T1',profile_override='SENSITIVE_BOUNDED',write=True)
   before=self.p.read_bytes()
   with self.assertRaises(ValueError):plan_state.set_status(self.p,'T1','completed')
   self.assertEqual(before,self.p.read_bytes())
@@ -111,8 +120,11 @@ class RuntimeV5Tests(unittest.TestCase):
  def test_stale_revise_cannot_route_none(self):
   review_record.record('plan',self.p,'REVISE','reviewer','fix required')
   self.p.write_text(PLAN+'\nChanged scope.\n',encoding='utf-8')
-  self.assertEqual('FULL',review(self.p)['depth'])
+  # v5.0.9: REVISE defaults to DELTA; cannot collapse to NONE
+  self.assertEqual('DELTA',review(self.p)['depth'])
+  # Without bound semantic snapshot, packet build fail-closes DELTA→FULL
   self.assertEqual('FULL',build(self.p,'NONE')['review_depth'])
+  self.assertNotEqual('NONE',build(self.p,'NONE')['review_depth'])
  def test_snapshot_binding_and_tamper(self):
   review_record.record('plan',self.p,'PASS','reviewer');accept(self.p)
   self.p.write_text(PLAN+'\nSmall change.\n',encoding='utf-8')

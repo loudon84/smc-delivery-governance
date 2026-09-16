@@ -131,15 +131,23 @@ def generate(project: Path, gap: dict[str, Any], audit_report: dict[str, Any] | 
             )
 
     # GES gaps that bootstrap cannot invent — advise install
+    # (profile.json + domain-packs/registry.json are installer-owned; bootstrap must not write them)
     ges_layer = (gap.get("layers") or {}).get("ges") or {}
+    ges_missing = list(ges_layer.get("missing") or [])
     if ges_layer.get("verdict") != "PASS":
+        reason = "GES runtime incomplete; run package installer (optionally with --seed-consumer-skills)"
+        if any(x in ges_missing for x in ("ges.profile", "ges.domain_registry")):
+            reason = (
+                "Missing installer-owned GES metadata (profile.json and/or domain-packs/registry.json); "
+                "re-run installer — bootstrap cannot write these paths"
+            )
         actions.append(
             _action(
                 next_id("GES"),
                 "RUN_COMMAND",
                 ".",
-                "GES runtime incomplete; run package installer (optionally with --seed-consumer-skills)",
-                command="python install.py <project> --seed-consumer-skills --apply",
+                reason,
+                command="python install.py <project> --apply",
                 claim="GES_NATIVE",
             )
         )
@@ -154,6 +162,56 @@ def generate(project: Path, gap: dict[str, Any], audit_report: dict[str, Any] | 
                 "specify",
                 "Spec Kit CLI unavailable; install specify on PATH for EXTERNAL_VERIFIED (optional)",
                 claim="NATIVE_ONLY",
+            )
+        )
+
+    # Frontend Context System (v5.0.6)
+    registry_rel = f"{C.FRONTEND_ROOT}/apps-registry.json"
+    if not C.exists_file(project, registry_rel):
+        actions.append(
+            _action(
+                next_id("FE"),
+                "WRITE_TEMPLATE",
+                registry_rel,
+                "Frontend apps-registry.json missing",
+                template="frontend/apps-registry.json",
+                claim="GES_NATIVE",
+            )
+        )
+        shared_rel = f"{C.FRONTEND_ROOT}/shared/shared-ui-registry.json"
+        if not C.exists_file(project, shared_rel):
+            actions.append(
+                _action(
+                    next_id("FE"),
+                    "WRITE_TEMPLATE",
+                    shared_rel,
+                    "Shared UI registry missing",
+                    template="frontend/shared-ui-registry.json",
+                    claim="GES_NATIVE",
+                )
+            )
+        # Seed per-app template stubs under apps/_template/ for guided adoption.
+        for name in C.FRONTEND_APP_LEVEL_TEMPLATES:
+            target = f"{C.FRONTEND_ROOT}/apps/_template/{name}"
+            if not C.exists_file(project, target):
+                actions.append(
+                    _action(
+                        next_id("FE"),
+                        "WRITE_TEMPLATE",
+                        target,
+                        f"Frontend template stub missing: {name}",
+                        template=f"frontend/{name}",
+                        claim="GES_NATIVE",
+                    )
+                )
+        actions.append(
+            _action(
+                next_id("FE"),
+                "RUN_COMMAND",
+                ".",
+                "Run frontend audit --apply to discover apps and write baselines",
+                command="python consumer-bootstrap/frontend_audit.py <project> --apply",
+                claim="GES_NATIVE",
             )
         )
 

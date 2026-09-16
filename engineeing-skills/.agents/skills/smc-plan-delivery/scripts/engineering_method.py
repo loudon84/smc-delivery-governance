@@ -11,12 +11,22 @@ def find_repo_root(path):
  for candidate in (p.parent,*p.parents):
   if (candidate/'.git').exists():return candidate
  return _git_repo_root(path)
-PROFILES={'MECHANICAL','BEHAVIOR_CHANGE','BUG_FIX','HIGH_RISK'};TDD={'TDD_REQUIRED','TDD_PREFERRED','TDD_NOT_APPLICABLE'};DEBUG={'REQUIRED','ON_FAILURE'};MODELS={'FAST','STANDARD','REASONING'};REVIEWS={'UNIFIED','INDEPENDENT'}
+PROFILES={'MECHANICAL','BOUNDED_BEHAVIOR','SENSITIVE_BOUNDED','BUG_FIX','HIGH_RISK','BEHAVIOR_CHANGE'}
+CANONICAL_PROFILES={'MECHANICAL','BOUNDED_BEHAVIOR','SENSITIVE_BOUNDED','BUG_FIX','HIGH_RISK'}
+PROFILE_ALIASES={'BEHAVIOR_CHANGE':'BOUNDED_BEHAVIOR'}
+TDD={'TDD_REQUIRED','TDD_PREFERRED','TDD_NOT_APPLICABLE','TDD_FOCUSED_REQUIRED'}
+DEBUG={'REQUIRED','ON_FAILURE'};MODELS={'FAST','STANDARD','REASONING'};REVIEWS={'UNIFIED','INDEPENDENT'}
+METHOD_SCHEMA='smc.execution.engineering-method.v3'
+METHOD_SCHEMA_LEGACY='smc.execution.engineering-method.v2'
+# Keyword hints only — never alone sufficient for HIGH_RISK (v5.0.6).
 HIGH=('auth','authentication','authorization','security','trust boundary','migration','schema','protocol','public api','public contract','concurrency','race','deadlock','idempot','lease','distributed','live','fault','external')
 BUG=('bug','fix','regression','failure','failing','error','incorrect','broken','crash','timeout','unexpected','defect')
 MECH=('config','configuration','constant','rename','metadata','docs','documentation','comment','generated','version bump','copy','mirror','typo')
 BEHAV=('behavior','behaviour','feature','implement','add','support','validate','validation','retry','state transition','endpoint','handler')
 NO_TDD=('docs','documentation','comment','generated','metadata','configuration','config','version bump','mirror','typo')
+SENSITIVE=('logout','session clear','token clear','credential display','auth state read','existing logout')
+BOUNDARY_CHANGE=('new owner','ownership transfer','security boundary change','auth protocol','token ownership','schema migration','breaking protocol','public contract change')
+
 
 def canon(v):return json.dumps(v,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()
 def digest(v):return hashlib.sha256(canon(v)).hexdigest()
@@ -71,44 +81,74 @@ def scope_fingerprint(plan,todo):
   rows.append({'path':rel,'state':state,'sha256':h})
  return 'sha256:'+digest(rows)
 def structured_signals(plan,todo):
+ # @lat: [[frontend-context#Engineering Method v3]]
  text=plan.read_text(encoding='utf-8');meta=fm(text);title,body=todo_slice(plan,todo);local=title+'\n'+body
  return {
   'governance_profile':meta.get('governance_profile','FULL').upper(),
   'live_or_fault':bool(re.search(r'\b(LIVE|FAULT|EXTERNAL)\b',local,re.I)),
-  'boundary':bool(re.search(r'auth|trust boundary|security boundary|public api|public contract|protocol',local,re.I)),
-  'lifecycle':bool(re.search(r'concurr|idempot|lease|race|deadlock|migration|schema',local,re.I)),
+  # Hard boundary change — not mere keyword presence of auth/security.
+  'boundary':bool(re.search(
+   r'(security|auth|trust)\s+boundary\s+change|token\s+owner(ship)?\s+(change|transfer)|'
+   r'public\s+(api|contract)\s+change|breaking\s+protocol|ownership\s+transfer|new\s+owner',
+   local,re.I)),
+  'lifecycle':bool(re.search(r'\bschema\s+migration\b|\bdata\s+migration\b|concurr.*lease|idempot.*change',local,re.I)),
+  'sensitive_bounded':bool(tokens(local,SENSITIVE)) or bool(re.search(
+   r'\b(logout|session\s+clear|existing\s+auth|display\s+email|hide\s+profile)\b',local,re.I)),
   'bug':bool(tokens(local,BUG)),
   'write_count':len(write_paths(plan,todo)),
+  'keyword_high_hint':bool(tokens(local,HIGH)),
  }
-def classify(plan,todo,profile_override='AUTO',tdd_override='AUTO',debug_override='AUTO',model_override='AUTO',review_override='AUTO',write=True):
+def _normalize_profile(name):
+ name=name.upper()
+ return PROFILE_ALIASES.get(name,name)
+def classify(plan,todo,profile_override='AUTO',tdd_override='AUTO',debug_override='AUTO',model_override='AUTO',review_override='AUTO',write=True,risk_facts=None):
+ # @lat: [[frontend-context#Engineering Method v3]]
  tid=norm(todo);title,body=todo_slice(plan,tid);src=title+'\n'+body;s=structured_signals(plan,tid)
  high=tokens(src,HIGH);bugs=tokens(src,BUG);mech=tokens(src,MECH);beh=tokens(src,BEHAV);no=tokens(src,NO_TDD)
- ov=profile_override.upper()
- if ov!='AUTO' and ov not in PROFILES:raise ValueError(f'ENGINEERING_PROFILE_INVALID: {ov}')
+ ov=_normalize_profile(profile_override) if profile_override.upper()!='AUTO' else 'AUTO'
+ if ov!='AUTO' and ov not in CANONICAL_PROFILES:raise ValueError(f'ENGINEERING_PROFILE_INVALID: {ov}')
+ # Priority: structured signal > domain/risk facts > keyword hint
+ hard_from_facts=False
+ if isinstance(risk_facts,dict):
+  hard_from_facts=any(risk_facts.get(k) is True for k in (
+   'security_boundary_change','public_contract_change','new_owner','schema_migration',
+   'protocol_change','ownership_transfer','external_live_acceptance','security_boundary'))
+  if risk_facts.get('security_boundary_change') is False and risk_facts.get('security_sensitive_touch') is True:
+   hard_from_facts=False
  if ov!='AUTO':profile,reason,source=ov,'explicit controller override','override'
- elif s['live_or_fault'] or s['boundary'] or s['lifecycle'] or high:profile,reason,source='HIGH_RISK','structured/high-risk signal','structured'
+ elif s['live_or_fault'] or s['boundary'] or s['lifecycle'] or hard_from_facts:
+  profile,reason,source='HIGH_RISK','structured hard-boundary / live signal','structured'
  elif s['bug'] or bugs:profile,reason,source='BUG_FIX','bug/failure signal','structured'
+ elif s['sensitive_bounded']:profile,reason,source='SENSITIVE_BOUNDED','sensitive existing-capability touch','structured'
  elif mech and not beh:profile,reason,source='MECHANICAL','mechanical change signal','heuristic'
- else:profile,reason,source='BEHAVIOR_CHANGE','behavior/default change signal','structured'
+ else:profile,reason,source='BOUNDED_BEHAVIOR','bounded behavior / default','structured'
+ # Keyword-only HIGH hints must NOT force HIGH_RISK.
  if profile=='MECHANICAL':tdd='TDD_NOT_APPLICABLE' if no else 'TDD_PREFERRED';debug='ON_FAILURE';model='FAST';review='UNIFIED'
  elif profile=='BUG_FIX':tdd='TDD_REQUIRED';debug='REQUIRED';model='STANDARD';review='UNIFIED'
  elif profile=='HIGH_RISK':tdd='TDD_REQUIRED';debug='REQUIRED' if (bugs or s['bug']) else 'ON_FAILURE';model='REASONING';review='INDEPENDENT'
- else:tdd='TDD_REQUIRED';debug='ON_FAILURE';model='STANDARD';review='UNIFIED'
+ elif profile=='SENSITIVE_BOUNDED':tdd='TDD_FOCUSED_REQUIRED';debug='ON_FAILURE';model='STANDARD';review='UNIFIED'
+ else:tdd='TDD_PREFERRED';debug='ON_FAILURE';model='STANDARD';review='UNIFIED'
  def choose(v,allowed,current,label):
   v=v.upper()
   if v=='AUTO':return current
+  if v=='BEHAVIOR_CHANGE':v='BOUNDED_BEHAVIOR'
   if v not in allowed:raise ValueError(f'{label}_INVALID: {v}')
   return v
  tdd=choose(tdd_override,TDD,tdd,'TDD_POLICY');debug=choose(debug_override,DEBUG,debug,'DEBUG_POLICY');model=choose(model_override,MODELS,model,'MODEL_TIER');review=choose(review_override,REVIEWS,review,'REVIEW_DEPTH')
  seed={'plan_semantic_sha256':semantic_plan_sha256(plan),'todo':tid,'profile':profile,'tdd_policy':tdd,'debugging_policy':debug,'model_tier':model,'review_depth':review}
- if (s['live_or_fault'] or s['boundary'] or s['lifecycle'] or high) and (profile!='HIGH_RISK' or tdd!='TDD_REQUIRED' or review!='INDEPENDENT'):raise ValueError('ENGINEERING_RISK_DOWNGRADE_FORBIDDEN')
- if profile in {'BEHAVIOR_CHANGE','BUG_FIX'} and tdd!='TDD_REQUIRED':raise ValueError('ENGINEERING_TDD_DOWNGRADE_FORBIDDEN')
+ hard_structured=s['live_or_fault'] or s['boundary'] or s['lifecycle'] or hard_from_facts
+ if hard_structured and (profile!='HIGH_RISK' or tdd!='TDD_REQUIRED' or review!='INDEPENDENT'):raise ValueError('ENGINEERING_RISK_DOWNGRADE_FORBIDDEN')
+ if profile in {'BUG_FIX'} and tdd!='TDD_REQUIRED':raise ValueError('ENGINEERING_TDD_DOWNGRADE_FORBIDDEN')
+ if profile=='SENSITIVE_BOUNDED' and tdd not in {'TDD_FOCUSED_REQUIRED','TDD_REQUIRED'}:raise ValueError('ENGINEERING_TDD_DOWNGRADE_FORBIDDEN')
  if profile=='MECHANICAL' and (not mech or beh or bugs):raise ValueError('ENGINEERING_PROFILE_DOWNGRADE_FORBIDDEN')
  if (bugs or s['bug']) and debug!='REQUIRED':raise ValueError('ENGINEERING_DEBUG_DOWNGRADE_FORBIDDEN')
  old=json.loads(method_path(plan,tid).read_text(encoding='utf-8')) if method_path(plan,tid).is_file() else {}
- if old and old.get('schema')!='smc.execution.engineering-method.v2':raise ValueError('ENGINEERING_METHOD_MIGRATION_REQUIRED')
+ if old and old.get('schema') not in {METHOD_SCHEMA,METHOD_SCHEMA_LEGACY}:raise ValueError('ENGINEERING_METHOD_MIGRATION_REQUIRED')
+ # Migrate legacy BEHAVIOR_CHANGE profile name in-place for seed compare.
+ if old.get('profile')=='BEHAVIOR_CHANGE':
+  old=dict(old);old['profile']='BOUNDED_BEHAVIOR'
  epoch=old.get('method_epoch') if old and all(old.get(k)==v for k,v in seed.items()) else uuid.uuid4().hex
- result={'schema':'smc.execution.engineering-method.v2','plan_id':plan_id(plan),**seed,'method_epoch':epoch,'classification_source':source,'reason':reason,'signals':{'structured':s,'high_risk':high,'bug':bugs,'mechanical':mech,'behavior':beh,'no_tdd':no},'title':title,'updated_at':utc_now(),'working_memory_only':True}
+ result={'schema':METHOD_SCHEMA,'plan_id':plan_id(plan),**seed,'method_epoch':epoch,'classification_source':source,'reason':reason,'signals':{'structured':s,'high_risk':high,'bug':bugs,'mechanical':mech,'behavior':beh,'no_tdd':no,'keyword_hint_only':bool(high) and not hard_structured},'title':title,'updated_at':utc_now(),'working_memory_only':True}
  if write:atomic_write(method_path(plan,tid),json.dumps(result,ensure_ascii=False,indent=2,sort_keys=True)+'\n')
  return result
 def load_method(plan,todo):
@@ -116,9 +156,11 @@ def load_method(plan,todo):
  if not p.is_file():return classify(plan,todo)
  try:v=json.loads(p.read_text(encoding='utf-8'))
  except Exception as e:raise ValueError(f'ENGINEERING_METHOD_INVALID: {p}') from e
- if v.get('schema')!='smc.execution.engineering-method.v2':raise ValueError('ENGINEERING_METHOD_MIGRATION_REQUIRED')
+ if v.get('schema') not in {METHOD_SCHEMA,METHOD_SCHEMA_LEGACY}:raise ValueError('ENGINEERING_METHOD_MIGRATION_REQUIRED')
  if v.get('plan_id')!=plan_id(plan):raise ValueError('ENGINEERING_METHOD_PLAN_ID_MISMATCH')
  if v.get('plan_semantic_sha256')!=semantic_plan_sha256(plan):raise ValueError(f'ENGINEERING_METHOD_PLAN_STALE: {p}; rerun classify')
+ if v.get('profile')=='BEHAVIOR_CHANGE':
+  v=dict(v);v['profile']='BOUNDED_BEHAVIOR'
  return v
 def base_event(plan,todo,schema):
  m=load_method(plan,todo);return {'schema':schema,'at':utc_now(),'plan_id':plan_id(plan),'plan_semantic_sha256':m['plan_semantic_sha256'],'todo':norm(todo),'method_epoch':m['method_epoch'],'scope_fingerprint':scope_fingerprint(plan,todo),'working_memory_only':True,'final_verification':False}
@@ -147,6 +189,7 @@ def tdd_check(plan,todo):
  tid=norm(todo);m=load_method(plan,tid);policy=m['tdd_policy'];rows=current_rows(plan,tid,tdd_path(plan,tid))
  if policy=='TDD_NOT_APPLICABLE':return 0,{'status':'PASS','reason':'TDD_NOT_APPLICABLE','todo':tid}
  if policy=='TDD_PREFERRED' and not rows:return 0,{'status':'PASS','reason':'TDD_PREFERRED_NOT_USED','todo':tid}
+ # TDD_FOCUSED_REQUIRED and TDD_REQUIRED both need a fresh RED→GREEN cycle.
  state='NEW';last_success=None;red_command=None
  for r in rows:
   ph,st=r.get('phase'),r.get('status')
@@ -158,7 +201,8 @@ def tdd_check(plan,todo):
  if state not in {'GREEN','REFACTOR'} or not last_success:return 2,{'status':'BLOCKED','reason':'TDD_CYCLE_INCOMPLETE','todo':tid,'state':state}
  cur=scope_fingerprint(plan,tid)
  if last_success.get('scope_fingerprint')!=cur:return 2,{'status':'BLOCKED','reason':'TDD_SCOPE_STALE','todo':tid,'expected':cur,'actual':last_success.get('scope_fingerprint')}
- return 0,{'status':'PASS','reason':'TDD_CYCLE_FRESH','todo':tid,'state':state,'method_epoch':m['method_epoch']}
+ reason='TDD_FOCUSED_CYCLE_FRESH' if policy=='TDD_FOCUSED_REQUIRED' else 'TDD_CYCLE_FRESH'
+ return 0,{'status':'PASS','reason':reason,'todo':tid,'state':state,'method_epoch':m['method_epoch']}
 def debug_event(plan,todo,phase,status,summary='',evidence_ref='',command='',exit_code=None,output_sha256=''):
  phase=phase.upper();status=status.upper()
  if phase not in {'REPRODUCTION','ROOT_CAUSE','PATTERN','HYPOTHESIS','FIX_ATTEMPT','VERIFIED'}:raise ValueError(f'DEBUG_PHASE_INVALID: {phase}')
@@ -181,6 +225,13 @@ def debug_check(plan,todo):
  if last.get('scope_fingerprint')!=scope_fingerprint(plan,tid):return 2,{'status':'BLOCKED','reason':'DEBUG_SCOPE_STALE','todo':tid}
  return 0,{'status':'PASS','reason':'DEBUG_VERIFIED_FRESH','todo':tid,'failed_fix_attempts':fails}
 def completion_check(plan,todo):
+ tid=norm(todo)
+ try:
+  from execution_context import worker_envelope_path
+  if not worker_envelope_path(plan,tid).is_file():
+   raise ValueError('WORKER_CONTEXT_ENVELOPE_REQUIRED: '+tid)
+ except ImportError:
+  pass
  for check in (tdd_check,debug_check):
   rc,result=check(plan,todo)
   if rc:raise ValueError(result['reason']+': '+norm(todo))

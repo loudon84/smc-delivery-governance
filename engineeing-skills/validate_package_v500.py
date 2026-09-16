@@ -32,7 +32,13 @@ def main():
   run('domain semantic frontend',[sys.executable,str(ROOT/'.agents/skills/smc-frontend-preplan/scripts/selftest.py')])
   run('benchmark synthetic',[sys.executable,str(ROOT/'acceptance/run_benchmark.py'),'--selftest'])
   run('pilot matrix',[sys.executable,str(ROOT/'acceptance/pilot/run_pilot.py'),'--validate-matrix'])
-  run('acceptance G01-G30',[sys.executable,str(ROOT/'acceptance/run_acceptance.py')])
+  run('acceptance G01-G96',[sys.executable,str(ROOT/'acceptance/run_acceptance.py')])
+  run('context engine',[sys.executable,str(ROOT/'tests/test_context_engine.py'),'-v'])
+  # Frontend adapters present
+  for name in ('react-web','react-electron','vue3-web','nextjs','nuxt','react-native','generic'):
+   if not (ROOT/'frontend-adapters'/name/'adapter.json').is_file():raise ValueError('FRONTEND_ADAPTER_MISSING: '+name)
+  if not (ROOT/'consumer-bootstrap'/'frontend_audit.py').is_file():raise ValueError('FRONTEND_AUDIT_MISSING')
+  if not (ROOT/'context-engine'/'work_scope.py').is_file():raise ValueError('CONTEXT_ENGINE_MISSING')
   # Telemetry completeness synthetic (dispatch+result pair)
   with tempfile.TemporaryDirectory(prefix='ges-telem-') as td:
    plan=Path(td)/'telem.plan.md'

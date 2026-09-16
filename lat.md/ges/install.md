@@ -23,7 +23,7 @@ Windows 上禁止用 `os.execv` 派发：它不会覆盖当前控制台进程，
 5. 跑 delivery self-test、Roadmap tests、可选项目 validator；
 6. 任一 gate 失败 → [[engineeing-skills/install_v430.py#restore]]。
 
-实现入口：[[engineeing-skills/install_v500.py#main]]、[[engineeing-skills/install_v500.py#preflight]]。省略 profile 选择时保留已安装元数据；显式迁移 profile 需要重新绑定受影响 Plan。Managed skill 路径（如 `smc-plan-validator`）由 overlay 写入，不得作为 preflight 硬依赖。
+实现入口：[[engineeing-skills/install_v500.py#main]]、[[engineeing-skills/install_v500.py#preflight]]、[[engineeing-skills/install_v500.py#install_metadata]]。省略 `--profile` 时保留已安装 profile；但若 `profile.json` 或 `domain-packs/registry.json` 缺失，安装器必须修复完整元数据（不可只刷新 domain-runtime）。显式迁移 profile 需要重新绑定受影响 Plan。Managed skill 路径（如 `smc-plan-validator`）由 overlay 写入，不得作为 preflight 硬依赖。
 
 ## Consumer Baseline Seed
 
@@ -36,6 +36,12 @@ Greenfield 仓库可缺少 consumer-owned skills；默认仍 fail-closed，避�
 Install 之后用 [[consumer-bootstrap]] 做平台级 Audit / Gap / Remediation / Validate；apply 默认 dry-run，只补缺失脚手架与 bridge JSON。
 
 禁止写入 `.specify/spec.md` 与 `.agents/ges/profile.json`。详见 [[consumer-bootstrap#Automated Remediation]]。
+
+## Frontend Context Root
+
+v5.0.6 起 Consumer UX Baseline 落在 `.agents/ges/frontend/`（JSON only），由 `consumer-bootstrap/frontend_audit.py` 与 [[frontend-context]] 维护，不由 installer overlay 强制覆盖。
+
+路径约定：`apps-registry.json`、`apps/<app-id>/` baseline 文件集、`shared/shared-ui-registry.json`。默认 Adoption Mode 为 OBSERVE。v5.0.7 起 installer 另将运行时安装到 `.agents/ges/frontend-runtime/` 与 `.agents/ges/frontend-adapters/`（与数据目录分离），见 [[frontend-context#Frontend Runtime Delivery]]。
 
 ## Install Lock v2
 

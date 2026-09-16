@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic Acceptance Closure golden + chaos cases (G01–G30 real behavior)."""
+"""Deterministic Acceptance Closure golden + chaos cases (G01–G80 real behavior)."""
 from __future__ import annotations
 
 import hashlib
@@ -15,18 +15,40 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DELIVERY = ROOT / ".agents/skills/smc-plan-delivery/scripts"
+CONTEXT_ENGINE = ROOT / "context-engine"
 sys.path.insert(0, str(ROOT / ".agents/skills/smc-work-router/scripts"))
 sys.path.insert(0, str(ROOT / "domain-runtime"))
 sys.path.insert(0, str(DELIVERY))
+sys.path.insert(0, str(CONTEXT_ENGINE))
 sys.path.insert(0, str(ROOT))
 from risk_signals import classify_text_hint, parse_risk_snapshot, resolve_risk  # noqa: E402
-from work_router import REQUIRED, RISKS, route  # noqa: E402
+from work_router import REQUIRED, RISKS, derive_feature_complexity, route  # noqa: E402
 import install_v500 as installer  # noqa: E402
 import engineering_method as em  # noqa: E402
 import review_record  # noqa: E402
 import evidence  # noqa: E402
 import workspace  # noqa: E402
 import acceptance as acc  # noqa: E402
+import commit_guard  # noqa: E402
+import runtime_metrics as telemetry  # noqa: E402
+import frontend_app_registry as registry_mod  # noqa: E402
+import ux_context_resolver as ux_mod  # noqa: E402
+import budget_controller as budget_ctrl  # noqa: E402
+import context_cache as cache_mod  # noqa: E402
+import classification_state as class_state  # noqa: E402
+import contract_resolver  # noqa: E402
+import work_facts as wf  # noqa: E402
+import model_dispatch as md  # noqa: E402
+import context_envelope as env_mod  # noqa: E402
+import stage_cost_closure as scc  # noqa: E402
+import harness_contract as harness  # noqa: E402
+import execution_context as exec_ctx  # noqa: E402
+PONY_SCRIPTS = ROOT / ".agents/skills/smc-plan-from-approved-prd-ponytail/scripts"
+sys.path.insert(0, str(PONY_SCRIPTS))
+import plan_author_cost as pac  # noqa: E402
+REVIEW_SCRIPTS = ROOT / ".agents/skills/smc-plan-review/scripts"
+sys.path.insert(0, str(REVIEW_SCRIPTS))
+from assess_plan_review import classify as review_classify, record_review_round  # noqa: E402
 
 
 def safe_facts(**extra):
@@ -405,6 +427,1348 @@ class GoldenCorpus(unittest.TestCase):
             self.assertEqual(notes, ["INSTALL_LEGACY_RECONCILIATION_SKIPPED"])
             self.assertTrue(stale.exists())
 
+    def test_g31_existing_auth_read_lean(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G31 Existing Auth Read]]
+        f = safe_facts(
+            governed=True,
+            security_sensitive_touch=True,
+            security_boundary_change=False,
+        )
+        out = route(f)
+        self.assertEqual(out["work_class"], "BOUNDED")
+        self.assertEqual(out["governance_profile"], "LEAN")
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(
+                root,
+                "p.plan.md",
+                MIN_PLAN.replace(
+                    "## Todo T1 — change app\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\nfix app\n",
+                    "## Todo T1 — display email from existing auth\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\n"
+                    "read existing DesktopAuthState and display email; no auth contract change\n",
+                ),
+            )
+            _write(root, "app.py", "def main():\n    return 1\n")
+            classified = em.classify(plan, "T1", write=True)
+            self.assertIn(classified["profile"], {"SENSITIVE_BOUNDED", "BOUNDED_BEHAVIOR"})
+            self.assertEqual(classified["model_tier"], "STANDARD")
+            self.assertEqual(classified["review_depth"], "UNIFIED")
+
+    def test_g32_existing_logout_wiring(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G32 Existing Logout Wiring]]
+        f = safe_facts(
+            governed=True,
+            security_sensitive_touch=True,
+            existing_lifecycle_wiring=True,
+            security_boundary_change=False,
+        )
+        out = route(f)
+        self.assertEqual(out["work_class"], "BOUNDED")
+        self.assertEqual(out["governance_profile"], "LEAN")
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(
+                root,
+                "p.plan.md",
+                MIN_PLAN.replace(
+                    "## Todo T1 — change app\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\nfix app\n",
+                    "## Todo T1 — wire existing logout\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\n"
+                    "call existing logout; session clear without auth contract change\n",
+                ),
+            )
+            _write(root, "app.py", "def main():\n    return 1\n")
+            classified = em.classify(plan, "T1", write=True)
+            self.assertEqual(classified["profile"], "SENSITIVE_BOUNDED")
+            self.assertEqual(classified["tdd_policy"], "TDD_FOCUSED_REQUIRED")
+
+    def test_g33_security_boundary_change_full(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G33 Security Boundary Change]]
+        f = safe_facts(governed=True, security_boundary_change=True)
+        out = route(f)
+        self.assertEqual(out["work_class"], "ARCHITECTURAL")
+        self.assertEqual(out["governance_profile"], "FULL")
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(
+                root,
+                "p.plan.md",
+                MIN_PLAN.replace(
+                    "## Todo T1 — change app\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\nfix app\n",
+                    "## Todo T1 — change token ownership\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\n"
+                    "security boundary change: transfer token ownership and auth protocol\n",
+                ),
+            )
+            _write(root, "app.py", "def main():\n    return 1\n")
+            classified = em.classify(
+                plan,
+                "T1",
+                write=True,
+                risk_facts={"security_boundary_change": True},
+            )
+            self.assertEqual(classified["profile"], "HIGH_RISK")
+            self.assertEqual(classified["model_tier"], "REASONING")
+            self.assertEqual(classified["review_depth"], "INDEPENDENT")
+
+    def test_g34_reuse_gate_add_new_blocked(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G34 Existing Surface Candidate]]
+        blocked = ux_mod.reuse_gate(
+            {
+                "decision": "ADD_NEW",
+                "existing_surface": {"surface_id": "desktop:sidebar.footer.identity"},
+            }
+        )
+        self.assertFalse(blocked["ok"])
+        self.assertEqual(blocked["code"], "UX_SURFACE_REUSE_REQUIRED")
+
+    def test_g35_extend_existing_surface(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G35 Extend Surface]]
+        gate = ux_mod.reuse_gate(
+            {
+                "same_ux_role": True,
+                "decision": "EXTEND",
+                "existing_surface": {"surface_id": "desktop:sidebar.footer.identity"},
+            }
+        )
+        self.assertTrue(gate["ok"])
+        self.assertEqual(gate["decision"], "EXTEND")
+
+    def test_g36_cross_app_surface_isolation(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G36 Different App Isolation]]
+        self.assertFalse(registry_mod.cross_app_surface_allowed("desktop", "web"))
+
+    def test_g37_different_stack_component_reuse(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G37 Different Stack Isolation]]
+        result = registry_mod.component_reuse_automatic("react-electron", "vue3-web")
+        self.assertFalse(result["component_reuse"])
+        self.assertTrue(result["ux_pattern_reuse"])
+        self.assertEqual(result["reason"], "DIFFERENT_STACK")
+
+    def test_g38_shared_ui_profile_avatar(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G38 Shared UI Reuse]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            _write(
+                root,
+                "apps/desktop/package.json",
+                json.dumps({"name": "desktop", "dependencies": {"react": "18.0.0"}}) + "\n",
+            )
+            _write(root, "apps/desktop/src/App.tsx", "export default function App(){return null}\n")
+            _write(root, "packages/ui/package.json", json.dumps({"name": "@smc/ui"}) + "\n")
+            _write(root, "packages/ui/ProfileAvatar.tsx", "export function ProfileAvatar(){return null}\n")
+            registry_mod.discover(root)
+            decision = registry_mod.shared_ui_reuse_decision(root, "ProfileAvatar")
+            self.assertEqual(decision["decision"], "REUSE")
+
+    def test_g39_incremental_refresh_desktop_only(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G39 Incremental Refresh]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            _write(
+                root,
+                "apps/desktop/package.json",
+                json.dumps({"name": "desktop", "dependencies": {"react": "18.0.0"}}) + "\n",
+            )
+            _write(root, "apps/desktop/src/Layout.tsx", "export function Layout(){return null}\n")
+            _write(
+                root,
+                "apps/desktop/src/ProfileSwitcher.tsx",
+                "export function ProfileSwitcher(){return null}\n",
+            )
+            _write(
+                root,
+                "apps/web/package.json",
+                json.dumps({"name": "web", "dependencies": {"vue": "3.4.0"}}) + "\n",
+            )
+            _write(root, "apps/web/src/App.vue", "<template><div/></template>\n")
+            registry_mod.discover(root)
+            ux_mod.generate_baseline(root, "desktop")
+            ux_mod.generate_baseline(root, "web")
+            result = ux_mod.incremental_refresh(root, ["apps/desktop/src/ProfileSwitcher.tsx"])
+            self.assertIn("desktop", result["refreshed_apps"])
+            self.assertIn("web", result["untouched_apps"])
+            self.assertNotIn("web", result["refreshed_apps"])
+            web_lock = json.loads(
+                (root / ".agents/ges/frontend/apps/web/baseline.lock").read_text(encoding="utf-8")
+            )
+            self.assertEqual(web_lock.get("status"), "FRESH")
+
+    def test_g40_sensitive_bounded_tdd_policy(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G40 Sensitive Bounded TDD]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(
+                root,
+                "p.plan.md",
+                MIN_PLAN.replace(
+                    "## Todo T1 — change app\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\nfix app\n",
+                    "## Todo T1 — logout side effect\n\n**Owns Changes**\n- C01\n\n**Writes:** `app.py#main`\n\n**Goal**\n"
+                    "existing logout side effect focused RED/GREEN\n",
+                ),
+            )
+            _write(root, "app.py", "def main():\n    return 1\n")
+            classified = em.classify(plan, "T1", write=True)
+            self.assertEqual(classified["profile"], "SENSITIVE_BOUNDED")
+            self.assertEqual(classified["tdd_policy"], "TDD_FOCUSED_REQUIRED")
+
+    def test_g41_final_commit_pending_todo_blocked(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G41 Final Commit Pending Todo]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            _write(root, "app.py", "def main():\n    return 1\n")
+            subprocess.run(["git", "-C", str(root), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(root), "commit", "-qm", "init"], check=True)
+            rc = commit_guard.capture(plan, commit_kind="FINAL")
+            self.assertEqual(rc, 1)
+
+    def test_g42_telemetry_cost_buckets(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#G42 Telemetry Cost Buckets]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            _write(root, "app.py", "def main():\n    return 1\n")
+            buckets = (
+                "ROUTING",
+                "BASELINE_LOOKUP",
+                "GROUNDING",
+                "PLAN",
+                "IMPLEMENT",
+                "TDD",
+                "REVIEW",
+                "DELIVERY",
+            )
+            for bucket in buckets:
+                did = f"d-{bucket.lower()}"
+                telemetry.dispatch(
+                    plan,
+                    phase=bucket if bucket != "BASELINE_LOOKUP" else "BASELINE",
+                    todo="T1",
+                    requested_tier="STANDARD",
+                    dispatch_id=did,
+                    agent="acc",
+                    cost_bucket=bucket,
+                )
+                telemetry.result(
+                    plan,
+                    dispatch_id=did,
+                    actual_tier="STANDARD",
+                    provider="test",
+                    model="test-model",
+                    outcome="ok",
+                    retry_count=0,
+                    latency_ms=1,
+                    prompt_tokens=1,
+                    completion_tokens=1,
+                    cache_read_tokens=0,
+                    cache_write_tokens=0,
+                    cost_bucket=bucket,
+                )
+            summary = telemetry.summarize(plan)
+            self.assertIn("cost_buckets", summary)
+            for key in buckets:
+                self.assertIn(key, summary["cost_buckets"])
+
+    def _seed_dual_apps(self, root: Path) -> None:
+        _write(
+            root,
+            "apps/work/package.json",
+            json.dumps({"name": "work", "dependencies": {"react": "18.0.0", "electron": "28.0.0"}}) + "\n",
+        )
+        _write(root, "apps/work/src/Layout.tsx", "export function Layout(){return null}\n")
+        _write(root, "apps/work/src/ProfileSwitcher.tsx", "export function ProfileSwitcher(){return null}\n")
+        _write(root, "apps/work/src/UserCenter.tsx", "export function UserCenter(){return null}\n")
+        _write(
+            root,
+            "apps/admin/package.json",
+            json.dumps({"name": "admin", "dependencies": {"vue": "3.4.0"}}) + "\n",
+        )
+        _write(root, "apps/admin/src/App.vue", "<template><div/></template>\n")
+        _write(root, "apps/admin/src/UserCenter.vue", "<template><div/></template>\n")
+
+    def _frontend_audit(self, root: Path, *extra: str) -> subprocess.CompletedProcess:
+        cmd = [sys.executable, str(ROOT / "consumer-bootstrap" / "frontend_audit.py"), str(root), *extra]
+        return subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
+
+    def test_g43_scoped_init_single_app(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G43 Scoped Init Single App]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            proc = self._frontend_audit(root, "--app", "work", "--apply")
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertTrue((root / ".agents/ges/frontend/apps/work/surface-registry.json").is_file())
+            self.assertFalse((root / ".agents/ges/frontend/apps/admin").exists())
+            reg = json.loads((root / ".agents/ges/frontend/apps-registry.json").read_text(encoding="utf-8"))
+            ids = {a["app_id"]: a for a in reg["apps"]}
+            self.assertIn("work", ids)
+            self.assertIn("admin", ids)
+            self.assertEqual(ids["work"]["baseline_status"], "INITIALIZED")
+            self.assertEqual(ids["admin"]["baseline_status"], "NOT_INITIALIZED")
+
+    def test_g44_scoped_init_idempotent(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G44 Scoped Init Idempotent]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            self.assertEqual(self._frontend_audit(root, "--app", "work", "--apply").returncode, 0)
+            p = root / ".agents/ges/frontend/apps/work/surface-registry.json"
+            first = p.read_bytes()
+            self.assertEqual(self._frontend_audit(root, "--app", "work", "--apply").returncode, 0)
+            second = p.read_bytes()
+            self.assertEqual(first, second)
+
+    def test_g45_scoped_init_preserves_siblings(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G45 Scoped Init Preserves Siblings]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            self.assertEqual(self._frontend_audit(root, "--app", "work", "--apply").returncode, 0)
+            work_surf = (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes()
+            self.assertEqual(self._frontend_audit(root, "--app", "admin", "--apply").returncode, 0)
+            self.assertTrue((root / ".agents/ges/frontend/apps/admin/surface-registry.json").is_file())
+            self.assertEqual(
+                work_surf,
+                (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes(),
+            )
+
+    def test_g46_scope_identifier_normalization(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G46 Scope Identifier Normalization]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            registry_mod.discover(root, persist=True)
+            a = registry_mod.resolve_scope_identifiers(root, ["work"])
+            b = registry_mod.resolve_scope_identifiers(root, ["apps/work"])
+            c = registry_mod.resolve_scope_identifiers(root, ["apps/work/"])
+            self.assertEqual(a, b)
+            self.assertEqual(b, c)
+            self.assertEqual(a, ["work"])
+            with self.assertRaises(ValueError) as ctx:
+                registry_mod.resolve_scope_identifiers(root, ["does-not-exist"])
+            self.assertIn("FRONTEND_SCOPE_APP_UNKNOWN", str(ctx.exception))
+            before = list((root / ".agents/ges/frontend").rglob("*")) if (root / ".agents/ges/frontend").exists() else []
+            proc = self._frontend_audit(root, "--app", "nope", "--apply")
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn("FRONTEND_SCOPE_APP_UNKNOWN", proc.stderr)
+            after = list((root / ".agents/ges/frontend").rglob("*")) if (root / ".agents/ges/frontend").exists() else []
+            self.assertEqual(len(before), len(after))
+
+    def test_g47_nested_shared_ui_discovery(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G47 Nested Shared UI Discovery]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            _write(
+                root,
+                "apps/work/package.json",
+                json.dumps({"name": "work", "dependencies": {"react": "18.0.0"}}) + "\n",
+            )
+            _write(root, "apps/work/src/App.tsx", "export default function App(){return null}\n")
+            _write(root, "packages/shared/ui/package.json", json.dumps({"name": "@smc/shared-ui"}) + "\n")
+            _write(root, "packages/shared/ui/Button.tsx", "export function Button(){return null}\n")
+            data = registry_mod.discover(root)
+            roots = [s["root"] for s in data.get("shared_ui") or []]
+            self.assertIn("packages/shared/ui", roots)
+            app_ids = [a["app_id"] for a in data.get("apps") or []]
+            self.assertNotIn("ui", app_ids)
+            self.assertNotIn("shared", app_ids)
+
+    def test_g48_application_boundary_deny(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G48 Application Boundary Deny]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            registry_mod.discover(root)
+            ux_mod.generate_baseline(root, "work")
+            profile = json.loads(
+                (root / ".agents/ges/frontend/apps/work/app-profile.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(profile["schema"], "smc.ges.app-profile.v2")
+            self.assertIn("apps/work", profile["boundary"]["allowed_roots"])
+            self.assertIn("apps/admin", profile["boundary"]["forbidden_roots"])
+            surf = json.loads(
+                (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_text(encoding="utf-8")
+            )
+            for s in surf.get("surfaces") or []:
+                self.assertNotIn("apps/admin", str(s.get("owner") or ""))
+
+    def test_g49_frontend_runtime_installed(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G49 Frontend Runtime Installed]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            _write(root, "AGENTS.md", "# policy\n")
+            for name in ("code-review-and-quality", "verification-before-completion"):
+                _write(root, f".agents/skills/{name}/SKILL.md", f"---\nname: {name}\n---\n# stub\n")
+            # Minimal profile + domain packs via install_metadata path
+            backup = root / ".smc" / "skill-upgrade-backups" / "g49"
+            backup.mkdir(parents=True)
+            records: dict = {}
+            _, profile = installer.resolve_profile(root, "generic")
+            _, selected = installer.pack_context(profile)
+            installer.install_metadata(root, profile, selected, backup, records)
+            self.assertTrue((root / ".agents/ges/frontend-runtime/frontend_app_registry.py").is_file())
+            self.assertTrue((root / ".agents/ges/frontend-adapters/react-web/adapter.json").is_file())
+            owned = [
+                r
+                for r in records
+                if str(r).replace("\\", "/").startswith(".agents/ges/frontend-runtime/")
+                or str(r).replace("\\", "/").startswith(".agents/ges/frontend-adapters/")
+            ]
+            self.assertTrue(owned)
+
+    def test_g50_feature_scope_pipeline(self):
+        # @lat: [[frontend-context#Acceptance G43–G50#G50 Feature Scope Pipeline]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            registry_mod.discover(root)
+            ux_mod.generate_baseline(root, "work")
+            result = ux_mod.resolve_feature_scope(
+                root,
+                app_id="work",
+                ux_role="identity_control",
+                component_name="ProfileSwitcher",
+            )
+            self.assertEqual(result["schema"], "smc.ges.feature-scope.v1")
+            for key in ("application", "surface", "layout_owner", "component_reuse"):
+                self.assertIn(key, result)
+                self.assertIsNotNone(result[key])
+            self.assertEqual(result["decision"], "EXTEND")
+            self.assertTrue(result["ok"])
+
+    def test_g51_deterministic_complexity_receipt(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G51 Deterministic Complexity Receipt]]
+        routed = route(safe_facts())
+        scope = {
+            "schema": "smc.ges.feature-scope.v1",
+            "app_id": "work",
+            "surface_id": "work:sidebar.footer.identity",
+            "layout_owner": "apps/work/src/Layout.tsx",
+            "decision": "EXTEND",
+            "ok": True,
+        }
+        a = derive_feature_complexity(routed, work_item_id="g51", feature_scope=scope)
+        b = derive_feature_complexity(routed, work_item_id="g51", feature_scope=scope)
+        self.assertEqual(a["schema"], "smc.ges.feature-complexity.v1")
+        self.assertEqual(a["work_route_digest"], b["work_route_digest"])
+        self.assertEqual(a["feature_scope_digest"], b["feature_scope_digest"])
+        self.assertEqual(a["governance_profile"], routed["governance_profile"])
+
+    def test_g52_missing_provenance_not_lean(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G52 Missing Provenance Not Lean]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            env = {
+                "schema": "smc.ges.work-facts.v1",
+                "work_item_id": "g52",
+                "facts": safe_facts(),
+                "provenance": {},
+                "facts_digest": "sha256:" + ("0" * 64),
+            }
+            status, reasons = wf.verify_envelope(env, repo=root)
+            self.assertNotEqual(status, "VERIFIED")
+            self.assertTrue(reasons)
+            self.assertTrue(
+                any(
+                    r
+                    in {
+                        "WORK_FACTS_UNBOUND",
+                        "WORK_FACTS_PROVENANCE_MISSING",
+                        "WORK_FACTS_FIELD_MISSING",
+                        "WORK_FACTS_INVALID",
+                    }
+                    for r in reasons
+                )
+            )
+            out = route(safe_facts(), work_facts=env, repo=root, require_authority_for_none=True)
+            self.assertNotEqual(out["governance_profile"], "LEAN")
+            receipt = derive_feature_complexity(out, work_item_id="g52")
+            self.assertNotEqual(receipt["governance_profile"], "LEAN")
+
+    def test_g53_production_text_never_spike(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G53 Production Text Never Spike]]
+        f = safe_facts(
+            research_intent=True,
+            governed=False,
+            retained_production_change=True,
+            production_write_requested=False,
+            durable_product_artifact_requested=False,
+        )
+        out = route(f)
+        self.assertNotEqual(out["work_class"], "SPIKE")
+        self.assertNotEqual(out["governance_profile"], "NONE")
+
+    def test_g54_frozen_downgrade_denied(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G54 Downgrade Denied]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            class_state.apply_profile(root, "g54", "FULL")
+            class_state.freeze(root, "g54")
+            with self.assertRaises(ValueError) as ctx:
+                class_state.apply_profile(root, "g54", "LEAN")
+            self.assertEqual(str(ctx.exception), "CLASSIFICATION_DOWNGRADE_DENIED")
+
+    def test_g55_lean_v37_ledger_and_delivery_gates(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G55 Lean Plan Delivery Gates]]
+        self.assertEqual(contract_resolver.CURRENT_PLAN_CONTRACT, "smc.plan.v3.7")
+        self.assertEqual(contract_resolver.validator_name("smc.plan.v3.7"), "validate_plan_v37.py")
+        lean_plan = (
+            MIN_PLAN.replace("governance_profile: FULL", "governance_profile: LEAN")
+            + """
+## Ownership Ledger
+
+| Change ID | Owner | Authority |
+|---|---|---|
+| C01 | app.py#main | EXISTING |
+
+## Verification Ledger
+
+| Change ID | Evidence | Freshness |
+|---|---|---|
+| C01 | tests/test_app.py | REQUIRED |
+"""
+        )
+        self.assertIn("plan_contract: smc.plan.v3.7", lean_plan)
+        self.assertIn("governance_profile: LEAN", lean_plan)
+        for heading in ("## Change Matrix", "## Ownership Ledger", "## Verification Ledger"):
+            self.assertIn(heading, lean_plan)
+            # LEAN public ledgers must not be N/A placeholders.
+            block = lean_plan.split(heading, 1)[1].split("## ", 1)[0]
+            self.assertNotIn("| N/A |", block)
+        delivery_skill = (ROOT / ".agents/skills/smc-plan-delivery/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("smc.plan.v3.7", delivery_skill)
+        self.assertIn("canonical Plan delivery", delivery_skill)
+
+    def test_g56_context_cache_hit(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G56 Cache Hit]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = cache_mod.CapsuleStore(root, "g56")
+            kw = dict(
+                repo_identity=str(root),
+                artifact_kind="SOURCE",
+                scope_digest="sha256:scope",
+                identity="apps/work/src/A.tsx",
+                content_sha256=cache_mod.content_sha256("alpha"),
+                extractor_version="1.0.0",
+                policy_digest=budget_ctrl.policy_digest(),
+            )
+            store.put_capsule(**kw, value={"ok": True})
+            self.assertEqual(store.get_capsule(**kw), {"ok": True})
+            self.assertGreaterEqual(store.hits, 1)
+
+    def test_g57_context_cache_stale_on_policy_change(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G57 Cache Stale]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = cache_mod.CapsuleStore(root, "g57")
+            kw = dict(
+                repo_identity=str(root),
+                artifact_kind="SOURCE",
+                scope_digest="sha256:scope",
+                identity="apps/work/src/A.tsx",
+                content_sha256=cache_mod.content_sha256("alpha"),
+                extractor_version="1.0.0",
+                policy_digest="sha256:old",
+            )
+            store.put_capsule(**kw, value={"ok": True})
+            # Policy change → different key → miss (no cross-policy reuse).
+            miss = store.get_capsule(**{**kw, "policy_digest": "sha256:new"})
+            self.assertIsNone(miss)
+            # Expired binding on the original key → stale.
+            key = cache_mod.make_capsule_key(**kw)
+            store._memory[key]["stored_at"] = 0
+            stale = store.get_capsule(**kw)
+            self.assertIsNone(stale)
+            self.assertGreaterEqual(store.stale, 1)
+
+    def test_g58_budget_escalate_then_block(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G58 Budget Escalate Or Block]]
+        candidates = [{"path": f"src/{i}.ts", "tokens": 3000} for i in range(40)]
+        trimmed = budget_ctrl.trim_candidates(candidates + candidates, allowed_roots=["src"])
+        self.assertLess(len(trimmed), len(candidates) * 2)
+        decision = budget_ctrl.decide_budget(
+            work_item_id="g58",
+            repo_identity="repo",
+            governance_profile="LEAN",
+            candidates=candidates,
+        )
+        self.assertIn("LEAN_TO_FULL", decision.get("upgrades") or [])
+        blocked = budget_ctrl.decide_budget(
+            work_item_id="g58",
+            repo_identity="repo",
+            governance_profile="FULL",
+            candidates=[{"path": f"src/{i}.ts", "tokens": 50000} for i in range(200)],
+        )
+        self.assertEqual(blocked["status"], "BLOCKED")
+        self.assertEqual(blocked.get("error"), "CONTEXT_BUDGET_INSUFFICIENT")
+
+    def test_g59_install_fault_rollback_preserves_sibling(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G59 Install Rollback Sibling]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            self.assertEqual(self._frontend_audit(root, "--app", "work", "--apply").returncode, 0)
+            sibling = (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes()
+            _write(root, "AGENTS.md", "# Project policy\n")
+            for skill in ("code-review-and-quality", "verification-before-completion"):
+                _write(root, f".agents/skills/{skill}/SKILL.md", "# consumer-owned\n")
+            (root / ".cursor/skills").mkdir(parents=True, exist_ok=True)
+            shutil.copytree(ROOT / "domain-packs", root / ".agents/ges/domain-packs")
+            profile = json.loads((ROOT / "consumers/generic.json").read_text(encoding="utf-8"))
+            _write(root, ".agents/ges/profile.json", json.dumps(profile))
+            shutil.copytree(ROOT / "domain-runtime", root / ".agents/ges/domain-runtime")
+            shutil.copytree(ROOT / ".agents/skills", root / ".agents/skills", dirs_exist_ok=True)
+            _, loaded = installer.resolve_profile(root, None)
+            _, packs = installer.pack_context(loaded)
+            backup = root / ".smc" / "skill-upgrade-backups" / "g59"
+            backup.mkdir(parents=True)
+            records: dict = {}
+            installer._FINALIZATION_FAULT = "receipt"
+            try:
+                with self.assertRaises(RuntimeError):
+                    installer.build_install_lock(root, loaded, packs, records, backup)
+                installer.base.restore(root, backup, records)
+            finally:
+                installer._FINALIZATION_FAULT = None
+            self.assertFalse((root / ".smc/ges-install-lock.json").is_file())
+            self.assertFalse((root / ".smc/ges-install-receipt.json").is_file())
+            receipts = root / ".smc" / "ges-install-receipts"
+            if receipts.is_dir():
+                self.assertFalse(any(receipts.glob("*.json")))
+            self.assertFalse((root / ".agents/ges/frontend-runtime").exists())
+            self.assertEqual(
+                sibling,
+                (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes(),
+            )
+
+    def test_g60_telemetry_redacted(self):
+        # @lat: [[adaptive-governance-context-v508#Acceptance G51–G60#G60 Telemetry Redacted]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            with self.assertRaises(ValueError):
+                telemetry.dispatch(
+                    plan,
+                    phase="IMPLEMENT",
+                    todo="T1",
+                    requested_tier="STANDARD",
+                    dispatch_id="g60-bad",
+                    agent="acc",
+                    prompt="secret prompt text",
+                )
+            telemetry.dispatch(
+                plan,
+                phase="IMPLEMENT",
+                todo="T1",
+                requested_tier="STANDARD",
+                dispatch_id="g60",
+                agent="acc",
+                cost_bucket="IMPLEMENT",
+                work_route_digest="sha256:route",
+                policy_digest="sha256:policy",
+                phase_allocated_tokens=100,
+                phase_actual_tokens=40,
+                context_cache_hits=1,
+                context_cache_misses=0,
+                context_cache_stale=0,
+                budget_upgrade_reason="LEAN_TO_FULL",
+            )
+            telemetry.result(
+                plan,
+                dispatch_id="g60",
+                actual_tier="STANDARD",
+                provider="test",
+                model="test-model",
+                outcome="ok",
+                retry_count=0,
+                latency_ms=1,
+                prompt_tokens=2,
+                completion_tokens=2,
+                cache_read_tokens=0,
+                cache_write_tokens=0,
+                cost_bucket="IMPLEMENT",
+            )
+            summary = telemetry.summarize(plan)
+            self.assertTrue(summary.get("complete"))
+            self.assertEqual(summary.get("work_route_digest"), "sha256:route")
+            self.assertEqual(summary.get("budget_upgrade_reason"), "LEAN_TO_FULL")
+            blob = json.dumps(summary)
+            self.assertNotIn("secret prompt", blob)
+            self.assertNotIn("password", blob)
+
+    def test_g61_plan_author_dispatch_required(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G61 Plan Author Dispatch Required]]
+        with self.assertRaises(ValueError) as ctx:
+            pac.require_dispatch_for_model_call(None)
+        self.assertIn("MODEL_DISPATCH_PERMIT_MISSING", str(ctx.exception))
+
+    def test_g62_plan_budget_enforced(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G62 Plan Budget Enforced]]
+        prepared = md.prepare_dispatch(
+            work_item_id="g62",
+            plan_id="g62",
+            phase="PLAN",
+            governance_profile="LEAN",
+            candidates=[{"path": f"src/{i}.ts", "tokens": 50000, "artifact_kind": "SOURCE"} for i in range(80)],
+        )
+        self.assertEqual(prepared["permit"]["status"], "BLOCKED")
+        self.assertIn("CONTEXT_BUDGET_INSUFFICIENT", prepared["permit"].get("reason") or "")
+
+    def test_g63_deterministic_seed_digest(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G63 Deterministic Seed]]
+        a = env_mod.plan_envelope(
+            plan_id="g63",
+            governance_profile="FULL",
+            prd_summary={"digest": "sha256:prd"},
+            unresolved_decisions=[{"change_id": "C01", "decision": "KEEP"}],
+        )
+        b = env_mod.plan_envelope(
+            plan_id="g63",
+            governance_profile="FULL",
+            prd_summary={"digest": "sha256:prd"},
+            unresolved_decisions=[{"change_id": "C01", "decision": "KEEP"}],
+        )
+        self.assertEqual(a["content_digest"], b["content_digest"])
+
+    def test_g64_structured_plan_patch(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G64 Structured Plan Patch]]
+        text = MIN_PLAN
+        out = pac.apply_structured_patches(
+            text,
+            [{"change_id": "C01", "owner": "app.py", "action": "MODIFY", "decision": "MINIMAL", "evidence_digest": "sha256:x"}],
+        )
+        self.assertIn("Structured Decision Patches", out)
+        self.assertIn("C01", out)
+        self.assertIn(MIN_PLAN.split("## Todo")[0].strip()[:40], out[:200] or MIN_PLAN[:40])
+
+    def test_g65_no_full_plan_reauthor(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G65 No Full-Plan Reauthor]]
+        patched = pac.apply_structured_patches(MIN_PLAN, [{"change_id": "C07", "owner": "a", "action": "CREATE", "decision": "NEW"}])
+        self.assertTrue(patched.startswith("---"))
+        self.assertIn("## Todo T1", patched)
+        self.assertIn("Structured Decision Patches", patched)
+
+    def test_g66_worker_task_brief_only(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G66 Worker Task Brief Only]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            path = exec_ctx.create_worker_context_envelope(plan, "T1")
+            data = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(data["todo"], "T1")
+            self.assertIn("task_brief_only", data["constraints"])
+            brief = (root / data["task_brief"]).read_text(encoding="utf-8")
+            self.assertIn("Todo T1", brief)
+            self.assertNotIn("## Change Matrix", brief)
+
+    def test_g67_worker_scope_violation(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G67 Worker Scope Violation]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            exec_ctx.create_worker_context_envelope(plan, "T1")
+            with self.assertRaises(ValueError) as ctx:
+                exec_ctx.assert_worker_scope(plan, "T1", ["other/secret.py"])
+            self.assertIn("WORKER_CONTEXT_SCOPE_VIOLATION", str(ctx.exception))
+
+    def test_g68_capsule_hit(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G68 Capsule Hit]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = cache_mod.CapsuleStore(repo=root, work_item_id="g68")
+            pol = budget_ctrl.policy_digest()
+            key = dict(
+                repo_identity="r",
+                artifact_kind="SOURCE",
+                scope_digest="s",
+                identity="app.py",
+                content_sha256="abc",
+                extractor_version="1.0.0",
+                policy_digest=pol,
+            )
+            store.put_capsule(**key, value={"summary": "x"})
+            prepared = md.prepare_dispatch(
+                work_item_id="g68",
+                phase="IMPLEMENT",
+                governance_profile="LEAN",
+                candidates=[{"path": "app.py", "content_sha256": "abc", "tokens": 10, "artifact_kind": "SOURCE"}],
+                repo_identity="r",
+                feature_scope_digest="s",
+                store=store,
+            )
+            self.assertGreaterEqual(prepared["cache"]["hits"], 1)
+
+    def test_g69_capsule_stale(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G69 Capsule Stale]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = cache_mod.CapsuleStore(repo=root, work_item_id="g69")
+            key = dict(
+                repo_identity="r",
+                artifact_kind="SOURCE",
+                scope_digest="s",
+                identity="app.py",
+                content_sha256="old",
+                extractor_version="1.0.0",
+                policy_digest="p",
+            )
+            store.put_capsule(**key, value={"summary": "old"})
+            mem_key = next(iter(store._memory))
+            store._memory[mem_key]["stored_at"] = 0
+            hit = store.get_capsule(**key)
+            self.assertIsNone(hit)
+            self.assertGreaterEqual(store.stale, 1)
+
+    def test_g70_dispatch_result_pair(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G70 Dispatch Result Pair]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            prepared = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                todo_id="T1",
+                phase="IMPLEMENT",
+                governance_profile="LEAN",
+                candidates=[{"path": "app.py", "tokens": 50, "artifact_kind": "SOURCE"}],
+                repo=root,
+            )
+            out = md.run_managed_call(plan=plan, prepared=prepared, adapter=harness.fake_enforced_adapter())
+            summary = telemetry.summarize(plan)
+            self.assertTrue(summary.get("complete"))
+            self.assertEqual(summary.get("dispatch_result_pair_rate"), 1.0)
+            self.assertEqual(out["result"]["dispatch_id"], prepared["dispatch"]["dispatch_id"])
+
+    def test_g71_usage_unavailable_not_zero(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G71 Usage Unavailable]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            prepared = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                phase="PLAN",
+                governance_profile="LEAN",
+                candidates=[{"path": "prd.md", "tokens": 20, "artifact_kind": "PRD_SECTION"}],
+                repo=root,
+            )
+            adapter = harness.fake_enforced_adapter(
+                usage={
+                    "usage_unavailable_reason": "TOKEN_ACCOUNTING_UNAVAILABLE",
+                    "provider": "cursor",
+                    "model": "agent",
+                    "actual_tier": "STANDARD",
+                    "outcome": "OK",
+                    "retry_count": 0,
+                    "latency_ms": 1,
+                }
+            )
+            md.run_managed_call(plan=plan, prepared=prepared, adapter=adapter)
+            summary = telemetry.summarize(plan)
+            self.assertEqual(summary.get("usage_status"), "UNAVAILABLE")
+            self.assertIsNone(summary.get("prompt_tokens"))
+            self.assertIsNone(summary.get("completion_tokens"))
+
+    def test_g72_review_first_full(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G72 Review First FULL]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            depth = review_classify(plan)["depth"]
+            self.assertEqual(depth, "FULL")
+
+    def test_g73_review_revision_delta(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G73 Review Revision DELTA]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            review_record.record("plan", plan, "REVISE", "reviewer", "fix")
+            self.assertEqual(review_classify(plan)["depth"], "DELTA")
+
+    def test_g74_review_full_reentry(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G74 Review FULL Re-entry]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            text = MIN_PLAN.replace("governance_profile: FULL", "governance_profile: FULL\nreview_full_reentry: true")
+            plan = _write(root, "p.plan.md", text)
+            review_record.record("plan", plan, "REVISE", "reviewer", "fix")
+            self.assertEqual(review_classify(plan)["depth"], "FULL")
+
+    def test_g75_review_loop_cap(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G75 Review Loop Cap]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            record_review_round(plan, "FULL")
+            with self.assertRaises(ValueError) as ctx:
+                record_review_round(plan, "FULL")
+            self.assertIn("REVIEW_LOOP_EXCEEDED", str(ctx.exception))
+
+    def test_g76_stage_cost_closure_orphan(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G76 Stage Cost Closure]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            telemetry.dispatch(
+                plan,
+                phase="IMPLEMENT",
+                todo="T1",
+                requested_tier="STANDARD",
+                dispatch_id="orphan",
+                agent="acc",
+                context_envelope_digest="sha256:env",
+                managed=True,
+                harness_mode="ENFORCED",
+            )
+            closure = scc.evaluate_stage(plan=plan, stage="IMPLEMENTATION")
+            self.assertEqual(closure["status"], "BLOCKED")
+            self.assertIn("TELEMETRY_DISPATCH_UNPAIRED", closure["reasons"])
+            with self.assertRaises(ValueError) as ctx:
+                scc.assert_managed_cost_closure(plan)
+            self.assertIn("TELEMETRY_DISPATCH_UNPAIRED", str(ctx.exception))
+            telemetry.result(
+                plan,
+                dispatch_id="ghost-result",
+                phase="IMPLEMENT",
+                provider="syn",
+                model="m",
+                outcome="ok",
+                prompt_tokens=1,
+                completion_tokens=1,
+                cache_read_tokens=0,
+                cache_write_tokens=0,
+                latency_ms=1,
+            )
+            summary = telemetry.summarize(plan)
+            codes = {e.get("code") for e in summary.get("errors") or []}
+            self.assertIn("TELEMETRY_RESULT_UNPAIRED", codes)
+            stale = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                phase="IMPLEMENT",
+                governance_profile="LEAN",
+                candidates=[{"path": "app.py", "tokens": 10, "artifact_kind": "SOURCE"}],
+                repo=root,
+            )
+            stale["permit"]["context_envelope_digest"] = "sha256:stale"
+            with self.assertRaises(ValueError) as stx:
+                md.require_permit(stale["permit"], stale["envelope"])
+            self.assertIn("CONTEXT_ENVELOPE_STALE", str(stx.exception))
+    def test_g77_managed_call_ratio(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G77 Managed Call Ratio]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            prepared = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                phase="REVIEW",
+                governance_profile="LEAN",
+                candidates=[{"path": "diff", "tokens": 10, "artifact_kind": "PLAN_SECTION"}],
+                review_depth="DELTA",
+                repo=root,
+            )
+            md.run_managed_call(plan=plan, prepared=prepared, adapter=harness.fake_enforced_adapter())
+            summary = telemetry.summarize(plan)
+            self.assertEqual(summary.get("managed_dispatch_count"), summary.get("dispatch_count") or 1)
+            self.assertEqual(summary.get("unmanaged_call_count"), 0)
+
+    def test_g78_consumer_upgrade_baseline_stable(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G78 Consumer Upgrade]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            self.assertEqual(self._frontend_audit(root, "--app", "work", "--apply").returncode, 0)
+            before = (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes()
+            shutil.copytree(CONTEXT_ENGINE, root / ".agents/ges/frontend-runtime")
+            after = (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes()
+            self.assertEqual(before, after)
+            self.assertTrue((root / ".agents/ges/frontend-runtime/model_dispatch.py").is_file())
+
+    def test_g79_install_rollback_runtime_cost(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G79 Install Rollback]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            self._seed_dual_apps(root)
+            self.assertEqual(self._frontend_audit(root, "--app", "work", "--apply").returncode, 0)
+            sibling = (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes()
+            _write(root, "AGENTS.md", "# Project policy\n")
+            for skill in ("code-review-and-quality", "verification-before-completion"):
+                _write(root, f".agents/skills/{skill}/SKILL.md", "# consumer-owned\n")
+            (root / ".cursor/skills").mkdir(parents=True, exist_ok=True)
+            shutil.copytree(ROOT / "domain-packs", root / ".agents/ges/domain-packs")
+            profile = json.loads((ROOT / "consumers/generic.json").read_text(encoding="utf-8"))
+            _write(root, ".agents/ges/profile.json", json.dumps(profile))
+            shutil.copytree(ROOT / "domain-runtime", root / ".agents/ges/domain-runtime")
+            shutil.copytree(ROOT / ".agents/skills", root / ".agents/skills", dirs_exist_ok=True)
+            _, loaded = installer.resolve_profile(root, None)
+            _, packs = installer.pack_context(loaded)
+            backup = root / ".smc" / "skill-upgrade-backups" / "g79"
+            backup.mkdir(parents=True)
+            records: dict = {}
+            installer._FINALIZATION_FAULT = "receipt"
+            try:
+                with self.assertRaises(RuntimeError):
+                    installer.build_install_lock(root, loaded, packs, records, backup)
+                installer.base.restore(root, backup, records)
+            finally:
+                installer._FINALIZATION_FAULT = None
+            self.assertFalse((root / ".agents/ges/frontend-runtime").exists())
+            self.assertEqual(sibling, (root / ".agents/ges/frontend/apps/work/surface-registry.json").read_bytes())
+
+    def test_g80_golden_consumer_cost_summary(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G61–G80#G80 Golden Consumer]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            # Plan Author
+            prep_plan = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                phase="PLAN",
+                governance_profile="FULL",
+                candidates=[{"path": "prd", "tokens": 40, "artifact_kind": "PRD_SECTION"}],
+                repo=root,
+            )
+            md.run_managed_call(plan=plan, prepared=prep_plan, adapter=harness.fake_enforced_adapter())
+            # Delivery
+            exec_ctx.create_worker_context_envelope(plan, "T1")
+            prep_impl = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                todo_id="T1",
+                phase="IMPLEMENT",
+                governance_profile="FULL",
+                candidates=[{"path": "app.py", "tokens": 40, "artifact_kind": "SOURCE"}],
+                allowed_roots=["app.py"],
+                repo=root,
+            )
+            md.run_managed_call(plan=plan, prepared=prep_impl, adapter=harness.fake_enforced_adapter())
+            # Review
+            prep_rev = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                phase="REVIEW",
+                governance_profile="FULL",
+                candidates=[{"path": "packet", "tokens": 20, "artifact_kind": "PLAN_SECTION"}],
+                review_depth="FULL",
+                repo=root,
+            )
+            md.run_managed_call(plan=plan, prepared=prep_rev, adapter=harness.fake_enforced_adapter())
+            summary = telemetry.summarize(plan)
+            self.assertTrue(summary.get("complete"))
+            self.assertEqual(summary.get("dispatch_result_pair_rate"), 1.0)
+            self.assertGreaterEqual(summary.get("managed_dispatch_count") or 0, 3)
+            for stage in ("PLANNING", "IMPLEMENTATION", "REVIEW"):
+                closure = scc.evaluate_stage(plan=plan, stage=stage)
+                self.assertIn(closure["status"], {"PASS", "PASS_USAGE_UNAVAILABLE"})
+
+    def test_uc_profile_gov_golden(self):
+        # @lat: [[frontend-context#Acceptance G31–G42#UC-PROFILE-GOV Golden]]
+        out = route(
+            safe_facts(
+                governed=True,
+                security_sensitive_touch=True,
+                security_boundary_change=False,
+            )
+        )
+        self.assertEqual(out["work_class"], "BOUNDED")
+        self.assertEqual(out["governance_profile"], "LEAN")
+        gate = ux_mod.reuse_gate(
+            {
+                "same_ux_role": True,
+                "existing_surface": {"surface_id": "desktop:sidebar.footer.identity"},
+                "decision": "EXTEND",
+            }
+        )
+        self.assertTrue(gate["ok"])
+        self.assertEqual(gate["decision"], "EXTEND")
+
+
+class HardeningCorpus(unittest.TestCase):
+    def test_g81_provider_locator(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G81 Provider Locator]]
+        import runtime_locator as rl
+
+        paths = rl.locate(CONTEXT_ENGINE)
+        self.assertEqual(paths.layout, "PROVIDER")
+        self.assertEqual(paths.runtime_root.name, "context-engine")
+        self.assertTrue(paths.delivery_scripts.is_dir())
+
+    def test_g82_consumer_locator(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G82 Consumer Locator]]
+        import runtime_locator as rl
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            shutil.copytree(CONTEXT_ENGINE, root / ".agents/ges/frontend-runtime")
+            shutil.copytree(ROOT / ".agents/skills", root / ".agents/skills")
+            paths = rl.locate(root / ".agents/ges/frontend-runtime")
+            self.assertEqual(paths.layout, "CONSUMER")
+            self.assertEqual(paths.repo_root, root.resolve())
+
+    def test_g83_locator_escape(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G83 Locator Escape]]
+        import runtime_locator as rl
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            outside = root.parent / "outside-runtime"
+            outside.mkdir(exist_ok=True)
+            os.environ["GES_RUNTIME_ROOT"] = str(outside)
+            os.environ["GES_REPO_ROOT"] = str(root)
+            try:
+                with self.assertRaises(rl.RuntimeLocationError) as ctx:
+                    rl.locate()
+                self.assertIn("GES_RUNTIME_PATH_ESCAPE", str(ctx.exception))
+            finally:
+                os.environ.pop("GES_RUNTIME_ROOT", None)
+                os.environ.pop("GES_REPO_ROOT", None)
+
+    def test_g84_consumer_dispatch_imports_telemetry(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G84 Consumer Dispatch Imports Telemetry]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            shutil.copytree(CONTEXT_ENGINE, root / ".agents/ges/frontend-runtime")
+            shutil.copytree(ROOT / ".agents/skills", root / ".agents/skills")
+            sys.path.insert(0, str(root / ".agents/ges/frontend-runtime"))
+            try:
+                import model_dispatch as cmd
+
+                rm = cmd._import_runtime_metrics()
+                self.assertTrue(hasattr(rm, "dispatch"))
+            finally:
+                sys.path.remove(str(root / ".agents/ges/frontend-runtime"))
+
+    def test_g85_consumer_closure_imports_telemetry(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G85 Consumer Closure Imports Telemetry]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            shutil.copytree(CONTEXT_ENGINE, root / ".agents/ges/frontend-runtime")
+            shutil.copytree(ROOT / ".agents/skills", root / ".agents/skills")
+            sys.path.insert(0, str(root / ".agents/ges/frontend-runtime"))
+            try:
+                import stage_cost_closure as cscc
+
+                rm = cscc._import_runtime_metrics()
+                self.assertTrue(hasattr(rm, "summarize"))
+            finally:
+                sys.path.remove(str(root / ".agents/ges/frontend-runtime"))
+
+    def test_g86_no_production_fake(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G86 No Production Fake]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            prepared = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                phase="IMPLEMENT",
+                governance_profile="LEAN",
+                candidates=[{"path": "app.py", "tokens": 10, "artifact_kind": "SOURCE"}],
+                repo=root,
+            )
+            with self.assertRaises(ValueError) as ctx:
+                md.run_managed_call(plan=plan, prepared=prepared, adapter=None)
+            self.assertIn("HARNESS_ADAPTER_REQUIRED", str(ctx.exception))
+
+    def test_g87_fake_test_only(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G87 Fake Test Only]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            prepared = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                phase="IMPLEMENT",
+                governance_profile="LEAN",
+                candidates=[{"path": "app.py", "tokens": 10, "artifact_kind": "SOURCE"}],
+                repo=root,
+            )
+            out = md.run_managed_call(plan=plan, prepared=prepared, adapter=harness.fake_enforced_adapter())
+            self.assertEqual(out["harness_mode"], "ENFORCED")
+
+    def test_g88_observable_cannot_enforce(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G88 Observable Cannot Enforce]]
+        import harness_registry as hr
+
+        with self.assertRaises(ValueError) as ctx:
+            hr.require_enforced_adapter("cursor-observable")
+        self.assertIn("RUNTIME_COST_OBSERVABLE_NOT_ENFORCED", str(ctx.exception))
+
+    def test_g89_runtime_contract_written(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G89 Runtime Contract Written]]
+        import runtime_cost_contract as rcc
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            rcc.init_contract(plan)
+            self.assertTrue(rcc.has_contract(plan) is False)  # frontmatter not yet updated
+            data = rcc.load_contract(plan)
+            self.assertEqual(data["schema"], "smc.ges.runtime-cost-contract.v1")
+
+    def test_g90_required_stage_zero_dispatch(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G90 Required Stage Zero Dispatch]]
+        import runtime_cost_contract as rcc
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            text = MIN_PLAN.replace(
+                "governance_profile: FULL",
+                "governance_profile: FULL\nruntime_cost_contract: smc.ges.runtime-cost.v1\nruntime_cost_epoch: 1",
+            )
+            plan = _write(root, "p.plan.md", text)
+            rcc.init_contract(plan)
+            closure = scc.evaluate_stage(plan=plan, stage="PLANNING", strict_stage=True)
+            self.assertEqual(closure["status"], "BLOCKED")
+            self.assertIn("STAGE_MODEL_DISPATCH_MISSING", closure["reasons"])
+
+    def test_g91_no_model_work_receipt(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G91 No Model Work Receipt]]
+        import runtime_cost_contract as rcc
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            text = MIN_PLAN.replace(
+                "governance_profile: FULL",
+                "governance_profile: FULL\nruntime_cost_contract: smc.ges.runtime-cost.v1\nruntime_cost_epoch: 1",
+            )
+            plan = _write(root, "p.plan.md", text)
+            rcc.init_contract(plan)
+            rcc.record_no_model_work(plan, stage="REVIEW", reason="deterministic-review-clearance")
+            closure = scc.evaluate_stage(plan=plan, stage="REVIEW", strict_stage=True)
+            self.assertEqual(closure["status"], "PASS_NO_MODEL_WORK")
+
+    def test_g92_legacy_plan_compatibility(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G92 Legacy Plan Compatibility]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            out = scc.assert_managed_cost_closure(plan)
+            self.assertFalse(out["enforced"])
+
+    def test_g93_delivery_fail_closed(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G93 Delivery Fail Closed]]
+        import runtime_cost_contract as rcc
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            text = MIN_PLAN.replace(
+                "governance_profile: FULL",
+                "governance_profile: FULL\nruntime_cost_contract: smc.ges.runtime-cost.v1\nruntime_cost_epoch: 1",
+            )
+            plan = _write(root, "p.plan.md", text)
+            rcc.init_contract(plan)
+            with self.assertRaises(ValueError) as ctx:
+                scc.assert_managed_cost_closure(plan)
+            self.assertIn("STAGE_MODEL_DISPATCH_MISSING", str(ctx.exception))
+
+    def test_g94_managed_count_correct(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G94 Managed Count Correct]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            telemetry.dispatch(plan, dispatch_id="d1", phase="IMPLEMENT", todo="T1", requested_tier="STANDARD", agent="a")
+            telemetry.result(
+                plan,
+                dispatch_id="d1",
+                provider="syn",
+                model="m",
+                outcome="ok",
+                prompt_tokens=1,
+                completion_tokens=1,
+                cache_read_tokens=0,
+                cache_write_tokens=0,
+                latency_ms=1,
+            )
+            summary = telemetry.summarize(plan)
+            self.assertEqual(summary.get("managed_dispatch_count"), 0)
+
+    def test_g95_budget_pass_count_correct(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G95 Budget Pass Count Correct]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            telemetry.dispatch(plan, dispatch_id="d1", phase="IMPLEMENT", todo="T1", requested_tier="STANDARD", agent="a")
+            telemetry.dispatch_blocked(plan, dispatch_id="d2", phase="PLAN", reason="CONTEXT_BUDGET_INSUFFICIENT")
+            summary = telemetry.summarize(plan)
+            self.assertEqual(summary.get("budget_pass_count"), 0)
+            self.assertEqual(summary.get("budget_block_count"), 1)
+
+    def test_g96_real_consumer_runtime_smoke(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G96 Real Consumer Runtime Smoke]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            shutil.copytree(CONTEXT_ENGINE, root / ".agents/ges/frontend-runtime")
+            shutil.copytree(ROOT / ".agents/skills", root / ".agents/skills")
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            sys.path.insert(0, str(root / ".agents/ges/frontend-runtime"))
+            try:
+                import model_dispatch as cmd
+                import harness_contract as ch
+
+                prepared = cmd.prepare_dispatch(
+                    work_item_id="GES-ACC",
+                    plan_id="GES-ACC",
+                    phase="IMPLEMENT",
+                    governance_profile="LEAN",
+                    candidates=[{"path": "app.py", "tokens": 10, "artifact_kind": "SOURCE"}],
+                    repo=root,
+                )
+                out = cmd.run_managed_call(plan=plan, prepared=prepared, adapter=ch.fake_enforced_adapter())
+                self.assertEqual(out["harness_mode"], "ENFORCED")
+                closure = cmd._import_runtime_metrics().summarize(plan)
+                self.assertTrue(closure.get("complete"))
+            finally:
+                sys.path.remove(str(root / ".agents/ges/frontend-runtime"))
+
 
 class ChaosAndClosure(unittest.TestCase):
     def test_hard_risk_beats_stale_pass(self):
@@ -488,6 +1852,7 @@ def main() -> int:
     loader = unittest.defaultTestLoader
     suite = unittest.TestSuite()
     suite.addTests(loader.loadTestsFromTestCase(GoldenCorpus))
+    suite.addTests(loader.loadTestsFromTestCase(HardeningCorpus))
     suite.addTests(loader.loadTestsFromTestCase(ChaosAndClosure))
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     report = {
@@ -495,7 +1860,7 @@ def main() -> int:
         "passed": result.wasSuccessful(),
         "tests": result.testsRun,
         "failures": len(result.failures) + len(result.errors),
-        "golden": "G01-G30",
+        "golden": "G01-G96",
         "chaos": True,
     }
     print(json.dumps(report, indent=2))

@@ -24,6 +24,31 @@ After GES install, use `consumer-bootstrap/` for platform onboarding:
 
 Hard rules: never write `.specify/spec.md` (second requirements SOT); never overwrite `.agents/ges/profile.json` (installer-owned); never claim `UPSTREAM_PINNED` for GES template shims. See `CHANGES-v5.0.5-consumer-bootstrap.md`.
 
+## Frontend Context Audit (v5.0.6+)
+
+After Consumer Bootstrap, enable the Frontend Context System under `.agents/ges/frontend/` (JSON only). Installer delivers runtime separately to `.agents/ges/frontend-runtime/` and `.agents/ges/frontend-adapters/`.
+
+```text
+python consumer-bootstrap/frontend_audit.py <repo>                 # dry-run OBSERVE
+python consumer-bootstrap/frontend_audit.py <repo> --apply         # full-repo registry + baselines
+python consumer-bootstrap/frontend_audit.py <repo> --app work --apply
+python consumer-bootstrap/frontend_audit.py <repo> --app apps/work --apply
+python consumer-bootstrap/frontend_audit.py <repo> --mode GUIDED --apply
+python consumer-bootstrap/frontend_audit.py <repo> --mode ENFORCED --apply --json
+```
+
+`--app` may be repeated. Identifiers `work`, `apps/work`, and `apps/work/` normalize to the same `app_id`. Unknown scope returns `FRONTEND_SCOPE_APP_UNKNOWN` with no writes. Registry always lists all discovered apps; only selected apps get baselines (`baseline_status=INITIALIZED`). Sibling baselines are preserved.
+
+Adoption modes:
+
+| Mode | Behavior |
+|---|---|
+| OBSERVE (default) | Scan + report; missing registry does not fail consumer validation |
+| GUIDED | Same scan; remediation may seed templates + recommend `--apply` |
+| ENFORCED | Validation fails when `apps-registry.json` is missing |
+
+Reports: `.smc/consumer-bootstrap/frontend-audit.{json,md}`. Consumer validation checks stack adapters (consumer-installed only), INITIALIZED per-app baselines, application boundary, frontend runtime, surface registries, engineering/TDD/telemetry runtimes, and the plan validator bridge. See `CHANGES-v5.0.7-frontend-context-scoped-install.md` and [[frontend-context]].
+
 ## Test reuse and command evidence
 
 Use Test Asset Ledger REUSE/EXTEND/NEW with stable catalog IDs. Reuse drivers, never treat a stale test result as fresh. v3.7 Todo completion requires engineering method checks in addition to final evidence, semantic/implementation review and completion audit. A local receipt is auditable working memory, not tamper-resistant signed remote attestation.

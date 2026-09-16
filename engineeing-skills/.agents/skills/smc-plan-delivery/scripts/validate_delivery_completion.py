@@ -119,6 +119,26 @@ def validate(plan: Path) -> tuple[list[str], dict]:
     else:
         details["static_gate"] = "UNKNOWN"; errors.append("DELIVERY_PLAN_VALIDATOR_MISSING")
 
+    try:
+        here = Path(__file__).resolve().parent
+        if str(here) not in sys.path:
+            sys.path.insert(0, str(here))
+        from runtime_locator import locate
+
+        paths = locate(here)
+        if str(paths.runtime_root) not in sys.path:
+            sys.path.insert(0, str(paths.runtime_root))
+        from stage_cost_closure import assert_managed_cost_closure
+
+        cost = assert_managed_cost_closure(plan)
+        details["stage_cost_closure"] = cost
+    except ValueError as exc:
+        errors.append(f"DELIVERY_STAGE_COST_CLOSURE_FAILED: {exc}")
+        details["stage_cost_closure"] = {"enforced": True, "error": str(exc)}
+    except Exception as exc:
+        errors.append(f"DELIVERY_STAGE_COST_CLOSURE_FAILED: {exc}")
+        details["stage_cost_closure"] = {"enforced": True, "error": str(exc)}
+
     deduped=[]; seen=set()
     for e in errors:
         if e not in seen: seen.add(e); deduped.append(e)

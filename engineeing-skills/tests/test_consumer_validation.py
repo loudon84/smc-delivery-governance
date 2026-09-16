@@ -73,6 +73,7 @@ def seed_ges_surface(root: Path) -> None:
         ".agents/skills/smc-plan-delivery/scripts/acceptance.py",
         ".agents/skills/smc-plan-delivery/scripts/runtime_metrics.py",
         ".agents/skills/smc-plan-delivery/scripts/evidence.py",
+        ".agents/skills/smc-plan-delivery/scripts/engineering_method.py",
     ):
         if not (root / rel).is_file():
             write(root, rel, "print('stub')\n")

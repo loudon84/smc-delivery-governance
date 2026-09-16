@@ -30,6 +30,15 @@ FULL   full semantic review
 `FULL`, Acceptance Contract risk, new/changed boundary, LIVE/FAULT/EXTERNAL proof, lifecycle,
 security, schema/protocol, cross-domain ownership or stale upstream semantics force FULL.
 
+## v5.0.9 Review cost closure
+
+- First semantic review defaults to `FULL`; after `REVISE` the next round defaults to `DELTA`.
+- `FULL` re-entry requires PRD/scope/route/profile/owner/boundary/public-contract/feature-scope change.
+- Loop cap defaults: `FULL ≤ 1`, `DELTA ≤ 2`; beyond cap → `REVIEW_LOOP_EXCEEDED` and
+  `PLAN_REVISE_REQUIRED` instead of unbounded automatic review.
+- Model review calls go through the managed dispatch runtime with `phase=REVIEW` and a
+  review-scoped context envelope (findings + changed sections + affected capsules).
+
 Review snapshots bind normalized semantic Plan hash. Cursor runtime status/display projection is
 excluded from semantic change; Change Matrix, ownership, AC, Verification, Domain/Test Asset and
 behavior changes are semantic.

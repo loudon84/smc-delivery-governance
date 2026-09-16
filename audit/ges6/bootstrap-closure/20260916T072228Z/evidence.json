@@ -1,0 +1,448 @@
+{
+  "schema": "ges.bootstrap-closure-evidence.v1",
+  "run_id": "20260916T072228Z",
+  "started_at": "2026-09-16T07:22:28.921579+00:00",
+  "finished_at": "2026-09-16T07:28:54.378432+00:00",
+  "ges": {
+    "repository": "loudon84/smc-delivery-governance",
+    "branch": "feat/ges-v6.0",
+    "commit_sha": "d799bdb580f0e206fe5bb75178474d0394116c1e",
+    "product_version": "6.0.0-alpha.1",
+    "distribution_version": "1.2.1"
+  },
+  "golden_consumer": {
+    "source_path": "E:\\git\\smc-copilot-desktop",
+    "repo_identity": "loudon84/smc-copilot-desktop",
+    "source_branch": "master",
+    "commit_sha": "737409b14e7499723db25fcb0414fa3e7026a86f",
+    "source_worktree_dirty": false,
+    "source_worktree_status_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "test_worktree_path": "C:\\Users\\SMC-SZ~1\\AppData\\Local\\Temp\\ges-golden-wt-5vif6eoo",
+    "test_worktree_clean_at_start": true
+  },
+  "spec_kit": {
+    "repo": "https://github.com/github/spec-kit.git",
+    "commit_sha": "1d5106f59e1b148ee23ab136638932dd790ff1b6",
+    "specify_cli_version": "1.0.8.dev0",
+    "integration": "cursor-agent",
+    "official_render_manifest_digest": "5871ed66989b18e620bc387091554db2a380835d9c0653db087f72053f973397",
+    "projected_manifest_digest": "122b070c55eabb9959b3f2971f79269509b346867388d59746404dedeeb5dd6f"
+  },
+  "cursor": {
+    "executable": "C:\\Users\\smc-sz-hr21007\\AppData\\Local\\cursor-agent\\agent.cmd",
+    "version": "2026.09.10-fd3934a",
+    "structural_discovery": "PASS",
+    "runtime_discovery": "PASS"
+  },
+  "acceptances": [
+    {
+      "acceptance_id": "A-GOLDEN-001",
+      "requirement_ids": [
+        "REQ-GOLDEN-001"
+      ],
+      "test_ids": [
+        "TEST-A-GOLDEN-001"
+      ],
+      "status": "PASS",
+      "command": "git rev-parse HEAD",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "E:\\git\\smc-copilot-desktop",
+        "actual": "E:\\git\\smc-copilot-desktop"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-GOLDEN-002",
+      "requirement_ids": [
+        "REQ-GOLDEN-001"
+      ],
+      "test_ids": [
+        "TEST-A-GOLDEN-002"
+      ],
+      "status": "PASS",
+      "command": "git status --porcelain",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "continue-if-dirty",
+        "actual": "clean"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SK-003",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-001"
+      ],
+      "test_ids": [
+        "TEST-A-SK-003"
+      ],
+      "status": "PASS",
+      "command": "official_stage",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": true,
+        "actual": true
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SK-001",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-001"
+      ],
+      "test_ids": [
+        "TEST-A-SK-001"
+      ],
+      "status": "PASS",
+      "command": "specify --version",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "1.0.8.dev0",
+        "actual": "1.0.8.dev0"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SK-002",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-001"
+      ],
+      "test_ids": [
+        "TEST-A-SK-002"
+      ],
+      "status": "PASS",
+      "command": "manifest compare",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": 0,
+        "actual": 0
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SKM-002",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-002"
+      ],
+      "test_ids": [
+        "TEST-A-SKM-002"
+      ],
+      "status": "PASS",
+      "command": "compose drifted stub",
+      "exit_code": 2,
+      "oracle": {
+        "type": "equals",
+        "expected": "MANAGED_CONTENT_MODIFIED",
+        "actual": "MANAGED_CONTENT_MODIFIED"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SKM-001",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-002"
+      ],
+      "test_ids": [
+        "TEST-A-SKM-001"
+      ],
+      "status": "PASS",
+      "command": "migrate unmodified stub",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": true,
+        "actual": true
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-GOLDEN-003",
+      "requirement_ids": [
+        "REQ-GOLDEN-002"
+      ],
+      "test_ids": [
+        "TEST-A-GOLDEN-003"
+      ],
+      "status": "PASS",
+      "command": "ges doctor",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "READY",
+        "actual": "READY"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CURSOR-STRUCT-001",
+      "requirement_ids": [
+        "REQ-CURSOR-001"
+      ],
+      "test_ids": [
+        "TEST-A-CURSOR-STRUCT-001"
+      ],
+      "status": "PASS",
+      "command": "structural discovery",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "PASS",
+        "actual": "PASS"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CURSOR-RUNTIME-001",
+      "requirement_ids": [
+        "REQ-CURSOR-002"
+      ],
+      "test_ids": [
+        "TEST-A-CURSOR-RUNTIME-001"
+      ],
+      "status": "PASS",
+      "command": "C:\\Users\\smc-sz-hr21007\\AppData\\Local\\cursor-agent\\agent.cmd -p --output-format json --trust --workspace C:\\Users\\SMC-SZ~1\\AppData\\Local\\Temp\\ges-golden-wt-5vif6eoo --mode ask Do not edit files. Read these project skill files if they exist: .agents/skills/grill-with-docs/SKILL.md, .cursor/skills/speckit-specify/SKILL.md, .agents/skills/writing-plans/SKILL.md. Return only a machine-readable JSON object. The object MUST be {\"probe\":\"GES_CURSOR_DISCOVERY_PROBE_V1\",\"skills\":{\"grill-with-docs\":true,\"speckit-specify\":true,\"writing-plans\":true}}. Set a skill true only if that SKILL.md exists and you can follow it now.",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": true,
+        "actual": true
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CURSOR-RUNTIME-002",
+      "requirement_ids": [
+        "REQ-CURSOR-002"
+      ],
+      "test_ids": [
+        "TEST-A-CURSOR-RUNTIME-002"
+      ],
+      "status": "PASS",
+      "command": "probe mutation",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": true,
+        "actual": true
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SKF-001",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-003"
+      ],
+      "test_ids": [
+        "TEST-A-SKF-001"
+      ],
+      "status": "PASS",
+      "command": "C:\\Users\\smc-sz-hr21007\\AppData\\Local\\cursor-agent\\agent.cmd -p --output-format json",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": [],
+        "actual": []
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SKF-002",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-003"
+      ],
+      "test_ids": [
+        "TEST-A-SKF-002"
+      ],
+      "status": "FAIL",
+      "command": ".specify/feature.json",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "specs/_ges-smoke/20260916T072228Z",
+        "actual": ""
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-SKF-003",
+      "requirement_ids": [
+        "REQ-SPECKIT-FUNC-003"
+      ],
+      "test_ids": [
+        "TEST-A-SKF-003"
+      ],
+      "status": "FAIL",
+      "command": "mutation allowlist",
+      "exit_code": 2,
+      "oracle": {
+        "type": "equals",
+        "expected": [],
+        "actual": [
+          ".agents/skills/codebase-design/DEEPENING.md",
+          ".agents/skills/codebase-design/DESIGN-IT-TWICE.md",
+          ".agents/skills/codebase-design/SKILL.md",
+          ".agents/skills/codebase-design/agents/openai.yaml",
+          ".agents/skills/domain-modeling/ADR-FORMAT.md",
+          ".agents/skills/domain-modeling/CONTEXT-FORMAT.md",
+          ".agents/skills/domain-modeling/SKILL.md",
+          ".agents/skills/domain-modeling/agents/openai.yaml",
+          ".agents/skills/finishing-a-development-branch/SKILL.md",
+          ".agents/skills/grill-with-docs/SKILL.md",
+          ".agents/skills/grill-with-docs/agents/openai.yaml",
+          ".agents/skills/grilling/SKILL.md",
+          ".agents/skills/grilling/agents/openai.yaml",
+          ".agents/skills/receiving-code-review/SKILL.md",
+          ".agents/skills/requesting-code-review/SKILL.md",
+          ".agents/skills/requesting-code-review/code-reviewer.md",
+          ".agents/skills/setup-matt-pocock-skills/SKILL.md",
+          ".agents/skills/setup-matt-pocock-skills/agents/openai.yaml",
+          ".agents/skills/setup-matt-pocock-skills/domain.md",
+          ".agents/skills/setup-matt-pocock-skills/issue-tracker-github.md",
+          ".agents/skills/setup-matt-pocock-skills/issue-tracker-gitlab.md",
+          ".agents/skills/setup-matt-pocock-skills/issue-tracker-local.md",
+          ".agents/skills/setup-matt-pocock-skills/triage-labels.md",
+          ".agents/skills/subagent-driven-development/SKILL.md",
+          ".agents/skills/subagent-driven-development/implementer-prompt.md",
+          ".agents/skills/subagent-driven-development/re-review-prompt.md",
+          ".agents/skills/subagent-driven-development/scripts/review-package",
+          ".agents/skills/subagent-driven-development/scripts/sdd-workspace",
+          ".agents/skills/subagent-driven-development/scripts/task-brief",
+          ".agents/skills/subagent-driven-development/task-reviewer-prompt.md",
+          ".agents/skills/systematic-debugging/CREATION-LOG.md",
+          ".agents/skills/systematic-debugging/SKILL.md",
+          ".agents/skills/systematic-debugging/condition-based-waiting-example.ts",
+          ".agents/skills/systematic-debugging/condition-based-waiting.md",
+          ".agents/skills/systematic-debugging/defense-in-depth.md",
+          ".agents/skills/systematic-debugging/find-polluter.sh",
+          ".agents/skills/systematic-debugging/root-cause-tracing.md",
+          ".agents/skills/systematic-debugging/test-academic.md",
+          ".agents/skills/systematic-debugging/test-pressure-1.md",
+          ".agents/skills/systematic-debugging/test-pressure-2.md",
+          ".agents/skills/systematic-debugging/test-pressure-3.md",
+          ".agents/skills/test-driven-development/SKILL.md",
+          ".agents/skills/test-driven-development/writing-good-tests.md",
+          ".agents/skills/to-tickets/SKILL.md",
+          ".agents/skills/to-tickets/agents/openai.yaml",
+          ".agents/skills/using-git-worktrees/SKILL.md",
+          ".agents/skills/verification-before-completion/SKILL.md",
+          ".agents/skills/writing-plans/SKILL.md",
+          ".agents/skills/writing-plans/plan-document-reviewer-prompt.md",
+          ".codex/ges/engineering-stack.md",
+          ".cursor/ges/engineering-stack.md",
+          ".cursor/skills/speckit-clarify/SKILL.md",
+          ".cursor/skills/speckit-constitution/SKILL.md",
+          ".cursor/skills/speckit-plan/SKILL.md",
+          ".cursor/skills/speckit-specify/SKILL.md",
+          ".ges/install-receipt.json",
+          ".ges/lock.json",
+          ".ges/project.yaml",
+          ".ges/repo-profile.json",
+          "AGENTS.md",
+          "CLAUDE.md",
+          "docs/agents/domain.md",
+          "docs/agents/issue-tracker.md"
+        ]
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-IDEMP-CLI-001",
+      "requirement_ids": [
+        "REQ-GOLDEN-002"
+      ],
+      "test_ids": [
+        "TEST-A-IDEMP-CLI-001"
+      ],
+      "status": "PASS",
+      "command": "ges init --yes",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "GES_RECONCILE_NOOP",
+        "actual": "GES_RECONCILE_NOOP"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-GOLDEN-004",
+      "requirement_ids": [
+        "REQ-GOLDEN-002"
+      ],
+      "test_ids": [
+        "TEST-A-GOLDEN-004"
+      ],
+      "status": "PASS",
+      "command": "business snapshot",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "unchanged",
+        "actual": "unchanged"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-GOLDEN-005",
+      "requirement_ids": [
+        "REQ-GOLDEN-001"
+      ],
+      "test_ids": [
+        "TEST-A-GOLDEN-005"
+      ],
+      "status": "PASS",
+      "command": "source workspace identity",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "unchanged",
+        "actual": "unchanged"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-EVID-001",
+      "requirement_ids": [
+        "REQ-EVID-001"
+      ],
+      "test_ids": [
+        "TEST-A-EVID-001"
+      ],
+      "status": "PASS",
+      "command": "commit binding",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": "d799bdb580f0e206fe5bb75178474d0394116c1e",
+        "actual": "d799bdb580f0e206fe5bb75178474d0394116c1e"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-EVID-002",
+      "requirement_ids": [
+        "REQ-EVID-001"
+      ],
+      "test_ids": [
+        "TEST-A-EVID-002"
+      ],
+      "status": "PASS",
+      "command": "per-AC fields",
+      "exit_code": 0,
+      "oracle": {
+        "type": "equals",
+        "expected": true,
+        "actual": true
+      },
+      "evidence_files": []
+    }
+  ],
+  "release_gate": {
+    "status": "FAIL"
+  }
+}

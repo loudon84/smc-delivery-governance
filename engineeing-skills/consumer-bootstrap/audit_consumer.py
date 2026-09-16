@@ -193,6 +193,39 @@ def _audit_superpowers(project: Path, checks: list[dict]) -> dict[str, Any]:
     }
 
 
+def _adoption_mode(project: Path) -> str:
+    marker = project / C.FRONTEND_ROOT / "ENFORCED"
+    if marker.is_file():
+        return "ENFORCED"
+    path = project / C.FRONTEND_ROOT / "adoption-mode.json"
+    if path.is_file():
+        try:
+            data = C.read_json(path)
+            mode = str(data.get("mode") or "OBSERVE").upper()
+            if mode in {"OBSERVE", "GUIDED", "ENFORCED"}:
+                return mode
+        except Exception:
+            return "OBSERVE"
+    return "OBSERVE"
+
+
+def _audit_frontend(project: Path, checks: list[dict]) -> dict[str, Any]:
+    """Optional frontend_context layer — does not fail overall audit unless ENFORCED."""
+    registry_rel = f"{C.FRONTEND_ROOT}/apps-registry.json"
+    present = C.exists_file(project, registry_rel)
+    mode = _adoption_mode(project)
+    detail = f"adoption_mode={mode}"
+    _check(checks, "frontend_context.apps_registry", "frontend_context", registry_rel, present, detail)
+    return {
+        "verdict": "PASS" if present else ("MISSING" if mode == "ENFORCED" else "PARTIAL"),
+        "present": 1 if present else 0,
+        "total": 1,
+        "missing": [] if present else ["frontend_context.apps_registry"],
+        "adoption_mode": mode,
+        "optional": mode != "ENFORCED",
+    }
+
+
 def audit(project: Path) -> dict[str, Any]:
     # @lat: [[consumer-bootstrap#Consumer Audit]]
     project = project.resolve()
@@ -200,6 +233,7 @@ def audit(project: Path) -> dict[str, Any]:
     ges = _audit_ges(project, checks)
     spec_kit, probe = _audit_spec_kit(project, checks)
     superpowers = _audit_superpowers(project, checks)
+    frontend = _audit_frontend(project, checks)
 
     claims = {
         "ges": "GES_NATIVE" if ges["verdict"] == "PASS" else "UNAVAILABLE",
@@ -211,8 +245,10 @@ def audit(project: Path) -> dict[str, Any]:
         )
         else "GES_NATIVE",
         "superpowers_shims": "GES_NATIVE",
+        "frontend_context": "GES_NATIVE" if frontend["present"] else "UNAVAILABLE",
     }
 
+    # Overall ok stays based on ges/spec/superpowers; frontend is reported but non-blocking here.
     report = {
         "schema": "smc.ges.consumer-audit.v1",
         "project": str(project),
@@ -222,6 +258,7 @@ def audit(project: Path) -> dict[str, Any]:
             "ges": ges,
             "spec_kit": spec_kit,
             "superpowers": superpowers,
+            "frontend_context": frontend,
         },
         "checks": checks,
         "claims": claims,

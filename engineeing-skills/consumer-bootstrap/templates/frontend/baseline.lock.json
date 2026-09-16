@@ -1,0 +1,7 @@
+{
+  "schema": "smc.ges.baseline-lock.v1",
+  "app_id": "_template",
+  "fingerprint": "",
+  "status": "FRESH",
+  "stack_adapter": "generic"
+}

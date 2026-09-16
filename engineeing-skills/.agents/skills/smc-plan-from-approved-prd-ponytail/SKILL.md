@@ -108,6 +108,21 @@ not reinterpret Domain Design Intent.
 Reuse project-level fixtures/drivers when possible. `REUSE` assets are immutable for the current
 Plan; `EXTEND/NEW` must refresh asset manifest and proof.
 
+## Gate 9 — Runtime cost closure (v5.0.9)
+
+Plan Author model work must not re-author the full Plan. Use deterministic seed first, then resolve
+only unresolved decisions through the managed dispatch runtime:
+
+```bash
+python .agents/ges/frontend-runtime/model_dispatch.py prepare --work-item-id <plan_id> --phase PLAN --governance-profile <LEAN|FULL> --candidates-json <candidates.json> --json
+```
+
+- Grounding evidence is externalized to `.smc/runs/<plan-id>/grounding/`; the Plan body keeps only
+  change id / owner / decision / verification / evidence digest.
+- Model output must be structured patches (change id, owner, action, writes, verification,
+  decision, rationale); full-Plan regeneration requires `PLAN_RENDER_FALLBACK_REQUIRED` telemetry.
+- No dispatch permit → `MODEL_DISPATCH_PERMIT_MISSING`; budget over limit → `CONTEXT_BUDGET_INSUFFICIENT`.
+
 ## Exit
 
 Static validation -> semantic review -> `smc-plan-delivery`. No Todo commit and no second plan.

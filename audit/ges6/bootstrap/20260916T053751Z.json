@@ -1,0 +1,118 @@
+{
+  "schema": "ges.bootstrap-evidence.v1",
+  "ges_version": "6.0.0-alpha.1",
+  "distribution_version": "1.2.1",
+  "ges_commit": "fb6353e9ed0c503ccdd88d3abfafea68e238f4c9",
+  "consumer_repo": "loudon84/smc-copilot",
+  "consumer_commit": "d6e6080471ff8c3ac5cfd5b73387c6bf64ef95bc",
+  "branch": "work/prd-v5.1",
+  "started_at": "2026-09-16T05:37:51.203920+00:00",
+  "finished_at": "2026-09-16T05:37:51.432085+00:00",
+  "acceptances": [
+    {
+      "acceptance_id": "A-BOOT-001",
+      "requirement_ids": [],
+      "test_ids": [
+        "TEST-A-BOOT-001"
+      ],
+      "status": "BLOCKED",
+      "command": "git status --porcelain",
+      "exit_code": 2,
+      "oracle": {
+        "expected": "clean worktree on work/prd-v5.1",
+        "actual": "M apps/work/scripts/dev.cjs\n M apps/work/src/main/db.ts\n M apps/work/src/main/files/file-import-service.ts\n M apps/work/src/main/ipc/register.ts\n M apps/work/src/main/knowledge/knowledge-mock-store.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-coordinator.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-store.test.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-store.ts\n M apps/work/src/main/knowledge/register-knowledge-job-ipc.ts\n M apps/work/src/main/knowledge/register"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CHECK-001",
+      "requirement_ids": [],
+      "test_ids": [
+        "TEST-A-CHECK-001"
+      ],
+      "status": "BLOCKED",
+      "command": "git status --porcelain",
+      "exit_code": 2,
+      "oracle": {
+        "expected": "clean worktree on work/prd-v5.1",
+        "actual": "M apps/work/scripts/dev.cjs\n M apps/work/src/main/db.ts\n M apps/work/src/main/files/file-import-service.ts\n M apps/work/src/main/ipc/register.ts\n M apps/work/src/main/knowledge/knowledge-mock-store.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-coordinator.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-store.test.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-store.ts\n M apps/work/src/main/knowledge/register-knowledge-job-ipc.ts\n M apps/work/src/main/knowledge/register"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CHECK-009",
+      "requirement_ids": [],
+      "test_ids": [
+        "TEST-A-CHECK-009"
+      ],
+      "status": "BLOCKED",
+      "command": "git status --porcelain",
+      "exit_code": 2,
+      "oracle": {
+        "expected": "clean worktree on work/prd-v5.1",
+        "actual": "M apps/work/scripts/dev.cjs\n M apps/work/src/main/db.ts\n M apps/work/src/main/files/file-import-service.ts\n M apps/work/src/main/ipc/register.ts\n M apps/work/src/main/knowledge/knowledge-mock-store.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-coordinator.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-store.test.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-store.ts\n M apps/work/src/main/knowledge/register-knowledge-job-ipc.ts\n M apps/work/src/main/knowledge/register"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-DOCTOR-002",
+      "requirement_ids": [],
+      "test_ids": [
+        "TEST-A-DOCTOR-002"
+      ],
+      "status": "BLOCKED",
+      "command": "git status --porcelain",
+      "exit_code": 2,
+      "oracle": {
+        "expected": "clean worktree on work/prd-v5.1",
+        "actual": "M apps/work/scripts/dev.cjs\n M apps/work/src/main/db.ts\n M apps/work/src/main/files/file-import-service.ts\n M apps/work/src/main/ipc/register.ts\n M apps/work/src/main/knowledge/knowledge-mock-store.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-coordinator.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-store.test.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-store.ts\n M apps/work/src/main/knowledge/register-knowledge-job-ipc.ts\n M apps/work/src/main/knowledge/register"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-DOCTOR-003",
+      "requirement_ids": [],
+      "test_ids": [
+        "TEST-A-DOCTOR-003"
+      ],
+      "status": "BLOCKED",
+      "command": "git status --porcelain",
+      "exit_code": 2,
+      "oracle": {
+        "expected": "clean worktree on work/prd-v5.1",
+        "actual": "M apps/work/scripts/dev.cjs\n M apps/work/src/main/db.ts\n M apps/work/src/main/files/file-import-service.ts\n M apps/work/src/main/ipc/register.ts\n M apps/work/src/main/knowledge/knowledge-mock-store.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-coordinator.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-store.test.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-store.ts\n M apps/work/src/main/knowledge/register-knowledge-job-ipc.ts\n M apps/work/src/main/knowledge/register"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-CURSOR-001",
+      "requirement_ids": [],
+      "test_ids": [
+        "TEST-A-CURSOR-001"
+      ],
+      "status": "BLOCKED",
+      "command": "git status --porcelain",
+      "exit_code": 2,
+      "oracle": {
+        "expected": "clean worktree on work/prd-v5.1",
+        "actual": "M apps/work/scripts/dev.cjs\n M apps/work/src/main/db.ts\n M apps/work/src/main/files/file-import-service.ts\n M apps/work/src/main/ipc/register.ts\n M apps/work/src/main/knowledge/knowledge-mock-store.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-coordinator.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-store.test.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-store.ts\n M apps/work/src/main/knowledge/register-knowledge-job-ipc.ts\n M apps/work/src/main/knowledge/register"
+      },
+      "evidence_files": []
+    },
+    {
+      "acceptance_id": "A-IDEMP-001",
+      "requirement_ids": [],
+      "test_ids": [
+        "TEST-A-IDEMP-001"
+      ],
+      "status": "BLOCKED",
+      "command": "git status --porcelain",
+      "exit_code": 2,
+      "oracle": {
+        "expected": "clean worktree on work/prd-v5.1",
+        "actual": "M apps/work/scripts/dev.cjs\n M apps/work/src/main/db.ts\n M apps/work/src/main/files/file-import-service.ts\n M apps/work/src/main/ipc/register.ts\n M apps/work/src/main/knowledge/knowledge-mock-store.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-coordinator.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-store.test.ts\n M apps/work/src/main/knowledge/knowledge-upload-job-store.ts\n M apps/work/src/main/knowledge/register-knowledge-job-ipc.ts\n M apps/work/src/main/knowledge/register"
+      },
+      "evidence_files": []
+    }
+  ]
+}

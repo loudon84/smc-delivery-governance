@@ -28,6 +28,7 @@ def get(plan,path,symbol=''):
    cache_hit(plan,path_key)
   except Exception:
    pass
+  _bridge_capsule(plan,rel,symbol,cap,state='hit')
   return out,cap
  except ValueError:
   try:
@@ -35,7 +36,34 @@ def get(plan,path,symbol=''):
    cache_miss(plan,path_key)
   except Exception:
    pass
+  _bridge_capsule(plan,rel,symbol,None,state='miss')
   raise
+
+
+def _bridge_capsule(plan,rel,symbol,cap,state):
+ """Bridge plan-scoped source capsules into work-item CapsuleStore accounting."""
+ try:
+  import sys
+  from pathlib import Path as _P
+  here=_P(__file__).resolve().parent
+  if str(here) not in sys.path:
+   sys.path.insert(0,str(here))
+  from runtime_locator import locate
+  paths=locate(here)
+  ctx=paths.runtime_root
+  if str(ctx) not in sys.path:
+   sys.path.insert(0,str(ctx))
+  from context_cache import CapsuleStore
+  from budget_controller import policy_digest
+  store=CapsuleStore(repo=find_repo_root(plan),work_item_id=plan_id(plan))
+  sha=(cap or {}).get('content_sha256') or ''
+  key_args=dict(repo_identity=str(find_repo_root(plan)),artifact_kind='SOURCE',scope_digest=plan_id(plan),identity=rel,content_sha256=sha,extractor_version='1.0.0',policy_digest=policy_digest())
+  if state=='hit':
+   store.get_capsule(**key_args)
+  else:
+   store.put_capsule(**key_args,value={'summary':(cap or {}).get('summary') or rel,'tokens':200},persist=True)
+ except Exception:
+  pass
 def main():
  ap=argparse.ArgumentParser();sub=ap.add_subparsers(dest='cmd',required=True)
  for n in ('capture','get'):

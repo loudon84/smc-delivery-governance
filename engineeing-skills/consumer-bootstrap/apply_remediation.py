@@ -35,6 +35,10 @@ def _assert_allowed(rel: str) -> None:
         raise ValueError(f"BOOTSTRAP_FORBIDDEN_SOT: {rel}")
     if rel == ".agents/ges/profile.json":
         raise ValueError("BOOTSTRAP_FORBIDDEN_TARGET: .agents/ges/profile.json")
+    # Installer-owned runtime trees (C25)
+    for prefix in (".agents/ges/frontend-runtime", ".agents/ges/frontend-adapters"):
+        if rel == prefix or rel.startswith(prefix + "/"):
+            raise ValueError(f"BOOTSTRAP_FORBIDDEN_TARGET: {rel}")
 
 
 def apply_plan(

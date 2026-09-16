@@ -44,13 +44,39 @@ def collect(plan: Path) -> dict:
     done = sum(1 for x in todo_rows if x["status"] == "completed")
     evid = {vid: evidence_status(plan, vid)[0] for vid in blocking_verifications(plan)}
     run = load_run(plan) or {}; resume = execution_resume(plan)
-    contract = parse_top_level_frontmatter(plan.read_text(encoding="utf-8")).get("plan_contract", "")
-    legacy = [] if contract == "smc.plan.v4.0" else [f"CONTEXT_LEGACY_PLAN_UNSUPPORTED: {contract or 'missing'}"]
+    cost_closure = None
+    cost_closure_blocking = False
+    try:
+        here = Path(__file__).resolve().parent
+        if str(here) not in sys.path:
+            sys.path.insert(0, str(here))
+        from runtime_locator import locate
+
+        paths = locate(here)
+        if str(paths.runtime_root) not in sys.path:
+            sys.path.insert(0, str(paths.runtime_root))
+        from stage_cost_closure import assert_managed_cost_closure, evaluate_stage
+
+        for stage in ("PLANNING", "IMPLEMENTATION", "REVIEW"):
+            try:
+                closure = evaluate_stage(plan=plan, stage=stage, strict_stage=True)
+                if closure.get("dispatch_count", 0) > 0 or closure.get("orphan_results"):
+                    cost_closure = cost_closure or {}
+                    cost_closure[stage] = closure.get("status")
+                    if closure.get("status") not in {"PASS", "PASS_USAGE_UNAVAILABLE", "PASS_NO_MODEL_WORK"}:
+                        cost_closure_blocking = True
+            except Exception:
+                pass
+        try:
+            assert_managed_cost_closure(plan)
+        except ValueError:
+            cost_closure_blocking = True
+    except Exception:
+        cost_closure = None
+        cost_closure_blocking = True
     return {
         "schema": "smc.delivery.readiness.v2",
         "plan_id": plan_id(plan), "plan": repo_relative_path(plan, root),
-        "plan_contract": contract,
-        "legacy_contract_errors": legacy,
         "scope_fingerprint": ws["scope_fingerprint"], "ambient_fingerprint": ws["ambient_fingerprint"],
         "workspace": {"ambient_stable": ws["ambient_stable"], "ambient_mutated": ws["ambient_mutated"], "unexpected_dirty": ws["unexpected_dirty"], "scope_changed_files": ws["scope_changed_files"]},
         "run_state": run.get("state", "UNINITIALIZED"), "last_valid_state": run.get("last_valid_state", "UNINITIALIZED"),
@@ -59,6 +85,8 @@ def collect(plan: Path) -> dict:
         "execution_context": {"active_todo": resume.get("active_todo"), "next_step": resume.get("next_step"), "last_event": resume.get("last_event")},
         "completion_audit": completion, "implementation_review": implementation_review, "verification": evid,
         "implementation_commit": run.get("implementation_commit"), "roadmap": "DONE" if run.get("state") == "ROADMAP_DONE" else "PENDING",
+        "stage_cost_closure": cost_closure,
+        "stage_cost_closure_blocking": cost_closure_blocking,
     }
 
 
@@ -80,6 +108,9 @@ def print_table(data: dict) -> None:
     print(f"Implementation Commit: {data['implementation_commit'] or '-'}")
     print(f"Roadmap              : {data['roadmap']}")
     print(f"Scope Fingerprint    : {data['scope_fingerprint']}")
+    if data.get("stage_cost_closure"):
+        print(f"Stage Cost Closure   : {data['stage_cost_closure']}")
+        print(f"Cost Closure Block   : {'YES' if data.get('stage_cost_closure_blocking') else 'NO'}")
 
 
 def main() -> int:
@@ -90,6 +121,8 @@ def main() -> int:
     except (ValueError, RuntimeError) as exc: print(str(exc), file=sys.stderr); return 1
     if args.json: print(json.dumps(data, ensure_ascii=False, indent=2))
     else: print_table(data)
+    if data.get("stage_cost_closure_blocking"):
+        return 1
     return 0
 
 
