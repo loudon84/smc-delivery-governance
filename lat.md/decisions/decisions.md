@@ -13,3 +13,4 @@
 - [[ADR-009-integration-run]] — IntegrationRun 才是跨仓 PASS 证明
 - [[ADR-010-audit-materialized-state]] — Audit Facts 与 Git YAML 投影分离
 - [[ADR-011-test-isolation]] — 测试不得写入中央 SOT
+- [[ADR-012-ges6-composer-backplane-boundary]] — GES 6 只做 Composer 与治理底座，不接管工程推理

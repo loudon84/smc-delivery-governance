@@ -1,0 +1,17 @@
+{
+  "repo": "E:/git/smc-copilot",
+  "status": "SKIPPED_DIRTY_WORKTREE",
+  "reason": "Golden consumer has uncommitted deletions, apps/work edits and untracked files. Destructive init/apply/remove was not executed.",
+  "read_only": {
+    "repository_kind": "brownfield-monorepo",
+    "agents": ["cursor", "codex"],
+    "spec_kit": true,
+    "legacy_ges": true,
+    "ci": ["github-actions"],
+    "llm_token_usage": 0,
+    "legacy_counts": {
+      "OWNED_ABSENT": 208,
+      "OWNED_UNMODIFIED": 14
+    }
+  }
+}

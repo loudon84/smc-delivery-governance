@@ -1,0 +1,39 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+PACKAGE_ROOT = Path(__file__).resolve().parent
+SCHEMA_DIR = PACKAGE_ROOT / "schemas"
+CATALOG_DIR = PACKAGE_ROOT / "catalog"
+LEGACY_DIR = PACKAGE_ROOT / "legacy"
+
+GES_DIRNAME = ".ges"
+PROJECT_FILE = "project.yaml"
+REPO_PROFILE_FILE = "repo-profile.json"
+LOCK_FILE = "lock.json"
+RECEIPT_FILE = "install-receipt.json"
+
+AGENTS_BEGIN = "<!-- ges:v6:engineering-stack:begin -->"
+AGENTS_END = "<!-- ges:v6:engineering-stack:end -->"
+
+BUSINESS_SOURCE_ROOTS = ("apps", "services", "src", "packages", "contracts")
+
+WRITE_ALLOW_PREFIXES = (
+    ".ges/",
+    ".agents/skills/",
+    ".specify/",
+    ".cursor/",
+    ".codex/",
+)
+
+WRITE_ALLOW_FILES = ("AGENTS.md", ".gitignore")
+
+PRESERVE_ALWAYS = (".agents/governance",)
+
+
+def repo_ges_dir(repo: Path) -> Path:
+    return repo / GES_DIRNAME
+
+
+def to_posix(rel: str) -> str:
+    return rel.replace("\\", "/").lstrip("/")
