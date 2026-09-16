@@ -22,8 +22,9 @@ Forces Budget / Cache / Telemetry into Plan Author → Model Dispatch → Delive
 | C09 | Review | REVISE→DELTA default; FULL re-entry; loop cap |
 | C10 | Stage Closure | `stage_cost_closure.py` PASS / PASS_USAGE_UNAVAILABLE / BLOCKED; `assert_managed_cost_closure` hard-gates completion/readiness |
 | Probe | Install identity | Infers `5.0.8` / `5.0.9` feature slices |
-| Acceptance | G61–G80 | Golden `G01-G80` (G80 simulated; no real Pilot) |
+| Acceptance | G61–G80 | Golden `G01-G96` (G80 simulated; no real Pilot) |
 | Hardening | Error codes / worker | `CONTEXT_ENVELOPE_STALE`, `TELEMETRY_RESULT_UNPAIRED`; worker envelope required on Todo complete |
+| Hardening | Three closures | `runtime_locator.py`, `harness_registry.py`, `runtime_cost_contract.py`; zero-dispatch fail-closed; no production fake adapter |
 
 ## Hard constraints honored
 

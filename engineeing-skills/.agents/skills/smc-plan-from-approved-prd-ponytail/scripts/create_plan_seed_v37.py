@@ -292,6 +292,8 @@ def main():
         )
         if "governance_profile:" not in text.split("---", 2)[1]:
             text = insert_frontmatter(text, f"governance_profile: {profile}")
+        text = _set_fm(text, "runtime_cost_contract", "smc.ges.runtime-cost.v1")
+        text = _set_fm(text, "runtime_cost_epoch", "1")
         try:
             text = apply_bindings(text, prd, profile, snapshot_line)
         except Exception as exc:
@@ -306,6 +308,19 @@ def main():
                 # remove empty acceptance_contract line noise by rewriting to lean_compact
             text = _set_fm(text, "plan_compact", "LEAN")
         out.write_text(text, encoding="utf-8", newline="\n")
+        try:
+            sys.path.insert(0, str(HERE.parents[3] / "context-engine"))
+            from runtime_cost_contract import init_contract, record_no_model_work
+
+            init_contract(out)
+            record_no_model_work(
+                out,
+                stage="PLANNING",
+                reason="deterministic-plan-seed-only",
+                deterministic_entrypoint="create_plan_seed_v37",
+            )
+        except Exception:
+            pass
     finally:
         tmp.unlink(missing_ok=True)
     print(f"Plan v3.7 seed created: {out}\nPlan ID: {a.plan_id}\nGovernance profile: {profile}")

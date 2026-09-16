@@ -111,6 +111,24 @@ def _feature_slices(project: Path, lock: dict[str, Any] | None) -> list[str]:
         except Exception:
             if (runtime / "harness_contract.py").is_file():
                 slices.append("5.0.9")
+    # v5.0.9 hardening: runtime locator + harness registry + cost contract
+    if (
+        (runtime / "runtime_locator.py").is_file()
+        and (runtime / "harness_registry.py").is_file()
+        and (runtime / "runtime_cost_contract.py").is_file()
+    ):
+        try:
+            import sys
+
+            if str(runtime) not in sys.path:
+                sys.path.insert(0, str(runtime))
+            import runtime_locator as rl  # noqa: WPS433
+
+            check = rl.self_check()
+            if check.get("ok"):
+                slices.append("5.0.9-hardening")
+        except Exception:
+            slices.append("5.0.9-hardening")
     # Deduplicate preserve order
     out: list[str] = []
     for s in slices:

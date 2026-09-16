@@ -18,6 +18,18 @@ Closes Budget, Cache, and Telemetry into real GES-managed model paths without ad
 
 [[engineeing-skills/context-engine/stage_cost_closure.py#evaluate_stage]] and [[engineeing-skills/context-engine/stage_cost_closure.py#assert_managed_cost_closure]] gate PLANNING / IMPLEMENTATION / REVIEW; completion and readiness fail closed when managed dispatches exist without PASS.
 
+## Runtime Locator
+
+[[engineeing-skills/context-engine/runtime_locator.py#locate]] is the single deterministic path resolver for Provider and Consumer layouts; scripts must not guess `parents[n]`.
+
+## Harness Adapter Registry
+
+[[engineeing-skills/context-engine/harness_registry.py#resolve_adapter]] never defaults to fake in production; `HARNESS_ADAPTER_REQUIRED` is raised when no real adapter is supplied.
+
+## Runtime Cost Contract
+
+[[engineeing-skills/context-engine/runtime_cost_contract.py#init_contract]] writes `smc.ges.runtime-cost-contract.v1`; required stages with zero dispatch fail closed unless a `PASS_NO_MODEL_WORK` receipt exists.
+
 ## Plan Author Cost Closure
 
 [[engineeing-skills/.agents/skills/smc-plan-from-approved-prd-ponytail/scripts/plan_author_cost.py#apply_structured_patches]] keeps deterministic seed authority and records structured patches only.
@@ -113,3 +125,72 @@ Faulted install finalization restores away runtime files and preserves sibling b
 ### G80 Golden Consumer
 
 Simulated Plan → Delivery → Review managed path yields complete cost summary and stage PASS.
+
+## Acceptance G81–G96
+
+Hardening corpus proving deterministic runtime location, no production fake adapter, runtime cost contract zero-dispatch closure, and corrected telemetry counters.
+
+### G81 Provider Locator
+
+Provider layout resolves `engineeing-skills/context-engine` via `runtime_locator`.
+
+### G82 Consumer Locator
+
+Consumer `.agents/ges/frontend-runtime` resolves via `runtime_locator`.
+
+### G83 Locator Escape
+
+Repo-external `GES_RUNTIME_ROOT` is blocked with `GES_RUNTIME_PATH_ESCAPE`.
+
+### G84 Consumer Dispatch Imports Telemetry
+
+Consumer-layout `model_dispatch` imports `runtime_metrics` via locator.
+
+### G85 Consumer Closure Imports Telemetry
+
+Consumer-layout `stage_cost_closure` imports `runtime_metrics` via locator.
+
+### G86 No Production Fake
+
+`run_managed_call(adapter=None)` raises `HARNESS_ADAPTER_REQUIRED`.
+
+### G87 Fake Test Only
+
+Explicit `fake_enforced_adapter` remains allowed in acceptance.
+
+### G88 Observable Cannot Enforce
+
+`cursor-observable` adapter raises `RUNTIME_COST_OBSERVABLE_NOT_ENFORCED`.
+
+### G89 Runtime Contract Written
+
+`runtime_cost_contract.init_contract` creates the contract receipt.
+
+### G90 Required Stage Zero Dispatch
+
+New contract plan with zero PLANNING dispatches is `BLOCKED` with `STAGE_MODEL_DISPATCH_MISSING`.
+
+### G91 No Model Work Receipt
+
+Deterministic-only stage with receipt yields `PASS_NO_MODEL_WORK`.
+
+### G92 Legacy Plan Compatibility
+
+Plan without `runtime_cost_contract` returns `enforced=False`.
+
+### G93 Delivery Fail Closed
+
+Contract plan with zero dispatch raises `STAGE_MODEL_DISPATCH_MISSING` from `assert_managed_cost_closure`.
+
+### G94 Managed Count Correct
+
+Dispatch events without `managed=True` are not counted as managed.
+
+### G95 Budget Pass Count Correct
+
+Only `kind=dispatch` with `permit_status=PERMITTED` counts as budget pass.
+
+### G96 Real Consumer Runtime Smoke
+
+Temporary consumer layout runs dispatch → result → closure end-to-end.
+

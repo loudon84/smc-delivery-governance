@@ -23,11 +23,24 @@ def _utc() -> str:
 
 
 def _import_runtime_metrics():
-    if str(_DELIVERY) not in sys.path:
-        sys.path.insert(0, str(_DELIVERY))
+    if str(HERE) not in sys.path:
+        sys.path.insert(0, str(HERE))
+    from runtime_locator import locate  # noqa: WPS433
+
+    paths = locate(HERE)
+    if str(paths.delivery_scripts) not in sys.path:
+        sys.path.insert(0, str(paths.delivery_scripts))
     import runtime_metrics as rm  # noqa: WPS433
 
     return rm
+
+
+def _import_cost_contract():
+    if str(HERE) not in sys.path:
+        sys.path.insert(0, str(HERE))
+    import runtime_cost_contract as rcc  # noqa: WPS433
+
+    return rcc
 
 
 def evaluate_stage(
@@ -158,32 +171,61 @@ def evaluate_stage(
             status = "BLOCKED"
             if "TELEMETRY_RESULT_UNPAIRED" not in reasons:
                 reasons.append("TELEMETRY_RESULT_UNPAIRED")
-        elif strict_stage:
-            return {
-                "schema": SCHEMA,
-                "stage": stage_u,
-                "dispatch_count": 0,
-                "result_count": 0,
-                "unpaired_dispatches": [],
-                "orphan_results": [],
-                "unmanaged_calls": 0,
-                "budget_status": budget_status or "OK",
-                "allocated_tokens": allocated_tokens or 0,
-                "actual_tokens": None,
-                "usage_status": "UNAVAILABLE",
-                "cache_hits": 0,
-                "cache_misses": 0,
-                "cache_stale": 0,
-                "context_envelope_digest": context_envelope_digest,
-                "policy_digest": policy_digest,
-                "status": "PASS",
-                "skipped": True,
-                "reasons": [],
-                "generated_at": _utc(),
-            }
         else:
-            status = "BLOCKED"
-            reasons.append("MODEL_DISPATCH_PERMIT_MISSING")
+            rcc = _import_cost_contract()
+            if rcc.has_contract(plan):
+                receipt = rcc.no_model_work_receipt(plan, stage_u)
+                if receipt:
+                    return {
+                        "schema": SCHEMA,
+                        "stage": stage_u,
+                        "dispatch_count": 0,
+                        "result_count": 0,
+                        "unpaired_dispatches": [],
+                        "orphan_results": [],
+                        "unmanaged_calls": 0,
+                        "budget_status": budget_status or "OK",
+                        "allocated_tokens": allocated_tokens or 0,
+                        "actual_tokens": None,
+                        "usage_status": "UNAVAILABLE",
+                        "cache_hits": 0,
+                        "cache_misses": 0,
+                        "cache_stale": 0,
+                        "context_envelope_digest": context_envelope_digest,
+                        "policy_digest": policy_digest,
+                        "status": "PASS_NO_MODEL_WORK",
+                        "no_model_work": receipt,
+                        "reasons": [],
+                        "generated_at": _utc(),
+                    }
+                status = "BLOCKED"
+                reasons.append("STAGE_MODEL_DISPATCH_MISSING")
+            elif strict_stage:
+                return {
+                    "schema": SCHEMA,
+                    "stage": stage_u,
+                    "dispatch_count": 0,
+                    "result_count": 0,
+                    "unpaired_dispatches": [],
+                    "orphan_results": [],
+                    "unmanaged_calls": 0,
+                    "budget_status": budget_status or "OK",
+                    "allocated_tokens": allocated_tokens or 0,
+                    "actual_tokens": None,
+                    "usage_status": "UNAVAILABLE",
+                    "cache_hits": 0,
+                    "cache_misses": 0,
+                    "cache_stale": 0,
+                    "context_envelope_digest": context_envelope_digest,
+                    "policy_digest": policy_digest,
+                    "status": "PASS",
+                    "skipped": True,
+                    "reasons": [],
+                    "generated_at": _utc(),
+                }
+            else:
+                status = "BLOCKED"
+                reasons.append("MODEL_DISPATCH_PERMIT_MISSING")
     for e in results:
         if not e.get("provider") and not e.get("model") and not e.get("model_identity_unavailable"):
             status = "BLOCKED"
@@ -231,7 +273,7 @@ def persist_closure(repo: Path, work_item_id: str, closure: dict[str, Any]) -> P
 
 
 def require_pass(closure: dict[str, Any]) -> None:
-    if closure.get("status") not in {"PASS", "PASS_USAGE_UNAVAILABLE"}:
+    if closure.get("status") not in {"PASS", "PASS_USAGE_UNAVAILABLE", "PASS_NO_MODEL_WORK"}:
         raise ValueError(closure.get("error") or "STAGE_COST_CLOSURE_FAILED")
 
 
@@ -241,9 +283,13 @@ def assert_managed_cost_closure(plan: Path) -> dict[str, Any]:
 
     Plans with zero dispatch events remain compatible (pre-v5.0.9 / no model work).
     """
+    rcc = _import_cost_contract()
+    contract = rcc.load_contract(plan)
     rm = _import_runtime_metrics()
     path = rm.telemetry_path(plan)
     if not path.is_file():
+        if contract:
+            raise ValueError("STAGE_MODEL_DISPATCH_MISSING")
         return {"enforced": False, "stages": {}}
     events = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
     dispatches = [e for e in events if e.get("kind") == "dispatch" and e.get("dispatch_id")]
@@ -256,6 +302,13 @@ def assert_managed_cost_closure(plan: Path) -> dict[str, Any]:
     if not dispatches:
         if orphan:
             raise ValueError("TELEMETRY_RESULT_UNPAIRED")
+        if contract:
+            statuses = {}
+            for stage in contract.get("required_stages") or sorted(STAGES):
+                closure = evaluate_stage(plan=plan, stage=stage, strict_stage=True)
+                require_pass(closure)
+                statuses[stage] = str(closure.get("status"))
+            return {"enforced": True, "stages": statuses, "contract": True}
         return {"enforced": False, "stages": {}}
 
     tagged = any(
@@ -275,7 +328,13 @@ def assert_managed_cost_closure(plan: Path) -> dict[str, Any]:
         statuses["IMPLEMENTATION"] = str(closure.get("status"))
     if orphan:
         raise ValueError("TELEMETRY_RESULT_UNPAIRED")
-    return {"enforced": True, "stages": statuses}
+    if contract:
+        for stage in contract.get("required_stages") or []:
+            if stage not in statuses:
+                closure = evaluate_stage(plan=plan, stage=stage, strict_stage=True)
+                require_pass(closure)
+                statuses[stage] = str(closure.get("status"))
+    return {"enforced": True, "stages": statuses, "contract": bool(contract)}
 
 
 def main() -> int:
@@ -289,7 +348,7 @@ def main() -> int:
     a = ap.parse_args()
     closure = evaluate_stage(plan=a.plan.resolve(), stage=a.stage, allow_observable=a.allow_observable)
     print(json.dumps(closure, ensure_ascii=False, indent=2, sort_keys=True) if a.json else closure["status"])
-    return 0 if closure.get("status") in {"PASS", "PASS_USAGE_UNAVAILABLE"} else 2
+    return 0 if closure.get("status") in {"PASS", "PASS_USAGE_UNAVAILABLE", "PASS_NO_MODEL_WORK"} else 2
 
 
 if __name__ == "__main__":

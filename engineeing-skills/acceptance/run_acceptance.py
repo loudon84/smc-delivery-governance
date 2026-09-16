@@ -1517,6 +1517,259 @@ class GoldenCorpus(unittest.TestCase):
         self.assertEqual(gate["decision"], "EXTEND")
 
 
+class HardeningCorpus(unittest.TestCase):
+    def test_g81_provider_locator(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G81 Provider Locator]]
+        import runtime_locator as rl
+
+        paths = rl.locate(CONTEXT_ENGINE)
+        self.assertEqual(paths.layout, "PROVIDER")
+        self.assertEqual(paths.runtime_root.name, "context-engine")
+        self.assertTrue(paths.delivery_scripts.is_dir())
+
+    def test_g82_consumer_locator(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G82 Consumer Locator]]
+        import runtime_locator as rl
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            shutil.copytree(CONTEXT_ENGINE, root / ".agents/ges/frontend-runtime")
+            shutil.copytree(ROOT / ".agents/skills", root / ".agents/skills")
+            paths = rl.locate(root / ".agents/ges/frontend-runtime")
+            self.assertEqual(paths.layout, "CONSUMER")
+            self.assertEqual(paths.repo_root, root.resolve())
+
+    def test_g83_locator_escape(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G83 Locator Escape]]
+        import runtime_locator as rl
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            outside = root.parent / "outside-runtime"
+            outside.mkdir(exist_ok=True)
+            os.environ["GES_RUNTIME_ROOT"] = str(outside)
+            os.environ["GES_REPO_ROOT"] = str(root)
+            try:
+                with self.assertRaises(rl.RuntimeLocationError) as ctx:
+                    rl.locate()
+                self.assertIn("GES_RUNTIME_PATH_ESCAPE", str(ctx.exception))
+            finally:
+                os.environ.pop("GES_RUNTIME_ROOT", None)
+                os.environ.pop("GES_REPO_ROOT", None)
+
+    def test_g84_consumer_dispatch_imports_telemetry(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G84 Consumer Dispatch Imports Telemetry]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            shutil.copytree(CONTEXT_ENGINE, root / ".agents/ges/frontend-runtime")
+            shutil.copytree(ROOT / ".agents/skills", root / ".agents/skills")
+            sys.path.insert(0, str(root / ".agents/ges/frontend-runtime"))
+            try:
+                import model_dispatch as cmd
+
+                rm = cmd._import_runtime_metrics()
+                self.assertTrue(hasattr(rm, "dispatch"))
+            finally:
+                sys.path.remove(str(root / ".agents/ges/frontend-runtime"))
+
+    def test_g85_consumer_closure_imports_telemetry(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G85 Consumer Closure Imports Telemetry]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            shutil.copytree(CONTEXT_ENGINE, root / ".agents/ges/frontend-runtime")
+            shutil.copytree(ROOT / ".agents/skills", root / ".agents/skills")
+            sys.path.insert(0, str(root / ".agents/ges/frontend-runtime"))
+            try:
+                import stage_cost_closure as cscc
+
+                rm = cscc._import_runtime_metrics()
+                self.assertTrue(hasattr(rm, "summarize"))
+            finally:
+                sys.path.remove(str(root / ".agents/ges/frontend-runtime"))
+
+    def test_g86_no_production_fake(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G86 No Production Fake]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            prepared = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                phase="IMPLEMENT",
+                governance_profile="LEAN",
+                candidates=[{"path": "app.py", "tokens": 10, "artifact_kind": "SOURCE"}],
+                repo=root,
+            )
+            with self.assertRaises(ValueError) as ctx:
+                md.run_managed_call(plan=plan, prepared=prepared, adapter=None)
+            self.assertIn("HARNESS_ADAPTER_REQUIRED", str(ctx.exception))
+
+    def test_g87_fake_test_only(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G87 Fake Test Only]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            prepared = md.prepare_dispatch(
+                work_item_id="GES-ACC",
+                plan_id="GES-ACC",
+                phase="IMPLEMENT",
+                governance_profile="LEAN",
+                candidates=[{"path": "app.py", "tokens": 10, "artifact_kind": "SOURCE"}],
+                repo=root,
+            )
+            out = md.run_managed_call(plan=plan, prepared=prepared, adapter=harness.fake_enforced_adapter())
+            self.assertEqual(out["harness_mode"], "ENFORCED")
+
+    def test_g88_observable_cannot_enforce(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G88 Observable Cannot Enforce]]
+        import harness_registry as hr
+
+        with self.assertRaises(ValueError) as ctx:
+            hr.require_enforced_adapter("cursor-observable")
+        self.assertIn("RUNTIME_COST_OBSERVABLE_NOT_ENFORCED", str(ctx.exception))
+
+    def test_g89_runtime_contract_written(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G89 Runtime Contract Written]]
+        import runtime_cost_contract as rcc
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            rcc.init_contract(plan)
+            self.assertTrue(rcc.has_contract(plan) is False)  # frontmatter not yet updated
+            data = rcc.load_contract(plan)
+            self.assertEqual(data["schema"], "smc.ges.runtime-cost-contract.v1")
+
+    def test_g90_required_stage_zero_dispatch(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G90 Required Stage Zero Dispatch]]
+        import runtime_cost_contract as rcc
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            text = MIN_PLAN.replace(
+                "governance_profile: FULL",
+                "governance_profile: FULL\nruntime_cost_contract: smc.ges.runtime-cost.v1\nruntime_cost_epoch: 1",
+            )
+            plan = _write(root, "p.plan.md", text)
+            rcc.init_contract(plan)
+            closure = scc.evaluate_stage(plan=plan, stage="PLANNING", strict_stage=True)
+            self.assertEqual(closure["status"], "BLOCKED")
+            self.assertIn("STAGE_MODEL_DISPATCH_MISSING", closure["reasons"])
+
+    def test_g91_no_model_work_receipt(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G91 No Model Work Receipt]]
+        import runtime_cost_contract as rcc
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            text = MIN_PLAN.replace(
+                "governance_profile: FULL",
+                "governance_profile: FULL\nruntime_cost_contract: smc.ges.runtime-cost.v1\nruntime_cost_epoch: 1",
+            )
+            plan = _write(root, "p.plan.md", text)
+            rcc.init_contract(plan)
+            rcc.record_no_model_work(plan, stage="REVIEW", reason="deterministic-review-clearance")
+            closure = scc.evaluate_stage(plan=plan, stage="REVIEW", strict_stage=True)
+            self.assertEqual(closure["status"], "PASS_NO_MODEL_WORK")
+
+    def test_g92_legacy_plan_compatibility(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G92 Legacy Plan Compatibility]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            out = scc.assert_managed_cost_closure(plan)
+            self.assertFalse(out["enforced"])
+
+    def test_g93_delivery_fail_closed(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G93 Delivery Fail Closed]]
+        import runtime_cost_contract as rcc
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            text = MIN_PLAN.replace(
+                "governance_profile: FULL",
+                "governance_profile: FULL\nruntime_cost_contract: smc.ges.runtime-cost.v1\nruntime_cost_epoch: 1",
+            )
+            plan = _write(root, "p.plan.md", text)
+            rcc.init_contract(plan)
+            with self.assertRaises(ValueError) as ctx:
+                scc.assert_managed_cost_closure(plan)
+            self.assertIn("STAGE_MODEL_DISPATCH_MISSING", str(ctx.exception))
+
+    def test_g94_managed_count_correct(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G94 Managed Count Correct]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            telemetry.dispatch(plan, dispatch_id="d1", phase="IMPLEMENT", todo="T1", requested_tier="STANDARD", agent="a")
+            telemetry.result(
+                plan,
+                dispatch_id="d1",
+                provider="syn",
+                model="m",
+                outcome="ok",
+                prompt_tokens=1,
+                completion_tokens=1,
+                cache_read_tokens=0,
+                cache_write_tokens=0,
+                latency_ms=1,
+            )
+            summary = telemetry.summarize(plan)
+            self.assertEqual(summary.get("managed_dispatch_count"), 0)
+
+    def test_g95_budget_pass_count_correct(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G95 Budget Pass Count Correct]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            telemetry.dispatch(plan, dispatch_id="d1", phase="IMPLEMENT", todo="T1", requested_tier="STANDARD", agent="a")
+            telemetry.dispatch_blocked(plan, dispatch_id="d2", phase="PLAN", reason="CONTEXT_BUDGET_INSUFFICIENT")
+            summary = telemetry.summarize(plan)
+            self.assertEqual(summary.get("budget_pass_count"), 0)
+            self.assertEqual(summary.get("budget_block_count"), 1)
+
+    def test_g96_real_consumer_runtime_smoke(self):
+        # @lat: [[runtime-cost-closure-v509#Acceptance G81–G96#G96 Real Consumer Runtime Smoke]]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _git_init(root)
+            shutil.copytree(CONTEXT_ENGINE, root / ".agents/ges/frontend-runtime")
+            shutil.copytree(ROOT / ".agents/skills", root / ".agents/skills")
+            plan = _write(root, "p.plan.md", MIN_PLAN)
+            sys.path.insert(0, str(root / ".agents/ges/frontend-runtime"))
+            try:
+                import model_dispatch as cmd
+                import harness_contract as ch
+
+                prepared = cmd.prepare_dispatch(
+                    work_item_id="GES-ACC",
+                    plan_id="GES-ACC",
+                    phase="IMPLEMENT",
+                    governance_profile="LEAN",
+                    candidates=[{"path": "app.py", "tokens": 10, "artifact_kind": "SOURCE"}],
+                    repo=root,
+                )
+                out = cmd.run_managed_call(plan=plan, prepared=prepared, adapter=ch.fake_enforced_adapter())
+                self.assertEqual(out["harness_mode"], "ENFORCED")
+                closure = cmd._import_runtime_metrics().summarize(plan)
+                self.assertTrue(closure.get("complete"))
+            finally:
+                sys.path.remove(str(root / ".agents/ges/frontend-runtime"))
+
+
 class ChaosAndClosure(unittest.TestCase):
     def test_hard_risk_beats_stale_pass(self):
         # @lat: [[ges-tests#Acceptance Closure#Hard risk beats stale pass]]
@@ -1599,6 +1852,7 @@ def main() -> int:
     loader = unittest.defaultTestLoader
     suite = unittest.TestSuite()
     suite.addTests(loader.loadTestsFromTestCase(GoldenCorpus))
+    suite.addTests(loader.loadTestsFromTestCase(HardeningCorpus))
     suite.addTests(loader.loadTestsFromTestCase(ChaosAndClosure))
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     report = {
@@ -1606,7 +1860,7 @@ def main() -> int:
         "passed": result.wasSuccessful(),
         "tests": result.testsRun,
         "failures": len(result.failures) + len(result.errors),
-        "golden": "G01-G80",
+        "golden": "G01-G96",
         "chaos": True,
     }
     print(json.dumps(report, indent=2))

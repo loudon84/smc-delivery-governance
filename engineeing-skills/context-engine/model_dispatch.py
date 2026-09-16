@@ -26,14 +26,11 @@ from harness_contract import (  # noqa: E402
     MODE_UNMANAGED,
     HarnessAdapter,
     classify_mode,
-    fake_enforced_adapter,
 )
+from runtime_locator import locate  # noqa: E402
 
 DISPATCH_SCHEMA = "smc.ges.model-dispatch.v1"
 PERMIT_SCHEMA = "smc.ges.model-dispatch-permit.v1"
-
-# Delivery scripts for telemetry (optional import)
-_DELIVERY = HERE.parent / ".agents" / "skills" / "smc-plan-delivery" / "scripts"
 
 
 def _utc() -> str:
@@ -46,8 +43,9 @@ def _sha(payload: dict[str, Any]) -> str:
 
 
 def _import_runtime_metrics():
-    if str(_DELIVERY) not in sys.path:
-        sys.path.insert(0, str(_DELIVERY))
+    paths = locate(HERE)
+    if str(paths.delivery_scripts) not in sys.path:
+        sys.path.insert(0, str(paths.delivery_scripts))
     import runtime_metrics as rm  # noqa: WPS433
 
     return rm
@@ -245,6 +243,20 @@ def prepare_dispatch(
             status="BLOCKED",
             reason=budget.get("error") or "CONTEXT_BUDGET_INSUFFICIENT",
         )
+        if repo is not None:
+            try:
+                rm = _import_runtime_metrics()
+                plan_path = repo / ".smc" / "runs" / work_item_id / "plan.md"
+                rm.dispatch_blocked(
+                    plan_path,
+                    dispatch_id=dispatch_id,
+                    phase=phase_u,
+                    reason=permit.get("reason") or "CONTEXT_BUDGET_INSUFFICIENT",
+                    estimated_context_tokens=envelope.get("estimated_tokens"),
+                    allocated_tokens=(budget.get("phases") or [{}])[0].get("allocated_tokens") if budget.get("phases") else None,
+                )
+            except Exception:
+                pass
     else:
         permit = issue_permit(
             dispatch_id=dispatch_id,
@@ -309,7 +321,8 @@ def run_managed_call(
     cache = prepared.get("cache") or {}
     require_permit(permit, envelope)
 
-    adapter = adapter or fake_enforced_adapter()
+    if adapter is None:
+        raise ValueError("HARNESS_ADAPTER_REQUIRED")
     mode = classify_mode(adapter.capability_map())
     if mode == MODE_UNMANAGED:
         raise ValueError("RUNTIME_COST_UNMANAGED")
@@ -406,6 +419,9 @@ def self_check_modules() -> dict[str, bool]:
         "context_envelope": (HERE / "context_envelope.py").is_file(),
         "stage_cost_closure": (HERE / "stage_cost_closure.py").is_file(),
         "harness_contract": (HERE / "harness_contract.py").is_file(),
+        "runtime_locator": (HERE / "runtime_locator.py").is_file(),
+        "harness_registry": (HERE / "harness_registry.py").is_file(),
+        "runtime_cost_contract": (HERE / "runtime_cost_contract.py").is_file(),
     }
 
 

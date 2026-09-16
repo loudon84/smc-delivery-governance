@@ -347,6 +347,22 @@ def validate(project: Path) -> dict[str, Any]:
         )
     )
 
+    # v5.0.9 hardening: runtime locator + cost contract support
+    runtime_dir = project / ".agents" / "ges" / "frontend-runtime"
+    locator_ok = (runtime_dir / "runtime_locator.py").is_file()
+    registry_ok = (runtime_dir / "harness_registry.py").is_file()
+    contract_ok = (runtime_dir / "runtime_cost_contract.py").is_file()
+    dispatch_ok = (runtime_dir / "model_dispatch.py").is_file()
+    closure_ok = (runtime_dir / "stage_cost_closure.py").is_file()
+    hardening_ok = locator_ok and registry_ok and contract_ok and dispatch_ok and closure_ok
+    checks.append(
+        _row(
+            "Runtime Cost Hardening",
+            "PASS" if hardening_ok else "FAIL",
+            f"locator={locator_ok} registry={registry_ok} contract={contract_ok} dispatch={dispatch_ok} closure={closure_ok}",
+        )
+    )
+
     eng_ok = C.exists_file(
         project, ".agents/skills/smc-plan-delivery/scripts/engineering_method.py"
     )

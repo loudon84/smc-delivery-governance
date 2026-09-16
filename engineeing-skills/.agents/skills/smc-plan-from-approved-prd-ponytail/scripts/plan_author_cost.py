@@ -20,6 +20,7 @@ if str(CTX) not in sys.path:
 from context_envelope import plan_envelope, persist_envelope  # noqa: E402
 from model_dispatch import prepare_dispatch, run_managed_call  # noqa: E402
 from harness_contract import fake_enforced_adapter  # noqa: E402
+from runtime_locator import locate  # noqa: E402
 
 
 def grounding_dir(repo: Path, plan_id: str) -> Path:
@@ -103,8 +104,9 @@ def author_unresolved_via_dispatch(
     for u in unresolved:
         ref = write_grounding_capsule(repo, plan_id, str(u.get("change_id") or "C00"), {"decision": u})
         patches.append({**u, **ref})
-    adapt = adapter or fake_enforced_adapter(response={"patches": patches})
-    out = run_managed_call(plan=plan, prepared=prepared, adapter=adapt, prompt_meta={"unresolved": unresolved})
+    if adapter is None:
+        raise ValueError("HARNESS_ADAPTER_REQUIRED")
+    out = run_managed_call(plan=plan, prepared=prepared, adapter=adapter, prompt_meta={"unresolved": unresolved})
     out["patches"] = patches
     return out
 

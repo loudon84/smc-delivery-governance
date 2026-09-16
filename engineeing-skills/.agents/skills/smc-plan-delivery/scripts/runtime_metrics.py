@@ -126,6 +126,30 @@ def dispatch(plan: Path, **fields) -> Path:
     return _append(plan, payload)
 
 
+def dispatch_blocked(plan: Path, **fields) -> Path:
+    """Record a blocked budget decision even when no dispatch occurred."""
+    for key in FORBIDDEN:
+        if key in fields:
+            raise ValueError("TELEMETRY_SCHEMA_INVALID: forbidden field " + key)
+    payload = {"kind": "dispatch-blocked", **fields}
+    if "cost_bucket" not in payload:
+        phase = str(payload.get("phase") or "").upper()
+        mapping = {
+            "ROUTING": "ROUTING",
+            "GROUNDING": "GROUNDING",
+            "PRD": "PRD",
+            "PLAN": "PLAN",
+            "IMPLEMENT": "IMPLEMENT",
+            "TDD": "TDD",
+            "DEBUG": "DEBUG",
+            "REVIEW": "REVIEW",
+            "DELIVERY": "DELIVERY",
+            "BASELINE": "BASELINE_LOOKUP",
+        }
+        payload["cost_bucket"] = mapping.get(phase, "IMPLEMENT")
+    return _append(plan, payload)
+
+
 def result(plan: Path, **fields) -> Path:
     for key in FORBIDDEN:
         if key in fields:
@@ -340,7 +364,7 @@ def summarize(plan: Path) -> dict:
         ),
     }
     paired = sum(1 for did in dispatches if len(result_by_id.get(did) or []) == 1)
-    managed_dispatch_count = sum(1 for e in dispatches.values() if e.get("managed", True) is not False)
+    managed_dispatch_count = sum(1 for e in dispatches.values() if e.get("managed") is True)
     unmanaged_call_count = sum(
         1 for e in events if e.get("unmanaged_call") or e.get("harness_mode") == "UNMANAGED" or e.get("managed") is False
     )
@@ -360,9 +384,16 @@ def summarize(plan: Path) -> dict:
     )
     context_envelope_count = sum(1 for e in events if e.get("context_envelope_digest"))
     budget_pass_count = sum(
-        1 for e in events if e.get("permit_status") == "PERMITTED" or e.get("budget_block_reason") in (None, "")
+        1
+        for e in events
+        if e.get("kind") == "dispatch" and e.get("permit_status") == "PERMITTED"
     )
-    budget_block_count = sum(1 for e in events if e.get("budget_block_reason") or e.get("permit_status") == "BLOCKED")
+    budget_block_count = sum(
+        1
+        for e in events
+        if e.get("kind") == "dispatch-blocked"
+        or (e.get("kind") == "dispatch" and (e.get("budget_block_reason") or e.get("permit_status") == "BLOCKED"))
+    )
     closure_fields = {
         "usage_status": usage_status,
         "estimated_context_tokens": estimated_context_tokens or None,

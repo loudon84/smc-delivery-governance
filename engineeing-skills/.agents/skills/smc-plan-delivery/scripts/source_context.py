@@ -45,9 +45,12 @@ def _bridge_capsule(plan,rel,symbol,cap,state):
  try:
   import sys
   from pathlib import Path as _P
-  ctx=_P(__file__).resolve().parents[3]/'context-engine'
-  if not ctx.is_dir():
-   ctx=_P(__file__).resolve().parents[4]/'context-engine'
+  here=_P(__file__).resolve().parent
+  if str(here) not in sys.path:
+   sys.path.insert(0,str(here))
+  from runtime_locator import locate
+  paths=locate(here)
+  ctx=paths.runtime_root
   if str(ctx) not in sys.path:
    sys.path.insert(0,str(ctx))
   from context_cache import CapsuleStore

@@ -47,11 +47,14 @@ def collect(plan: Path) -> dict:
     cost_closure = None
     cost_closure_blocking = False
     try:
-        ctx = Path(__file__).resolve().parents[3] / "context-engine"
-        if not ctx.is_dir():
-            ctx = Path(__file__).resolve().parents[4] / "engineeing-skills" / "context-engine"
-        if str(ctx) not in sys.path:
-            sys.path.insert(0, str(ctx))
+        here = Path(__file__).resolve().parent
+        if str(here) not in sys.path:
+            sys.path.insert(0, str(here))
+        from runtime_locator import locate
+
+        paths = locate(here)
+        if str(paths.runtime_root) not in sys.path:
+            sys.path.insert(0, str(paths.runtime_root))
         from stage_cost_closure import assert_managed_cost_closure, evaluate_stage
 
         for stage in ("PLANNING", "IMPLEMENTATION", "REVIEW"):
@@ -60,7 +63,7 @@ def collect(plan: Path) -> dict:
                 if closure.get("dispatch_count", 0) > 0 or closure.get("orphan_results"):
                     cost_closure = cost_closure or {}
                     cost_closure[stage] = closure.get("status")
-                    if closure.get("status") not in {"PASS", "PASS_USAGE_UNAVAILABLE"}:
+                    if closure.get("status") not in {"PASS", "PASS_USAGE_UNAVAILABLE", "PASS_NO_MODEL_WORK"}:
                         cost_closure_blocking = True
             except Exception:
                 pass
@@ -70,6 +73,7 @@ def collect(plan: Path) -> dict:
             cost_closure_blocking = True
     except Exception:
         cost_closure = None
+        cost_closure_blocking = True
     return {
         "schema": "smc.delivery.readiness.v2",
         "plan_id": plan_id(plan), "plan": repo_relative_path(plan, root),
