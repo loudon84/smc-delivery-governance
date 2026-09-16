@@ -14,7 +14,7 @@ from ges.reconciler.state import read_lock, read_profile, read_project, read_rec
 from ges.resolver.capability_graph import detect_conflicts
 from ges.resolver.selection import resolve_selection
 from ges.source_adapters.cache import ensure_source, verify_manifest
-from ges.source_adapters.speckit_render import SELECTED_COMMANDS, command_rel, script_rel
+from ges.source_adapters.speckit_render import SELECTED_COMMANDS, skill_rel
 from ges.stagelog import CHECK, emit
 
 
@@ -54,16 +54,19 @@ def run_check(repo: Path) -> str:
         cap = catalog.get(cap_id)
         if cap.projection_type == "virtual" or not cap.skill_name:
             continue
-        skill_dir = repo / ".agents" / "skills" / cap.skill_name
+        skill_dir = (
+            repo / ".cursor" / "skills" / cap.skill_name
+            if cap.projection_type == "speckit-capability"
+            else repo / ".agents" / "skills" / cap.skill_name
+        )
         if not skill_dir.exists():
             raise GesError(GES_CHECK_FAILED, f"capability {cap_id} is not projected")
 
     for command in SELECTED_COMMANDS:
         if f"speckit.{command}" not in closed:
             continue
-        for rel in (command_rel(command), script_rel(command)):
-            if not (repo / rel).is_file():
-                raise GesError(GES_CHECK_FAILED, f"Spec Kit runtime missing: {rel}")
+        if not (repo / skill_rel(command)).is_file():
+            raise GesError(GES_CHECK_FAILED, f"Spec Kit runtime missing: {skill_rel(command)}")
 
     for rel, meta in artifact_index(receipt).items():
         path = repo / rel

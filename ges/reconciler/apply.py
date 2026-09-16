@@ -85,6 +85,7 @@ def apply_plan(
                 fail_at=fail_at,
                 fail_after_writes=fail_after_writes,
             )
+            _apply_removes(repo, plan)
             if fail_at in {"post_verify", "post_check", "rollback_write_failure"}:
                 raise RuntimeError(f"injected failure {fail_at}")
             from ges.check import run_check
@@ -250,6 +251,16 @@ def _commit_stage(
     if fail_at == "before_receipt":
         raise RuntimeError("injected failure before_receipt")
     write_bytes(contain(repo, f".ges/{RECEIPT_FILE}"), (stage / ".ges" / RECEIPT_FILE).read_bytes())
+
+
+def _apply_removes(repo: Path, plan: InstallPlan) -> None:
+    for entry in plan.entries:
+        if entry.action != REMOVE:
+            continue
+        target = contain(repo, entry.path)
+        if target.is_file():
+            target.unlink()
+            _prune_empty(repo, target.parent)
 
 
 def _persist_snapshot(backup: Path, snap: dict[str, bytes | None]) -> None:

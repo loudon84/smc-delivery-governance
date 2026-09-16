@@ -13,4 +13,5 @@ v5 execution-centric runtime in `engineeing-skills/` is frozen and is not part o
 - [[legacy-v5-detection]] — report v5 without deleting uncertain files
 - [[governance-backplane]] — Work/Artifact domain model reserved for alpha.2+
 - [[ges6-tests]] — A01–A26 acceptance specs; A27 remains BLOCKED while the Golden Consumer is dirty
-- [[bootstrap-tests]] — Alpha.1 first-install loop oracles; Golden Bootstrap on `smc-copilot` is BLOCKED while the worktree is dirty and must not be treated as `BOOTSTRAP_ALPHA_READY`
+- [[bootstrap-tests]] — Alpha.1 first-install loop oracles
+- [[closure-tests]] — official Spec Kit staging, Cursor structure, detached Golden HEAD, and closure evidence; `BOOTSTRAP_ALPHA_READY` only after all 20 Golden ACs PASS

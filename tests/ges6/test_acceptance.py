@@ -133,7 +133,8 @@ def test_a10_selective_install(brownfield, offline_cache):
     assert "using-superpowers" in skills  # pre-existing user/legacy, not GES-installed
     assert "grill-with-docs" in skills
     assert "writing-plans" in skills
-    assert "speckit-specify" in skills
+    assert "speckit-specify" not in skills
+    assert (brownfield / ".cursor" / "skills" / "speckit-specify" / "SKILL.md").is_file()
     for cap_id in ("matt.to-spec", "matt.implement", "speckit.implement", "superpowers.brainstorming"):
         assert cap_id not in ctx.resolution.closed
 
@@ -390,14 +391,12 @@ def test_a25_analyzer_schema_and_scripts(tmp_path):
 def test_a26_spec_kit_pinned_adoption(brownfield, offline_cache):
     apply_recommended(brownfield)
     assert (brownfield / ".specify" / "constitution.md").read_text(encoding="utf-8") == SPEC_CONSTITUTION
-    managed = brownfield / ".specify" / ".ges" / "commands" / "specify.md"
-    assert managed.is_file()
-    wrapper = (brownfield / ".agents" / "skills" / "speckit-specify" / "SKILL.md").read_text(encoding="utf-8")
-    pin = load_catalog().sources["spec-kit"]
-    assert ".specify/.ges/commands/specify.md" in wrapper
-    assert pin.repo in wrapper
-    assert pin.commit_sha in wrapper
-    assert "templates/commands/specify.md" in wrapper
+    skill = brownfield / ".cursor" / "skills" / "speckit-specify" / "SKILL.md"
+    assert skill.is_file()
+    text = skill.read_text(encoding="utf-8")
+    assert text.startswith("---")
+    assert "name: speckit-specify" in text
+    assert not (brownfield / ".agents" / "skills" / "speckit-specify" / "SKILL.md").exists()
 
 
 # @lat: [[ges6-tests#A27 — Golden Consumer]]

@@ -33,7 +33,7 @@ from ges.reconciler.plan import ADD, PlanEntry
 from ges.reconciler.state import read_lock, read_receipt
 from ges.source_adapters.base import ProjectedFile
 from ges.source_adapters.cache import verify_manifest
-from ges.source_adapters.speckit_render import leftover_tokens, script_rel
+from ges.source_adapters.speckit_render import leftover_tokens, skill_rel
 
 
 # @lat: [[bootstrap-tests#TEST-A-BOOT-001]]
@@ -65,15 +65,15 @@ def test_a_cap_002_dependency_closure(brownfield, offline_cache):
 # @lat: [[bootstrap-tests#TEST-A-SPECKIT-001]]
 def test_a_speckit_001_existing_specify_still_renders(brownfield, offline_cache):
     ctx = compose(brownfield)
-    assert any(path.startswith(".specify/.ges/commands/") for path in ctx.desired)
-    assert any(path.startswith(".specify/.ges/runtime/scripts/") for path in ctx.desired)
+    assert any(path.startswith(".cursor/skills/speckit-") for path in ctx.desired)
+    assert any(path.startswith(".specify/scripts/") or path.startswith(".specify/templates/") for path in ctx.desired)
 
 
 # @lat: [[bootstrap-tests#TEST-A-SPECKIT-002]]
 def test_a_speckit_002_no_unresolved_tokens(brownfield, offline_cache):
     apply_recommended(brownfield)
     for command in ("constitution", "specify", "clarify", "plan"):
-        text = (brownfield / ".specify" / ".ges" / "commands" / f"{command}.md").read_text(encoding="utf-8")
+        text = (brownfield / ".cursor" / "skills" / f"speckit-{command}" / "SKILL.md").read_text(encoding="utf-8")
         assert leftover_tokens(text) == []
 
 
@@ -239,15 +239,15 @@ def test_a_check_006_managed_section_identity(installed):
 
 # @lat: [[bootstrap-tests#TEST-A-CHECK-007]]
 def test_a_check_007_selected_projection_exists(installed):
-    for name in ("grill-with-docs", "speckit-specify", "writing-plans"):
-        assert (installed / ".agents" / "skills" / name / "SKILL.md").is_file()
+    assert (installed / ".agents" / "skills" / "grill-with-docs" / "SKILL.md").is_file()
+    assert (installed / ".cursor" / "skills" / "speckit-specify" / "SKILL.md").is_file()
+    assert (installed / ".agents" / "skills" / "writing-plans" / "SKILL.md").is_file()
 
 
 # @lat: [[bootstrap-tests#TEST-A-CHECK-008]]
 def test_a_check_008_speckit_runtime_exists(installed):
     for command in ("constitution", "specify", "clarify", "plan"):
-        assert (installed / ".specify" / ".ges" / "commands" / f"{command}.md").is_file()
-        assert (installed / ".specify" / ".ges" / "runtime" / "scripts" / f"{command}.py").is_file()
+        assert (installed / ".cursor" / "skills" / f"speckit-{command}" / "SKILL.md").is_file()
 
 
 # @lat: [[bootstrap-tests#TEST-A-CHECK-009]]
@@ -415,10 +415,10 @@ def test_neg_006_changed_capability_set(brownfield, offline_cache):
 
 # @lat: [[bootstrap-tests#TEST-A-CURSOR-001]]
 def test_a_cursor_001_skill_frontmatter(brownfield, offline_cache):
+    from ges.cursor_probe import structural_discovery
+
     apply_recommended(brownfield)
-    for name in ("grill-with-docs", "speckit-specify", "writing-plans"):
-        text = (brownfield / ".agents" / "skills" / name / "SKILL.md").read_text(encoding="utf-8")
-        assert text.startswith("---") or "name:" in text[:80] or name in text
+    assert structural_discovery(brownfield)["status"] == "PASS"
 
 
 # @lat: [[bootstrap-tests#TEST-A-IDEMP-001]]
@@ -433,7 +433,15 @@ def test_a_idemp_001_second_init_noop(brownfield, offline_cache):
 def test_neg_003_unresolved_speckit_token(brownfield, offline_cache, monkeypatch):
     from ges.source_adapters import speckit_render
 
-    monkeypatch.setattr(speckit_render, "render_command", lambda raw, command: raw)
+    original = speckit_render.official_stage
+
+    def tainted():
+        files, version = original()
+        files[speckit_render.skill_rel("specify")] = b"{SCRIPT}\n"
+        speckit_render.validate_selected_skills(files)
+        return files, version
+
+    monkeypatch.setattr(speckit_render, "official_stage", tainted)
     with pytest.raises(GesError) as captured:
         compose(brownfield)
     assert captured.value.code == SPEC_KIT_UNRESOLVED_TOKEN
@@ -443,13 +451,15 @@ def test_neg_003_unresolved_speckit_token(brownfield, offline_cache, monkeypatch
 def test_neg_004_missing_speckit_runtime(brownfield, offline_cache, monkeypatch):
     from ges.source_adapters import speckit_render
 
-    original = speckit_render.validate_runtime
+    original = speckit_render.official_stage
 
-    def drop_required(files, commands):
-        files.pop(script_rel(commands[0]), None)
-        original(files, commands)
+    def incomplete():
+        files, version = original()
+        files.pop(skill_rel("specify"), None)
+        speckit_render.validate_selected_skills(files)
+        return files, version
 
-    monkeypatch.setattr(speckit_render, "validate_runtime", drop_required)
+    monkeypatch.setattr(speckit_render, "official_stage", incomplete)
     with pytest.raises(GesError) as captured:
         compose(brownfield)
     assert captured.value.code == SPEC_KIT_RUNTIME_INCOMPLETE
@@ -500,15 +510,14 @@ def test_neg_007_managed_drift(brownfield, offline_cache):
 def test_b8_specify_absent_still_installs_runtime(brownfield, offline_cache):
     shutil.rmtree(brownfield / ".specify")
     apply_recommended(brownfield)
-    assert (brownfield / ".specify" / ".ges" / "commands" / "specify.md").is_file()
-    assert (brownfield / ".specify" / ".ges" / "runtime" / "scripts" / "specify.py").is_file()
+    assert (brownfield / ".cursor" / "skills" / "speckit-specify" / "SKILL.md").is_file()
 
 
 # @lat: [[bootstrap-tests#TEST-B9]]
 def test_b9_empty_runtime_still_installed(brownfield, offline_cache):
     assert not (brownfield / ".specify" / ".ges").exists()
     apply_recommended(brownfield)
-    assert (brownfield / ".specify" / ".ges" / "runtime" / "scripts" / "plan.py").is_file()
+    assert (brownfield / ".cursor" / "skills" / "speckit-plan" / "SKILL.md").is_file()
 
 
 # @lat: [[bootstrap-tests#TEST-B10]]

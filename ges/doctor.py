@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import shutil
 import subprocess
 import sys
@@ -13,7 +12,7 @@ from ges.catalog.loader import load_catalog
 from ges.check import run_check
 from ges.errors import BOOTSTRAP_PREREQUISITE_FAILED, GES_CHECK_FAILED, GesError
 from ges.reconciler.state import read_lock, read_project
-from ges.source_adapters.speckit_render import SELECTED_COMMANDS, command_rel, leftover_tokens, script_rel
+from ges.source_adapters.speckit_render import SELECTED_COMMANDS, leftover_tokens, skill_rel
 from ges.stagelog import DOCTOR, PREFLIGHT, emit
 
 
@@ -127,7 +126,12 @@ def _skills_present(repo: Path, closed: list[str], prefix: str) -> bool:
         cap = catalog.get(cap_id)
         if cap.projection_type == "virtual" or not cap.skill_name:
             continue
-        if not (repo / ".agents" / "skills" / cap.skill_name).exists():
+        root = (
+            repo / ".cursor" / "skills" / cap.skill_name
+            if cap.projection_type == "speckit-capability"
+            else repo / ".agents" / "skills" / cap.skill_name
+        )
+        if not root.exists():
             return False
     return True
 
@@ -136,24 +140,10 @@ def _speckit_runtime_ok(repo: Path, closed: list[str]) -> bool:
     for command in SELECTED_COMMANDS:
         if f"speckit.{command}" not in closed:
             continue
-        command_path = repo / command_rel(command)
-        script_path = repo / script_rel(command)
-        if not command_path.is_file() or not script_path.is_file():
+        skill = repo / skill_rel(command)
+        if not skill.is_file():
             return False
-        if leftover_tokens(command_path.read_text(encoding="utf-8")):
-            return False
-        try:
-            result = subprocess.run(
-                [sys.executable, str(script_path)],
-                cwd=repo,
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-            payload = json.loads(result.stdout)
-        except (OSError, json.JSONDecodeError):
-            return False
-        if result.returncode != 0 or payload.get("capability") != command:
+        if leftover_tokens(skill.read_text(encoding="utf-8")):
             return False
     return True
 

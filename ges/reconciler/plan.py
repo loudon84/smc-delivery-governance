@@ -146,6 +146,9 @@ def build_plan(
             continue
         if (repo / rel).exists():
             current = current_identity(repo, rel, ownership_type=meta.get("ownership_type") or "FILE")
+            last = meta.get("last_applied_hash")
+            if last and current != last:
+                raise GesError(MANAGED_CONTENT_MODIFIED, f"managed content was modified: {rel}")
             plan.entries.append(
                 PlanEntry(
                     path=rel,
