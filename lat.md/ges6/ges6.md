@@ -11,4 +11,4 @@ v5 execution-centric runtime in `engineeing-skills/` is frozen and is not part o
 - [[reconcile]] — desired-state apply, check, remove
 - [[legacy-v5-detection]] — report v5 without deleting uncertain files
 - [[governance-backplane]] — Work/Artifact domain model reserved for alpha.2+
-- [[ges6-tests]] — A01–A16 acceptance specs
+- [[ges6-tests]] — A01–A26 acceptance specs; A27 remains BLOCKED while the Golden Consumer is dirty

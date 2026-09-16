@@ -61,6 +61,7 @@ def _repo(parser: argparse.ArgumentParser) -> None:
 
 def _select(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--exclude", action="append", default=[], dest="exclude")
+    parser.add_argument("--enable", "--extra", action="append", default=[], dest="enable")
     parser.add_argument("--yes", action="store_true")
     parser.add_argument("--non-interactive", action="store_true")
 

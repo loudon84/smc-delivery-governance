@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -37,8 +37,9 @@ class Profile:
     id: str
     engineering_stack: dict[str, Any]
     required: list[str]
+    recommended: list[str]
     optional: list[str]
-    excluded: list[str]
+    forbidden: list[str]
 
 
 @dataclass
@@ -87,12 +88,20 @@ def load_catalog(root: Path | None = None) -> Catalog:
     profiles: dict[str, Profile] = {}
     for path in sorted((base / "profiles").glob("*.yaml")):
         raw = read_yaml(path)
+        forbidden = list(raw.get("forbidden") or raw.get("excluded") or [])
+        recommended = list(raw.get("recommended") or [])
+        required = list(raw.get("required") or [])
+        if not recommended and raw.get("required") and raw.get("excluded") is not None and not raw.get("recommended"):
+            # v1 profiles treated every former required-except-setup as recommended
+            recommended = [item for item in required[1:]] if required else []
+            required = required[:1] if required else []
         profiles[raw["id"]] = Profile(
             id=raw["id"],
             engineering_stack=raw.get("engineering_stack") or {},
-            required=list(raw.get("required") or []),
+            required=required,
+            recommended=recommended,
             optional=list(raw.get("optional") or []),
-            excluded=list(raw.get("excluded") or []),
+            forbidden=forbidden,
         )
     return Catalog(
         capabilities=capabilities,

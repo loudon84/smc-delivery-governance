@@ -10,7 +10,6 @@ from ges.compose import compose, prepare_apply
 from ges.errors import GES_RECONCILE_NOOP, GesError
 from ges.io import write_bytes, write_text
 from ges.reconciler.apply import apply_plan, snapshot_business_sources
-from ges.reconciler.state import write_project
 
 FIXTURE_CACHE = Path(__file__).resolve().parents[2] / "tests" / "ges6" / "fixtures" / "source-cache"
 USER_AGENTS = "# Product Agents\n\nUser-owned routing rules.\nDo not overwrite this paragraph.\n"
@@ -73,8 +72,7 @@ def build_brownfield(root: Path) -> Path:
 
 
 def apply_recommended(repo: Path, *, exclude: list[str] | None = None, extra: list[str] | None = None):
-    ctx = compose(repo, exclude=exclude, extra=extra)
-    write_project(repo, ctx.project)
+    ctx = compose(repo, exclude=exclude, extra=extra, persist_profile=False)
     prepare_apply(ctx)
     try:
         receipt = apply_plan(repo, ctx.plan, ctx.desired, project=ctx.project, profile=ctx.profile, lock=ctx.lock)

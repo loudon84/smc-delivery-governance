@@ -9,7 +9,12 @@ from ges.compose import compose
 
 
 def run(args: Namespace) -> int:
-    ctx = compose(resolve_repo(args.repo), exclude=flatten_ids(args.exclude))
+    ctx = compose(
+        resolve_repo(args.repo),
+        exclude=flatten_ids(args.exclude),
+        extra=flatten_ids(getattr(args, "enable", None)),
+        persist_profile=False,
+    )
     payload = ctx.plan.to_dict()
     print(render_plan(payload))
     if args.json:

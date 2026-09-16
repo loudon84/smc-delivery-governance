@@ -12,7 +12,6 @@ from ges.compose import compose, prepare_apply
 from ges.errors import GES_RECONCILE_NOOP, GesError
 from ges.legacy.v5 import inspect_legacy
 from ges.reconciler.apply import apply_plan, snapshot_business_sources
-from ges.reconciler.state import write_project
 from ges.remove import run_remove
 
 
@@ -31,8 +30,7 @@ def main(argv: list[str] | None = None) -> int:
         "business_before": snapshot_business_sources(repo),
     }
     legacy = inspect_legacy(repo)
-    ctx = compose(repo)
-    write_project(repo, ctx.project)
+    ctx = compose(repo, persist_profile=False)
     prepare_apply(ctx)
     try:
         apply_plan(repo, ctx.plan, ctx.desired, project=ctx.project, profile=ctx.profile, lock=ctx.lock)

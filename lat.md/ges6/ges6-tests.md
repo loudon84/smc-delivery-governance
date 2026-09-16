@@ -4,7 +4,7 @@ lat:
 ---
 # GES 6 Acceptance Tests
 
-A01–A16 prove Composer Bootstrap on a synthetic brownfield fixture that mirrors smc-copilot, using an offline source cache.
+A01–A26 prove the spec-hardened Composer on a synthetic brownfield fixture. A27 stays BLOCKED while the Golden Consumer worktree is dirty.
 
 ## A01 — Brownfield Detection
 
@@ -32,7 +32,7 @@ The recommended set must come from the repo profile plus the brownfield-product-
 
 ## A07 — Capability Exclusion
 
-Removing an optional capability must keep resolution legal and persist the exclusion in desired state.
+Removing a recommended capability must keep resolution legal and persist the exclusion in desired state.
 
 ## A08 — Dependency Closure
 
@@ -69,3 +69,47 @@ A user edit to the GES marker section must raise `MANAGED_CONTENT_MODIFIED` and 
 ## A16 — Business Source Guard
 
 `apps/`, `services/`, `src/`, `packages/` and `contracts/` must stay byte-identical across apply, second apply and remove.
+
+## A17 — Preview / Read-only Command Purity
+
+analyze, diff, check, legacy inspect and init-before-confirm must leave the consumer tree byte-identical.
+
+## A18 — Desired State Authority
+
+When `project.yaml` requested is X, Product Profile defaults must not add a missing Y on diff or apply.
+
+## A19 — Optional Selection Semantics
+
+`superpowers.executing-plans` stays out of the initial requested set until the user explicitly enables it.
+
+## A20 — Section-scoped Hashing
+
+Edits outside the AGENTS marker must not raise `MANAGED_CONTENT_MODIFIED`; edits inside the marker must.
+
+## A21 — Failure Atomicity
+
+Injected apply failures after writes must restore the exact T0 snapshot, including a pre-existing `.ges` tree.
+
+## A22 — Remove Drift Protection
+
+Remove must abort with zero mutations when a managed FILE no longer matches `last_applied_hash`.
+
+## A23 — Source Cache Integrity / Provenance
+
+A tampered offline cache file must raise `SOURCE_CACHE_INTEGRITY_FAILED` and must not be trusted.
+
+## A24 — Projection Collision
+
+Two producers writing the same path with different content must raise `PROJECTION_PATH_CONFLICT` before apply.
+
+## A25 — Analyzer Schema + Script Detection
+
+Nested `package.json` scripts and tsconfig paths must be recorded; TypeScript requires real evidence.
+
+## A26 — Spec Kit Pinned Adoption
+
+Selected Spec Kit commands live under `.specify/.ges/commands` and wrappers cite repo, SHA and source path.
+
+## A27 — Golden Consumer
+
+Real `smc-copilot` end-to-end apply stays BLOCKED while the worktree is dirty. SKIPPED/BLOCKED is not PASS.

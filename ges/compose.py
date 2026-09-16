@@ -13,9 +13,11 @@ from ges.harness_adapters.cursor import CursorAdapter
 from ges.harness_adapters.hermes import HermesAdapter
 from ges.io import sha256_bytes, tree_identity
 from ges.legacy.v5 import inspect_legacy
+from ges.paths import AGENTS_BEGIN, AGENTS_END
 from ges.reconciler.apply import snapshot_business_sources
+from ges.reconciler.hashes import artifact_index
 from ges.reconciler.plan import InstallPlan, build_plan
-from ges.reconciler.state import read_project, read_receipt, write_profile
+from ges.reconciler.state import read_project, read_receipt
 from ges.resolver.capability_graph import Resolution, assert_no_conflicts
 from ges.resolver.selection import project_desired_state, resolve_selection
 from ges.source_adapters.base import ProjectedFile, Projection
@@ -55,23 +57,40 @@ def compose(
     *,
     exclude: list[str] | None = None,
     extra: list[str] | None = None,
+    enable: list[str] | None = None,
     profile_id: str = "brownfield-product-app",
-    persist_profile: bool = True,
+    persist_profile: bool = False,
 ) -> ComposeContext:
     repo = repo.expanduser().resolve()
     profile = analyze_repo(repo)
     if persist_profile:
+        from ges.reconciler.state import write_profile
+
         write_profile(repo, profile)
     catalog = load_catalog()
     existing = read_project(repo)
+    requested = None
     stored_exclude: list[str] = []
     if existing:
         profile_id = existing.get("profile") or profile_id
-        stored_exclude = list((existing.get("resolution") or {}).get("excluded") or [])
+        caps = existing.get("capabilities") or {}
+        requested = list(caps.get("requested") or [])
+        stored_exclude = list(caps.get("explicitly_disabled") or [])
+        if not requested and not stored_exclude:
+            resolution_block = existing.get("resolution") or {}
+            requested = list(resolution_block.get("selected") or []) or None
+            stored_exclude = list(resolution_block.get("excluded") or [])
     exclude = list(dict.fromkeys([*(exclude or []), *stored_exclude]))
+    extra = list(dict.fromkeys([*(extra or []), *(enable or [])]))
     product = catalog.profiles[profile_id]
     emit(RESOLVE, "start", profile=profile_id)
-    resolution = resolve_selection(catalog, product, exclude=exclude, extra=extra)
+    resolution = resolve_selection(
+        catalog,
+        product,
+        requested=requested,
+        exclude=exclude,
+        extra=extra,
+    )
     emit(RESOLVE, "complete", selected=resolution.closed, conflicts=resolution.conflicts)
     project = project_desired_state(product, resolution, profile.get("agents") or [])
     desired = project_files(repo, catalog, resolution, profile)
@@ -133,9 +152,14 @@ def project_files(
 def _project_agents_md(repo: Path, shared: Projection) -> None:
     receipt = read_receipt(repo) or {}
     last = None
-    for section in receipt.get("managed_sections") or []:
-        if section.get("id") == "engineering-stack":
-            last = section.get("last_applied")
+    artifacts = artifact_index(receipt)
+    agents_meta = artifacts.get("AGENTS.md") or {}
+    if agents_meta.get("ownership_type") == "SECTION":
+        last = agents_meta.get("last_applied_hash")
+    if last is None:
+        for section in receipt.get("managed_sections") or []:
+            if section.get("id") == "engineering-stack":
+                last = section.get("last_applied")
     current = read_agents(repo)
     text = apply_marker(current, last_applied_hash=last)
     shared.add(
@@ -146,6 +170,8 @@ def _project_agents_md(repo: Path, shared: Projection) -> None:
             source="ges",
             source_sha=None,
             kind="section",
+            ownership_type="SECTION",
+            selector={"begin": AGENTS_BEGIN, "end": AGENTS_END},
         )
     )
 
@@ -170,6 +196,7 @@ def build_lock(catalog: Catalog, resolution: Resolution, desired: dict[str, Proj
         "ges_version": __version__,
         "sources": sources,
         "capabilities": resolution.closed,
+        "resolved_capabilities": resolution.closed,
         "content_identity": {
             rel: sha256_bytes(item.content)
             for rel, item in desired.items()

@@ -26,4 +26,5 @@ def managed_pointer(relpath: str, harness: str) -> ProjectedFile:
         source="ges",
         source_sha=None,
         kind="harness",
+        ownership_type="FILE",
     )

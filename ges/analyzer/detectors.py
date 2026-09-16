@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 
@@ -18,11 +19,33 @@ def detect_agents(repo: Path) -> list[str]:
     return agents
 
 
+def tsconfig_evidence(repo: Path) -> list[str]:
+    found: list[str] = []
+    for path in repo.rglob("tsconfig*.json"):
+        rel = path.relative_to(repo).as_posix()
+        if any(part.startswith(".") and part not in {".", ".."} for part in path.relative_to(repo).parts[:-1]):
+            continue
+        if "node_modules" in path.parts or ".git" in path.parts:
+            continue
+        found.append(rel)
+    return sorted(found)
+
+
+def typescript_source_evidence(repo: Path) -> list[str]:
+    hits: list[str] = []
+    for ext in ("*.ts", "*.tsx"):
+        for path in repo.rglob(ext):
+            if "node_modules" in path.parts or ".git" in path.parts:
+                continue
+            hits.append(path.relative_to(repo).as_posix())
+            if len(hits) >= 5:
+                return hits
+    return hits
+
+
 def detect_languages(repo: Path) -> list[str]:
     found: list[str] = []
     mapping = [
-        ("typescript", ("tsconfig.json", "tsconfig.base.json")),
-        ("javascript", ("package.json",)),
         ("python", ("pyproject.toml", "setup.py", "requirements.txt")),
         ("go", ("go.mod",)),
         ("rust", ("Cargo.toml",)),
@@ -31,15 +54,53 @@ def detect_languages(repo: Path) -> list[str]:
     for name, files in mapping:
         if any(exists(repo, item) for item in files):
             found.append(name)
-    nested_ts = any(
-        (repo / root).glob("*/tsconfig*.json")
-        for root in ("apps", "packages", "services")
-        if (repo / root).is_dir()
-    ) or any(repo.glob("*/tsconfig*.json"))
-    if "typescript" not in found and nested_ts:
+    if tsconfig_evidence(repo) or typescript_source_evidence(repo) or package_json_typescript(repo):
         found.insert(0, "typescript")
-    if "javascript" in found and "typescript" in found:
-        found = [item for item in found if item != "javascript"]
+    elif exists(repo, "package.json") or iter_package_json(repo):
+        found.append("javascript")
+    return found
+
+
+def iter_package_json(repo: Path) -> list[Path]:
+    found: list[Path] = []
+    for path in repo.rglob("package.json"):
+        if "node_modules" in path.parts or ".git" in path.parts:
+            continue
+        found.append(path)
+    return found
+
+
+def _package_data(path: Path) -> dict:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def package_json_typescript(repo: Path) -> bool:
+    for path in iter_package_json(repo):
+        data = _package_data(path)
+        deps = {}
+        for key in ("dependencies", "devDependencies", "peerDependencies"):
+            block = data.get(key) or {}
+            if isinstance(block, dict):
+                deps.update(block)
+        if "typescript" in deps:
+            return True
+    return False
+
+
+def detect_scripts(repo: Path) -> dict[str, list[str]]:
+    found = {"test": [], "build": [], "lint": []}
+    for path in iter_package_json(repo):
+        scripts = _package_data(path).get("scripts") or {}
+        if not isinstance(scripts, dict):
+            continue
+        rel = path.relative_to(repo).as_posix()
+        for name in ("test", "build", "lint"):
+            if name in scripts:
+                found[name].append(rel)
     return found
 
 

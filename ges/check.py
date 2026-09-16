@@ -5,9 +5,10 @@ from pathlib import Path
 from ges.catalog.loader import load_catalog
 from ges.compose import compose
 from ges.errors import GES_CHECK_FAILED, GES_CHECK_PASS, GesError
-from ges.harness_adapters.agents_md import count_markers, read_agents
+from ges.harness_adapters.agents_md import count_markers, read_agents, section_hash
 from ges.io import sha256_file
 from ges.reconciler.guard import assert_allowed, assert_not_business_source
+from ges.reconciler.hashes import artifact_index
 from ges.reconciler.state import read_lock, read_profile, read_project, read_receipt, validate_payload
 from ges.resolver.capability_graph import detect_conflicts
 from ges.source_adapters.cache import ensure_source
@@ -23,20 +24,19 @@ def run_check(repo: Path) -> str:
     receipt = read_receipt(repo)
     if not all([project, profile, lock, receipt]):
         raise GesError(GES_CHECK_FAILED, "missing .ges project state (project/profile/lock/receipt)")
-    validate_payload("ges.project.v1.json", project, code=GES_CHECK_FAILED)
-    validate_payload("ges.repo-profile.v1.json", profile, code=GES_CHECK_FAILED)
+    validate_payload("ges.project.v2.json", project, code=GES_CHECK_FAILED)
+    validate_payload("ges.repo-profile.v2.json", profile, code=GES_CHECK_FAILED)
     validate_payload("ges.lock.v1.json", lock, code=GES_CHECK_FAILED)
-    validate_payload("ges.install-receipt.v1.json", receipt, code=GES_CHECK_FAILED)
+    validate_payload("ges.install-receipt.v2.json", receipt, code=GES_CHECK_FAILED)
 
     catalog = load_catalog()
     for source_id, meta in (lock.get("sources") or {}).items():
         pin = catalog.sources[source_id]
         if meta.get("commit_sha") != pin.commit_sha:
-            # lock may pin the same catalog SHA; if it differs, still require resolvable tree
             pass
         ensure_source(pin)
 
-    closed = list(lock.get("capabilities") or [])
+    closed = list(lock.get("resolved_capabilities") or lock.get("capabilities") or [])
     conflicts = detect_conflicts(catalog, closed)
     if conflicts:
         raise GesError(GES_CHECK_FAILED, "ownership conflict present in lock", details={"conflicts": conflicts})
@@ -49,12 +49,16 @@ def run_check(repo: Path) -> str:
         if not skill_dir.exists():
             raise GesError(GES_CHECK_FAILED, f"capability {cap_id} is not projected")
 
-    hashes = receipt.get("content_hashes") or {}
-    for rel, meta in hashes.items():
+    for rel, meta in artifact_index(receipt).items():
         path = repo / rel
         if not path.is_file():
             raise GesError(GES_CHECK_FAILED, f"managed file missing: {rel}")
-        if sha256_file(path) != meta.get("last_applied"):
+        current = (
+            section_hash(path.read_text(encoding="utf-8"))
+            if meta.get("ownership_type") == "SECTION" or rel == "AGENTS.md"
+            else sha256_file(path)
+        )
+        if current != meta.get("last_applied_hash"):
             raise GesError(GES_CHECK_FAILED, f"managed hash mismatch: {rel}")
         assert_allowed(rel)
         assert_not_business_source(rel)

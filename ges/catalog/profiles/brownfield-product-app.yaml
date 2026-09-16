@@ -1,4 +1,4 @@
-schema: ges.profile.v1
+schema: ges.product-profile.v2
 id: brownfield-product-app
 engineering_stack:
   disciplines:
@@ -9,6 +9,7 @@ engineering_stack:
     provider: superpowers
 required:
   - matt.setup
+recommended:
   - matt.grill-with-docs
   - matt.grilling
   - matt.domain-modeling
@@ -29,7 +30,7 @@ required:
   - superpowers.finishing-a-development-branch
 optional:
   - superpowers.executing-plans
-excluded:
+forbidden:
   - matt.to-spec
   - matt.implement
   - matt.tdd

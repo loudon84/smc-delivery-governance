@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from ges import __version__
 from ges.analyzer import detectors
 from ges.analyzer.source_roots import business_source_roots
 from ges.errors import REPO_NOT_SUPPORTED, GesError
@@ -19,17 +21,15 @@ def analyze_repo(repo: Path) -> dict[str, Any]:
 
     brownfield = detectors.detect_brownfield(root)
     monorepo = detectors.detect_monorepo(root)
-    if brownfield and monorepo:
-        kind = "brownfield-monorepo"
-    elif brownfield:
-        kind = "brownfield"
-    elif monorepo:
-        kind = "greenfield-monorepo"
-    else:
-        kind = "greenfield"
+    lifecycle = "brownfield" if brownfield else "greenfield"
+    layout = "monorepo" if monorepo else "single"
+    kind = f"{lifecycle}-{layout}" if monorepo else lifecycle
 
     profile = {
-        "schema": "ges.repo-profile.v1",
+        "schema": "ges.repo-profile.v2",
+        "repository_lifecycle": lifecycle,
+        "layout": layout,
+        "kind": kind,
         "repository_kind": kind,
         "agents": detectors.detect_agents(root),
         "languages": detectors.detect_languages(root),
@@ -40,6 +40,10 @@ def analyze_repo(repo: Path) -> dict[str, Any]:
         "frameworks": detectors.detect_frameworks(root),
         "existing": detectors.detect_existing(root),
         "source_roots": business_source_roots(root),
+        "scripts": detectors.detect_scripts(root),
+        "tsconfig_evidence": detectors.tsconfig_evidence(root),
+        "analyzer_version": __version__,
+        "analyzed_at": datetime.now(timezone.utc).isoformat(),
         "git": _git_identity(root),
         "llm_token_usage": 0,
     }

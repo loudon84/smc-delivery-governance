@@ -4,6 +4,8 @@ from pathlib import Path
 
 from ges.catalog.loader import Capability, Catalog, SourcePin
 from ges.errors import SPEC_KIT_RECONCILE_CONFLICT, GesError
+from ges.reconciler.hashes import artifact_index
+from ges.reconciler.state import read_receipt
 from ges.resolver.capability_graph import Resolution
 from ges.source_adapters.base import ProjectedFile, Projection
 from ges.source_adapters.cache import resolve_path
@@ -15,8 +17,11 @@ description: Spec Kit {capability} capability composed by GES 6.
 
 # {name}
 
-Use the project's Spec Kit `{command}` command. GES composed this skill
-from pinned spec-kit `{sha}` and does not reinitialize `.specify/`.
+Use the pinned Spec Kit command at `{managed}`.
+
+- source repo: {repo}
+- source commit: {sha}
+- source path: {source_path}
 """
 
 
@@ -35,15 +40,36 @@ class SpecKitAdapter:
         existing = (repo / ".specify").exists()
         if not existing:
             self._materialize_runtime(pin, capabilities, projection)
+        owned = artifact_index(read_receipt(repo) or {})
         for cap in capabilities:
             if cap.projection_type != "speckit-capability" or not cap.skill_name:
                 continue
             command = cap.id.split(".", 1)[1]
+            source_file = resolve_path(pin, cap.source_path)
+            managed = f".specify/.ges/commands/{command}.md"
+            if (repo / managed).is_file() and managed not in owned:
+                raise GesError(
+                    SPEC_KIT_RECONCILE_CONFLICT,
+                    f"managed Spec Kit path {managed} exists without GES receipt ownership",
+                )
+            projection.add(
+                ProjectedFile(
+                    relpath=managed,
+                    content=source_file.read_bytes(),
+                    capability=cap.id,
+                    source=pin.id,
+                    source_sha=pin.commit_sha,
+                    kind="specify",
+                    ownership_type="FILE",
+                )
+            )
             content = WRAPPER.format(
                 name=cap.skill_name,
                 capability=cap.id,
-                command=command,
+                managed=managed,
+                repo=pin.repo,
                 sha=pin.commit_sha,
+                source_path=cap.source_path,
             ).encode("utf-8")
             rel = f".agents/skills/{cap.skill_name}/SKILL.md"
             projection.add(
@@ -54,26 +80,7 @@ class SpecKitAdapter:
                     source=pin.id,
                     source_sha=pin.commit_sha,
                     kind="skill",
-                )
-            )
-            source_file = resolve_path(pin, cap.source_path)
-            managed = f".specify/.ges/commands/{source_file.name}"
-            if existing and (repo / managed).is_file():
-                current = (repo / managed).read_bytes()
-                desired = source_file.read_bytes()
-                if current != desired:
-                    raise GesError(
-                        SPEC_KIT_RECONCILE_CONFLICT,
-                        f"managed Spec Kit path {managed} diverged from pinned source",
-                    )
-            projection.add(
-                ProjectedFile(
-                    relpath=managed,
-                    content=source_file.read_bytes(),
-                    capability=cap.id,
-                    source=pin.id,
-                    source_sha=pin.commit_sha,
-                    kind="specify",
+                    ownership_type="FILE",
                 )
             )
         return projection
@@ -97,6 +104,7 @@ class SpecKitAdapter:
                             source=pin.id,
                             source_sha=pin.commit_sha,
                             kind="specify-runtime",
+                            ownership_type="FILE",
                         )
                     )
         for cap in capabilities:
@@ -113,5 +121,6 @@ class SpecKitAdapter:
                         source=pin.id,
                         source_sha=pin.commit_sha,
                         kind="specify-runtime",
+                        ownership_type="FILE",
                     )
                 )

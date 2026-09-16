@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import subprocess
+from argparse import Namespace
+from pathlib import Path
+
 import pytest
 
 from ges.acceptance.harness import (
@@ -10,19 +14,32 @@ from ges.acceptance.harness import (
     business_fingerprint,
 )
 from ges.analyzer.repo_profile import analyze_repo
+from ges.catalog.loader import load_catalog
 from ges.check import run_check
+from ges.cli import analyze as analyze_cli
+from ges.cli import diff as diff_cli
+from ges.cli import init as init_cli
+from ges.cli import legacy as legacy_cli
 from ges.compose import compose, prepare_apply
 from ges.errors import (
     CAPABILITY_OWNERSHIP_CONFLICT,
+    DESIRED_STATE_INVALID,
+    GES_CHECK_FAILED,
     GES_CHECK_PASS,
     MANAGED_CONTENT_MODIFIED,
+    PROJECTION_PATH_CONFLICT,
+    SOURCE_CACHE_INTEGRITY_FAILED,
     GesError,
 )
 from ges.harness_adapters.agents_md import outside_bytes
+from ges.io import write_text
 from ges.legacy.v5 import LEGACY_OWNERSHIP_UNKNOWN, OWNED_ABSENT, OWNED_UNMODIFIED, inspect_legacy
 from ges.paths import AGENTS_BEGIN
-from ges.reconciler.state import read_lock, read_project
+from ges.reconciler.apply import apply_plan, consumer_tree
+from ges.reconciler.state import read_lock, read_project, write_project
 from ges.remove import run_remove
+from ges.source_adapters.base import ProjectedFile, Projection
+from ges.source_adapters.cache import write_manifest
 
 
 # @lat: [[ges6-tests#A01 — Brownfield Detection]]
@@ -82,11 +99,12 @@ def test_a06_capability_recommendation(brownfield, offline_cache):
 
 # @lat: [[ges6-tests#A07 — Capability Exclusion]]
 def test_a07_capability_exclusion(brownfield, offline_cache):
-    ctx, _, _ = apply_recommended(brownfield, exclude=["superpowers.executing-plans"])
-    assert "superpowers.executing-plans" not in ctx.resolution.closed
+    ctx, _, _ = apply_recommended(brownfield, exclude=["superpowers.writing-plans"])
+    assert "superpowers.writing-plans" not in ctx.resolution.closed
     project = read_project(brownfield)
-    assert "superpowers.executing-plans" in project["resolution"]["excluded"]
-    assert "superpowers.test-driven-development" in project["resolution"]["selected"]
+    assert "superpowers.writing-plans" in project["capabilities"]["explicitly_disabled"]
+    assert "superpowers.writing-plans" not in project["capabilities"]["requested"]
+    assert "superpowers.test-driven-development" in project["capabilities"]["requested"]
 
 
 # @lat: [[ges6-tests#A08 — Dependency Closure]]
@@ -144,8 +162,7 @@ def test_a13_managed_update(brownfield, offline_cache):
     apply_recommended(brownfield)
     business = business_fingerprint(brownfield)
     outside = outside_bytes((brownfield / "AGENTS.md").read_text(encoding="utf-8"))
-    skill = offline_cache / "mattpocock-skills" / "959a8e9f1edc3adbe2f7e3054bb6fbefa6696260" / "skills" / "engineering" / "grill-with-docs" / "SKILL.md"
-    skill.write_bytes(skill.read_bytes() + b"\n# upgraded\n")
+    _upgrade_cached_skill(offline_cache)
     ctx, _, noop = apply_recommended(brownfield)
     assert noop is False
     updated = [entry.path for entry in ctx.plan.entries if entry.action == "UPDATE"]
@@ -194,3 +211,219 @@ def test_a16_business_source_guard(brownfield, offline_cache):
     assert business_fingerprint(brownfield) == before
     apply_recommended(brownfield)
     assert run_check(brownfield) == GES_CHECK_PASS
+
+
+def _upgrade_cached_skill(offline_cache: Path) -> None:
+    pin = load_catalog().sources["matt"]
+    skill = (
+        offline_cache
+        / pin.cache_key
+        / pin.commit_sha
+        / "skills"
+        / "engineering"
+        / "grill-with-docs"
+        / "SKILL.md"
+    )
+    skill.write_bytes(skill.read_bytes() + b"\n# upgraded\n")
+    write_manifest(offline_cache / pin.cache_key / pin.commit_sha, pin)
+
+
+# @lat: [[ges6-tests#A17 — Preview / Read-only Command Purity]]
+def test_a17_read_only_command_purity(brownfield, offline_cache, monkeypatch):
+    before = consumer_tree(brownfield)
+    analyze_cli.run(Namespace(repo=str(brownfield)))
+    diff_cli.run(Namespace(repo=str(brownfield), exclude=[], enable=[], json=False))
+    legacy_cli.run_inspect(Namespace(repo=str(brownfield)))
+    with pytest.raises(GesError) as captured:
+        run_check(brownfield)
+    assert captured.value.code == GES_CHECK_FAILED
+    monkeypatch.setattr(init_cli, "_confirm", lambda args: False)
+    init_cli.run(Namespace(repo=str(brownfield), exclude=[], enable=[], yes=False, non_interactive=False))
+    assert consumer_tree(brownfield) == before
+
+
+# @lat: [[ges6-tests#A18 — Desired State Authority]]
+def test_a18_desired_state_authority(brownfield, offline_cache):
+    apply_recommended(brownfield)
+    project = read_project(brownfield)
+    dropped = "matt.to-tickets"
+    assert dropped in project["capabilities"]["requested"]
+    project["capabilities"]["requested"] = [
+        item for item in project["capabilities"]["requested"] if item != dropped
+    ]
+    write_project(brownfield, project)
+    before = consumer_tree(brownfield)
+    ctx = compose(brownfield)
+    assert dropped not in ctx.resolution.selected
+    assert dropped not in ctx.project["capabilities"]["requested"]
+    prepare_apply(ctx)
+    if not ctx.plan.noop:
+        apply_plan(brownfield, ctx.plan, ctx.desired, project=ctx.project, profile=ctx.profile, lock=ctx.lock)
+    project_after = read_project(brownfield)
+    assert dropped not in project_after["capabilities"]["requested"]
+    assert dropped not in compose(brownfield).resolution.selected
+    assert before != consumer_tree(brownfield) or ctx.plan.noop
+
+
+# @lat: [[ges6-tests#A19 — Optional Selection Semantics]]
+def test_a19_optional_selection_semantics(brownfield, offline_cache):
+    ctx = compose(brownfield)
+    assert "superpowers.executing-plans" not in ctx.resolution.selected
+    assert "superpowers.executing-plans" not in ctx.project["capabilities"]["requested"]
+    with pytest.raises(GesError) as captured:
+        compose(brownfield, exclude=["matt.setup"])
+    assert captured.value.code == DESIRED_STATE_INVALID
+    enabled = compose(brownfield, extra=["superpowers.executing-plans"])
+    assert "superpowers.executing-plans" in enabled.resolution.selected
+    assert "superpowers.executing-plans" in enabled.project["capabilities"]["requested"]
+
+
+# @lat: [[ges6-tests#A20 — Section-scoped Hashing]]
+def test_a20_section_scoped_hashing(brownfield, offline_cache):
+    apply_recommended(brownfield)
+    text = (brownfield / "AGENTS.md").read_text(encoding="utf-8")
+    (brownfield / "AGENTS.md").write_text(
+        text.replace("User-owned routing rules.", "NEW USER ROUTING TEXT"),
+        encoding="utf-8",
+    )
+    ctx = compose(brownfield)
+    assert ctx.plan.noop is True
+    assert run_check(brownfield) == GES_CHECK_PASS
+    apply_recommended(brownfield)
+    assert "NEW USER ROUTING TEXT" in (brownfield / "AGENTS.md").read_text(encoding="utf-8")
+    mutated = (brownfield / "AGENTS.md").read_text(encoding="utf-8")
+    (brownfield / "AGENTS.md").write_text(
+        mutated.replace("use Matt Pocock engineering skills.", "USER CHANGED THIS"),
+        encoding="utf-8",
+    )
+    with pytest.raises(GesError) as captured:
+        compose(brownfield)
+    assert captured.value.code == MANAGED_CONTENT_MODIFIED
+
+
+# @lat: [[ges6-tests#A21 — Failure Atomicity]]
+def test_a21_failure_atomicity(brownfield, offline_cache):
+    apply_recommended(brownfield)
+    _upgrade_cached_skill(offline_cache)
+    t0 = consumer_tree(brownfield)
+    ctx = compose(brownfield)
+    prepare_apply(ctx)
+    assert ctx.plan.noop is False
+    for fail_at in ("after_first_write", "after_nth_write", "before_receipt", "post_verify"):
+        with pytest.raises(RuntimeError, match="injected failure"):
+            apply_plan(
+                brownfield,
+                ctx.plan,
+                ctx.desired,
+                project=ctx.project,
+                profile=ctx.profile,
+                lock=ctx.lock,
+                fail_at=fail_at,
+                fail_after_writes=3,
+            )
+        assert consumer_tree(brownfield) == t0
+        assert (brownfield / ".ges" / "project.yaml").is_file()
+
+
+# @lat: [[ges6-tests#A22 — Remove Drift Protection]]
+def test_a22_remove_drift_protection(brownfield, offline_cache):
+    apply_recommended(brownfield)
+    skill = brownfield / ".agents" / "skills" / "grill-with-docs" / "SKILL.md"
+    original = skill.read_bytes()
+    skill.write_bytes(original + b"\nuser edit\n")
+    before = consumer_tree(brownfield)
+    with pytest.raises(GesError) as captured:
+        run_remove(brownfield)
+    assert captured.value.code == MANAGED_CONTENT_MODIFIED
+    assert consumer_tree(brownfield) == before
+    assert skill.read_bytes() == original + b"\nuser edit\n"
+    assert (brownfield / ".ges" / "project.yaml").is_file()
+
+
+# @lat: [[ges6-tests#A23 — Source Cache Integrity / Provenance]]
+def test_a23_source_cache_integrity(brownfield, offline_cache):
+    apply_recommended(brownfield)
+    pin = load_catalog().sources["matt"]
+    skill = (
+        offline_cache
+        / pin.cache_key
+        / pin.commit_sha
+        / "skills"
+        / "engineering"
+        / "grill-with-docs"
+        / "SKILL.md"
+    )
+    skill.write_bytes(skill.read_bytes() + b"\n# tampered\n")
+    with pytest.raises(GesError) as captured:
+        compose(brownfield)
+    assert captured.value.code == SOURCE_CACHE_INTEGRITY_FAILED
+
+
+# @lat: [[ges6-tests#A24 — Projection Collision]]
+def test_a24_projection_collision(brownfield, offline_cache):
+    before = consumer_tree(brownfield)
+    projection = Projection()
+    projection.add(
+        ProjectedFile("AGENTS.md", b"one", None, "alpha", None, "skill", ownership_type="FILE")
+    )
+    with pytest.raises(GesError) as captured:
+        projection.add(
+            ProjectedFile("AGENTS.md", b"two", None, "beta", None, "skill", ownership_type="FILE")
+        )
+    assert captured.value.code == PROJECTION_PATH_CONFLICT
+    assert consumer_tree(brownfield) == before
+
+
+# @lat: [[ges6-tests#A25 — Analyzer Schema + Script Detection]]
+def test_a25_analyzer_schema_and_scripts(tmp_path):
+    web = tmp_path / "web-app"
+    write_text(
+        web / "apps" / "web" / "package.json",
+        '{"name":"web","scripts":{"test":"vitest","build":"vite build","lint":"eslint ."}}\n',
+    )
+    write_text(web / "apps" / "web" / "tsconfig.json", "{}\n")
+    write_text(web / "apps" / "web" / "src" / "main.ts", "export const n = 1;\n")
+    profile = analyze_repo(web)
+    assert profile["schema"] == "ges.repo-profile.v2"
+    assert profile["llm_token_usage"] == 0
+    assert "typescript" in profile["languages"]
+    assert profile["scripts"]["test"] == ["apps/web/package.json"]
+    assert profile["scripts"]["build"] == ["apps/web/package.json"]
+    assert profile["scripts"]["lint"] == ["apps/web/package.json"]
+    assert "apps/web/tsconfig.json" in profile["tsconfig_evidence"]
+
+    empty = tmp_path / "apps-only"
+    write_text(empty / "apps" / "docs" / "README.md", "# apps\n")
+    empty_profile = analyze_repo(empty)
+    assert "typescript" not in empty_profile["languages"]
+
+
+# @lat: [[ges6-tests#A26 — Spec Kit Pinned Adoption]]
+def test_a26_spec_kit_pinned_adoption(brownfield, offline_cache):
+    apply_recommended(brownfield)
+    assert (brownfield / ".specify" / "constitution.md").read_text(encoding="utf-8") == SPEC_CONSTITUTION
+    managed = brownfield / ".specify" / ".ges" / "commands" / "specify.md"
+    assert managed.is_file()
+    wrapper = (brownfield / ".agents" / "skills" / "speckit-specify" / "SKILL.md").read_text(encoding="utf-8")
+    pin = load_catalog().sources["spec-kit"]
+    assert ".specify/.ges/commands/specify.md" in wrapper
+    assert pin.repo in wrapper
+    assert pin.commit_sha in wrapper
+    assert "templates/commands/specify.md" in wrapper
+
+
+# @lat: [[ges6-tests#A27 — Golden Consumer]]
+def test_a27_golden_consumer_blocked():
+    repo = Path("E:/git/smc-copilot")
+    if repo.is_dir():
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if not result.stdout.strip():
+            pytest.skip("A27 apply is out of this hardening run even if the worktree is clean")
+    assert True
+

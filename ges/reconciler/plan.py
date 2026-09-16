@@ -5,10 +5,10 @@ from pathlib import Path
 from typing import Any
 
 from ges.errors import MANAGED_CONTENT_MODIFIED, GesError
-from ges.io import sha256_bytes, sha256_file
 from ges.legacy.v5 import LegacyReport
 from ges.paths import PRESERVE_ALWAYS, to_posix
 from ges.reconciler.guard import assert_allowed, assert_not_business_source
+from ges.reconciler.hashes import artifact_index, current_identity, desired_identity
 from ges.reconciler.state import read_receipt
 from ges.source_adapters.base import ProjectedFile
 
@@ -25,6 +25,13 @@ class PlanEntry:
     action: str
     kind: str
     capability: str | None = None
+    ownership_type: str = "FILE"
+    selector: Any = None
+    reason: str = ""
+    producer: str | None = None
+    capability_ids: list[str] = field(default_factory=list)
+    current_identity: str | None = None
+    desired_identity: str | None = None
 
 
 @dataclass
@@ -69,8 +76,7 @@ def build_plan(
     business_guard: dict[str, Any],
 ) -> InstallPlan:
     receipt = read_receipt(repo) or {}
-    hashes = receipt.get("content_hashes") or {}
-    managed_files = set(receipt.get("managed_files") or [])
+    artifacts = artifact_index(receipt)
     plan = InstallPlan(
         source_shas=source_shas,
         legacy_report=legacy.to_dict(),
@@ -79,14 +85,19 @@ def build_plan(
     for rel, item in sorted(desired.items()):
         assert_allowed(rel)
         assert_not_business_source(rel)
+        current = current_identity(repo, rel, item)
+        generated = desired_identity(item)
+        last = (artifacts.get(rel) or {}).get("last_applied_hash")
+        caps = [item.capability] if item.capability else []
         if any(to_posix(rel).startswith(prefix) for prefix in PRESERVE_ALWAYS):
-            plan.entries.append(PlanEntry(rel, PRESERVE, item.kind, item.capability))
+            plan.entries.append(
+                _entry(item, rel, PRESERVE, current, generated, reason="preserve-always", capability_ids=caps)
+            )
             continue
-        current = repo / rel
-        last = (hashes.get(rel) or {}).get("last_applied")
-        generated = sha256_bytes(item.content)
-        if not current.exists():
-            plan.entries.append(PlanEntry(rel, ADD, item.kind, item.capability))
+        if current is None:
+            plan.entries.append(
+                _entry(item, rel, ADD, current, generated, reason="missing", capability_ids=caps)
+            )
             if item.kind == "skill" and item.capability:
                 skill = rel.split("/")[2] if rel.startswith(".agents/skills/") else item.capability
                 if skill not in plan.skills_to_add:
@@ -94,27 +105,71 @@ def build_plan(
             if rel == "AGENTS.md":
                 plan.managed_sections_to_add.append("engineering-stack")
             continue
-        current_hash = sha256_file(current)
-        if current_hash == generated:
-            plan.entries.append(PlanEntry(rel, PRESERVE, item.kind, item.capability))
+        if current == generated:
+            plan.entries.append(
+                _entry(item, rel, PRESERVE, current, generated, reason="already-desired", capability_ids=caps)
+            )
             continue
-        if last and current_hash != last:
+        if last and current != last:
             raise GesError(
                 MANAGED_CONTENT_MODIFIED,
                 f"managed content was modified: {rel}",
             )
         if last == generated:
-            plan.entries.append(PlanEntry(rel, PRESERVE, item.kind, item.capability))
+            plan.entries.append(
+                _entry(item, rel, PRESERVE, current, generated, reason="matches-last-applied", capability_ids=caps)
+            )
             continue
-        plan.entries.append(PlanEntry(rel, UPDATE, item.kind, item.capability))
+        plan.entries.append(
+            _entry(item, rel, UPDATE, current, generated, reason="desired-differs", capability_ids=caps)
+        )
 
-    for rel in sorted(managed_files):
+    for rel, meta in sorted(artifacts.items()):
         if rel in desired:
             continue
         if (repo / rel).exists():
-            plan.entries.append(PlanEntry(rel, REMOVE, "managed", None))
+            current = current_identity(repo, rel, ownership_type=meta.get("ownership_type") or "FILE")
+            plan.entries.append(
+                PlanEntry(
+                    path=rel,
+                    action=REMOVE,
+                    kind="managed",
+                    ownership_type=meta.get("ownership_type") or "FILE",
+                    selector=meta.get("selector"),
+                    reason="no-longer-desired",
+                    producer=meta.get("producer"),
+                    capability_ids=list(meta.get("capability_ids") or []),
+                    current_identity=current,
+                    desired_identity=None,
+                )
+            )
             if rel.startswith(".agents/skills/"):
                 skill = rel.split("/")[2]
                 if skill not in plan.skills_to_remove:
                     plan.skills_to_remove.append(skill)
     return plan
+
+
+def _entry(
+    item: ProjectedFile,
+    rel: str,
+    action: str,
+    current: str | None,
+    generated: str,
+    *,
+    reason: str,
+    capability_ids: list[str],
+) -> PlanEntry:
+    return PlanEntry(
+        path=rel,
+        action=action,
+        kind=item.kind,
+        capability=item.capability,
+        ownership_type=item.ownership_type,
+        selector=item.selector,
+        reason=reason,
+        producer=item.source,
+        capability_ids=capability_ids,
+        current_identity=current,
+        desired_identity=generated,
+    )

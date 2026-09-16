@@ -1,5 +1,5 @@
 # Capability Catalog
 
-The catalog declares every capability, including excluded ones, so ownership conflicts can fail before apply.
+The catalog declares every capability so ownership conflicts can fail before apply. Product Profile classes are required, recommended, optional and forbidden.
 
-Each capability has source, path, owner domain, requires and conflicts. Resolver closure and pair checks live in [[ges/resolver/capability_graph.py#close_dependencies]] and [[ges/resolver/capability_graph.py#detect_conflicts]].
+Initial requested is required plus recommended only. Optional needs `--enable`. Forbidden or required-exclude raises `DESIRED_STATE_INVALID`. Closure lives in [[ges/resolver/capability_graph.py#close_dependencies]] and [[ges/resolver/selection.py#resolve_selection]].

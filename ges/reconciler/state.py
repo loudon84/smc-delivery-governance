@@ -6,7 +6,7 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
-from ges.errors import GES_CHECK_FAILED, REPO_PROFILE_INVALID, GesError
+from ges.errors import DESIRED_STATE_INVALID, GES_CHECK_FAILED, REPO_PROFILE_INVALID, GesError
 from ges.io import read_json, read_yaml, write_json, write_yaml
 from ges.paths import (
     LOCK_FILE,
@@ -18,10 +18,10 @@ from ges.paths import (
 )
 
 SCHEMA_MAP = {
-    PROJECT_FILE: "ges.project.v1.json",
-    REPO_PROFILE_FILE: "ges.repo-profile.v1.json",
+    PROJECT_FILE: "ges.project.v2.json",
+    REPO_PROFILE_FILE: "ges.repo-profile.v2.json",
     LOCK_FILE: "ges.lock.v1.json",
-    RECEIPT_FILE: "ges.install-receipt.v1.json",
+    RECEIPT_FILE: "ges.install-receipt.v2.json",
 }
 
 
@@ -37,14 +37,14 @@ def validate_payload(schema_name: str, payload: dict[str, Any], *, code: str = R
 
 
 def write_project(repo: Path, payload: dict[str, Any]) -> Path:
-    validate_payload("ges.project.v1.json", payload)
+    validate_payload("ges.project.v2.json", payload, code=DESIRED_STATE_INVALID)
     path = repo_ges_dir(repo) / PROJECT_FILE
     write_yaml(path, payload)
     return path
 
 
 def write_profile(repo: Path, payload: dict[str, Any]) -> Path:
-    validate_payload("ges.repo-profile.v1.json", payload)
+    validate_payload("ges.repo-profile.v2.json", payload)
     path = repo_ges_dir(repo) / REPO_PROFILE_FILE
     write_json(path, payload)
     return path
@@ -58,7 +58,7 @@ def write_lock(repo: Path, payload: dict[str, Any]) -> Path:
 
 
 def write_receipt(repo: Path, payload: dict[str, Any]) -> Path:
-    validate_payload("ges.install-receipt.v1.json", payload, code=GES_CHECK_FAILED)
+    validate_payload("ges.install-receipt.v2.json", payload, code=GES_CHECK_FAILED)
     path = repo_ges_dir(repo) / RECEIPT_FILE
     write_json(path, payload)
     return path

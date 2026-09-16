@@ -9,19 +9,22 @@ from ges.compose import compose, prepare_apply
 from ges.errors import GES_RECONCILE_NOOP, GesError
 from ges.legacy.v5 import inspect_legacy
 from ges.reconciler.apply import apply_plan
-from ges.reconciler.state import write_project
 
 
 def run(args: Namespace) -> int:
     repo = resolve_repo(args.repo)
-    ctx = compose(repo, exclude=flatten_ids(args.exclude))
+    ctx = compose(
+        repo,
+        exclude=flatten_ids(args.exclude),
+        extra=flatten_ids(getattr(args, "enable", None)),
+        persist_profile=False,
+    )
     legacy = inspect_legacy(repo)
     print(render_init(ctx, legacy))
     print(render_plan(ctx.plan.to_dict()))
     if not _confirm(args):
         print("aborted")
         return 0
-    write_project(repo, ctx.project)
     try:
         prepare_apply(ctx)
         apply_plan(repo, ctx.plan, ctx.desired, project=ctx.project, profile=ctx.profile, lock=ctx.lock)
