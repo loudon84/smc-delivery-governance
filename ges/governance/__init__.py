@@ -1,1 +1,1 @@
-"""Governance Backplane placeholders. Runtime is an alpha.2+ goal."""
+"""GES 6 Governance Backplane runtime (Alpha.2)."""

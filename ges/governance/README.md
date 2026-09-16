@@ -1,9 +1,7 @@
 # GES 6 Governance Backplane
 
-This package holds the Alpha.1 domain model only. Runtime engines for
-Registry, Policy, Risk, Ownership, Evidence, Approval, Delivery, Release
-and Audit start in 6.0-alpha.2 and later.
+Alpha.2 runtime for Work, Policy, Artifact refs, Evidence observation,
+Traceability, and Gate A/B. Approval and Release remain later versions.
 
-Composer Bootstrap (alpha.1) must stay compatible with this model:
-Work references Artifact, Risk, Policy, Ownership, Evidence, Approval
-and produces Release. Artifacts are pointers, not copied bodies.
+Composer Bootstrap must stay compatible: governance files live under
+`.ges/governance/**` and are not removed by `ges remove`.

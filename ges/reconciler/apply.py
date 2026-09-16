@@ -15,7 +15,9 @@ from ges.errors import (
     GesError,
 )
 from ges.io import sha256_file, write_bytes, write_json, write_yaml
+from ges.governance.paths import is_governance_rel
 from ges.paths import LOCK_FILE, PROJECT_FILE, RECEIPT_FILE, REPO_PROFILE_FILE
+from ges.reconciler.state import read_receipt
 from ges.reconciler.guard import assert_allowed, assert_not_business_source, contain
 from ges.reconciler.hashes import desired_identity
 from ges.reconciler.plan import ADD, REMOVE, UPDATE, InstallPlan
@@ -178,15 +180,20 @@ def snapshot_managed_scope(repo: Path, desired: dict[str, ProjectedFile], plan: 
     rels = {item.path for item in plan.entries}
     rels.update(desired)
     rels.add("AGENTS.md")
+    for name in GES_STATE_FILES:
+        rels.add(f".ges/{name}")
+    receipt = read_receipt(repo)
+    if receipt:
+        for artifact in receipt.get("managed_artifacts") or []:
+            path = artifact.get("path")
+            if path:
+                rels.add(path)
     snap: dict[str, bytes | None] = {}
     for rel in sorted(rels):
+        if is_governance_rel(rel):
+            continue
         path = repo / rel
         snap[rel] = path.read_bytes() if path.is_file() else None
-    ges = repo / ".ges"
-    if ges.is_dir():
-        for path in ges.rglob("*"):
-            if path.is_file():
-                snap[path.relative_to(repo).as_posix()] = path.read_bytes()
     return snap
 
 
@@ -289,7 +296,10 @@ def _rollback(
         if ges.is_dir():
             for path in ges.rglob("*"):
                 if path.is_file():
-                    current.add(path.relative_to(repo).as_posix())
+                    rel = path.relative_to(repo).as_posix()
+                    if is_governance_rel(rel):
+                        continue
+                    current.add(rel)
         for rel, item in t0.items():
             target = repo / rel
             if item is None:
@@ -330,11 +340,17 @@ def _remove_ges_if_new(repo: Path) -> None:
     if not ges.exists():
         return
     for path in sorted(ges.rglob("*"), reverse=True):
+        rel = path.relative_to(repo).as_posix()
+        if is_governance_rel(rel):
+            continue
         if path.is_file():
             path.unlink()
         elif path.is_dir():
-            path.rmdir()
-    if ges.exists():
+            try:
+                path.rmdir()
+            except OSError:
+                pass
+    if ges.exists() and not any(ges.rglob("*")):
         ges.rmdir()
 
 

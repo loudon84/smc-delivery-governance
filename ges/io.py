@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -50,6 +52,33 @@ def write_yaml(path: Path, data: Any) -> None:
         yaml.safe_dump(data, sort_keys=False, allow_unicode=True),
         encoding="utf-8",
     )
+
+
+def write_json_atomic(path: Path, data: Any) -> None:
+    text = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+    _atomic_replace(path, text)
+
+
+def write_yaml_atomic(path: Path, data: Any) -> None:
+    text = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
+    _atomic_replace(path, text)
+
+
+def _atomic_replace(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent))
+    tmp = Path(tmp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(text)
+        os.replace(tmp, path)
+    except Exception:
+        if tmp.exists():
+            tmp.unlink()
+        raise
+    reread = path.read_text(encoding="utf-8")
+    if reread != text:
+        raise OSError(f"atomic write verify failed: {path}")
 
 
 def tree_identity(files: dict[str, bytes]) -> str:

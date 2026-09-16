@@ -6,42 +6,45 @@ from typing import Any
 
 @dataclass
 class ArtifactRef:
-    """Pointer-only artifact identity. GES 6 never copies artifact body."""
+    """Pointer-only artifact identity. GES never copies artifact body."""
 
+    id: str
+    type: str
     pointer: str
-    identity: str
     digest: str
-    status: str
-    timestamp: str
 
 
 @dataclass
 class Work:
     id: str
-    artifacts: list[ArtifactRef] = field(default_factory=list)
+    kind: str = "FEATURE"
+    title: str = ""
+    status: str = "OPEN"
+    owner: str = ""
     risk: str | None = None
-    policy: str | None = None
-    ownership: str | None = None
-    evidence: list[str] = field(default_factory=list)
-    approvals: list[str] = field(default_factory=list)
-    release: str | None = None
+    policy: str = "default-v1"
+    artifacts: list[ArtifactRef] = field(default_factory=list)
+    created_at: str = ""
+    updated_at: str = ""
 
 
 @dataclass
 class Evidence:
-    id: str
-    pointer: ArtifactRef
+    type: str
+    status: str
+    subject_sha: str
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class Policy:
     id: str
-    rules: dict[str, Any] = field(default_factory=dict)
+    intake: dict[str, Any] = field(default_factory=dict)
+    merge: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class Risk:
-    id: str
     level: str
 
 
@@ -64,8 +67,6 @@ class Release:
     id: str
     work_id: str
     commit: str | None = None
-    pull_request: str | None = None
-    build: str | None = None
 
 
 BACKPLANE_MODULES = (

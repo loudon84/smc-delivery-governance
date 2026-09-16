@@ -5,6 +5,7 @@ from pathlib import Path
 from ges.errors import MANAGED_CONTENT_MODIFIED, GesError
 from ges.harness_adapters.agents_md import remove_marker, section_hash
 from ges.io import sha256_file, write_text
+from ges.governance.paths import is_governance_rel
 from ges.paths import PRESERVE_ALWAYS
 from ges.reconciler.guard import assert_allowed, contain
 from ges.reconciler.hashes import artifact_index
@@ -37,14 +38,27 @@ def run_remove(repo: Path) -> list[str]:
                 _prune_empty(repo, target.parent)
     ges_dir = repo / ".ges"
     if ges_dir.exists():
+        preserved = False
         for path in sorted(ges_dir.rglob("*"), reverse=True):
+            rel = path.relative_to(repo).as_posix()
+            if is_governance_rel(rel):
+                preserved = True
+                continue
             if path.is_file():
                 path.unlink()
             elif path.is_dir():
-                path.rmdir()
-        if ges_dir.exists():
-            ges_dir.rmdir()
-        removed.append(".ges/")
+                try:
+                    path.rmdir()
+                except OSError:
+                    pass
+        if preserved:
+            print("governance data preserved at .ges/governance/")
+            emit(REMOVE, "governance-preserved", path=".ges/governance/")
+        elif ges_dir.exists():
+            remaining = list(ges_dir.rglob("*"))
+            if not remaining:
+                ges_dir.rmdir()
+                removed.append(".ges/")
     emit(REMOVE, "complete", removed=len(removed))
     return removed
 
