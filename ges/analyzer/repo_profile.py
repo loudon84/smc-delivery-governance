@@ -7,9 +7,10 @@ from typing import Any
 
 from ges import __version__
 from ges.analyzer import detectors
+from ges.analyzer.git_index import build_git_file_index, is_git_repo, prune_walk
 from ges.analyzer.source_roots import business_source_roots
-from ges.errors import REPO_NOT_SUPPORTED, GesError
-from ges.stagelog import ANALYZE, emit
+from ges.errors import BUSINESS_GIT_INDEX_UNAVAILABLE, REPO_NOT_SUPPORTED, GesError
+from ges.stagelog import ANALYZE, ANALYZER_INDEX, emit
 
 
 def analyze_repo(repo: Path) -> dict[str, Any]:
@@ -18,6 +19,7 @@ def analyze_repo(repo: Path) -> dict[str, Any]:
     root = repo.expanduser().resolve()
     if not root.is_dir():
         raise GesError(REPO_NOT_SUPPORTED, f"repository path does not exist: {repo}")
+    _bind_analyzer_index(root)
 
     brownfield = detectors.detect_brownfield(root)
     monorepo = detectors.detect_monorepo(root)
@@ -49,6 +51,22 @@ def analyze_repo(repo: Path) -> dict[str, Any]:
     }
     emit(ANALYZE, "complete", repository_kind=kind, agents=profile["agents"])
     return profile
+
+
+def _bind_analyzer_index(repo: Path) -> None:
+    emit(ANALYZER_INDEX, "start", repo=str(repo))
+    if is_git_repo(repo):
+        try:
+            index = build_git_file_index(repo)
+            detectors.use_file_inventory(index=index)
+            emit(ANALYZER_INDEX, "complete", paths=index.path_count, elapsed_ms=index.elapsed_ms, mode="git")
+            return
+        except GesError as exc:
+            if exc.code != BUSINESS_GIT_INDEX_UNAVAILABLE:
+                raise
+    paths, visits = prune_walk(repo)
+    detectors.use_file_inventory(paths=paths, ignored_visits=visits)
+    emit(ANALYZER_INDEX, "complete", paths=len(paths), elapsed_ms=0, mode="walk")
 
 
 def _git_identity(repo: Path) -> dict[str, Any]:

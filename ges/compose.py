@@ -106,7 +106,12 @@ def compose(
     business = snapshot_business_sources(repo)
     lock = build_lock(catalog, resolution, desired, business=business)
     legacy = inspect_legacy(repo)
-    guard = {"roots": profile.get("source_roots") or [], "fingerprint_count": len(business)}
+    counts = business.get("counts") if isinstance(business, dict) else {}
+    guard = {
+        "roots": profile.get("source_roots") or [],
+        "fingerprint_count": int((counts or {}).get("tracked") or (counts or {}).get("overlay_content_hashed") or 0),
+        "strategy": business.get("strategy") if isinstance(business, dict) else "",
+    }
     plan = build_plan(
         repo,
         desired,

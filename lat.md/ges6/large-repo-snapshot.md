@@ -1,0 +1,7 @@
+# Large Repo Snapshot
+
+Business Source Guard v2 uses a Git index plus a dirty/untracked overlay so `ges init` cost follows Git-visible source, not ignored physical trees.
+
+Clean tracked identity is `mode + blob OID + path`. Dirty tracked and non-ignored untracked files keep exact-byte hashes. Ignored generated trees are not content-hashed and still cannot be written. See [[ges/reconciler/business_guard.py#capture_business_snapshot]] and [[ges/analyzer/git_index.py#build_git_file_index]].
+
+Analyzer detectors reuse the same GitFileIndex. Non-Git evidence discovery uses a pruned `os.walk`. Git inventory failure falls back to full SHA256 and never skips the guard. `LARGE_REPO_GUARD_V2_READY` is not claimed until required Golden ACs PASS.

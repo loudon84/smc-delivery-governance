@@ -8,11 +8,15 @@ Alpha.2 synthetic backplane acceptances exist. Live Golden merge observation was
 
 v5 execution-centric runtime in `engineeing-skills/` is frozen and is not part of v6 core. See [[ADR-012-ges6-composer-backplane-boundary]], [[composer]], [[governance-backplane]] and [[ges]].
 
+Operator CLI install and consumer `ges init` examples for 6.0.0-alpha.2 live in the repo-root `GUIDE.md`.
+
 - [[composer]] — analyze, resolve, project, reconcile
 - [[capability-catalog]] — capability graph, owners, conflicts
 - [[source-resolve]] — pinned upstream SHAs and cache
 - [[harness-projection]] — Cursor, Codex and AGENTS.md markers
 - [[reconcile]] — desired-state apply, check, remove
+- [[large-repo-snapshot]] — Git-index Business Source Guard v2 and analyzer GitFileIndex
+- [[large-repo-tests]] — large-repo snapshot, overlay, ledger, and fallback oracles
 - [[doctor]] — read-only runtime readiness; Installed vs BOOTSTRAP_PENDING vs READY
 - [[legacy-v5-detection]] — report v5 without deleting uncertain files
 - [[governance-backplane]] — Alpha.2 Work/Policy/Evidence/Trace and Gate A/B runtime

@@ -9,7 +9,6 @@ from typing import Any
 
 from ges import __distribution_version__, __product_version__, __version__
 from ges.errors import (
-    BUSINESS_SOURCE_MODIFICATION_FORBIDDEN,
     GES_RECONCILE_NOOP,
     TRANSACTION_ROLLBACK_FAILED,
     GesError,
@@ -17,34 +16,22 @@ from ges.errors import (
 from ges.io import sha256_file, write_bytes, write_json, write_yaml
 from ges.governance.paths import is_governance_rel
 from ges.paths import LOCK_FILE, PROJECT_FILE, RECEIPT_FILE, REPO_PROFILE_FILE
+from ges.reconciler.business_guard import (
+    assert_business_unchanged,
+    capture_business_snapshot,
+    format_guard_summary,
+    snapshot_business_sources,
+)
+from ges.reconciler.mutation import MutationLedger, new_ledger
 from ges.reconciler.state import read_receipt
-from ges.reconciler.guard import assert_allowed, assert_not_business_source, contain
+from ges.reconciler.guard import contain
 from ges.reconciler.hashes import desired_identity
 from ges.reconciler.plan import ADD, REMOVE, UPDATE, InstallPlan
 from ges.reconciler.state import validate_payload
 from ges.source_adapters.base import ProjectedFile
-from ges.stagelog import RECONCILE, emit
+from ges.stagelog import COMPOSER_APPLY, RECONCILE, emit
 
 GES_STATE_FILES = (PROJECT_FILE, REPO_PROFILE_FILE, LOCK_FILE, RECEIPT_FILE)
-
-
-def snapshot_business_sources(repo: Path) -> dict[str, dict[str, Any]]:
-    from ges.analyzer.source_roots import iter_business_files
-
-    snap: dict[str, dict[str, Any]] = {}
-    for path in iter_business_files(repo):
-        rel = path.relative_to(repo).as_posix()
-        snap[rel] = {"size": path.stat().st_size, "sha256": sha256_file(path)}
-    return snap
-
-
-def assert_business_unchanged(repo: Path, before: dict[str, dict[str, Any]]) -> None:
-    after = snapshot_business_sources(repo)
-    if after != before:
-        raise GesError(
-            BUSINESS_SOURCE_MODIFICATION_FORBIDDEN,
-            "business source bytes changed during Composer apply",
-        )
 
 
 def apply_plan(
@@ -67,7 +54,8 @@ def apply_plan(
 
     transaction_id = str(uuid.uuid4())
     receipt = build_receipt(repo, desired, profile, lock, transaction_id=transaction_id)
-    before = snapshot_business_sources(repo)
+    before = capture_business_snapshot(repo)
+    ledger = new_ledger()
     stage = Path(tempfile.mkdtemp(prefix="ges-stage-"))
     backup = Path(tempfile.mkdtemp(prefix="ges-t0-"))
     ges_existed = (repo / ".ges").is_dir()
@@ -79,6 +67,7 @@ def apply_plan(
         t0 = snapshot_managed_scope(repo, desired, plan)
         _persist_snapshot(backup, t0)
         try:
+            emit(COMPOSER_APPLY, "start", transaction_id=transaction_id)
             _commit_stage(
                 repo,
                 stage,
@@ -86,14 +75,17 @@ def apply_plan(
                 changing={entry.path for entry in plan.changing()},
                 fail_at=fail_at,
                 fail_after_writes=fail_after_writes,
+                ledger=ledger,
             )
-            _apply_removes(repo, plan)
+            _apply_removes(repo, plan, ledger=ledger)
+            emit(COMPOSER_APPLY, "complete", writes=len(ledger.entries))
             if fail_at in {"post_verify", "post_check", "rollback_write_failure"}:
                 raise RuntimeError(f"injected failure {fail_at}")
             from ges.check import run_check
 
             run_check(repo)
-            assert_business_unchanged(repo, before)
+            after = assert_business_unchanged(repo, before)
+            print(format_guard_summary(before, after))
         except Exception:
             try:
                 if fail_at == "rollback_write_failure":
@@ -236,37 +228,34 @@ def _commit_stage(
     changing: set[str],
     fail_at: str | None,
     fail_after_writes: int,
+    ledger: MutationLedger,
 ) -> None:
     written = 0
     for rel, item in sorted(desired.items()):
         if rel not in changing:
             continue
-        assert_allowed(rel)
-        assert_not_business_source(rel)
-        target = contain(repo, rel)
-        write_bytes(target, item.content)
+        ledger.write_file(repo, rel, item.content)
         written += 1
         if fail_at == "after_first_write" and written == 1:
             raise RuntimeError("injected failure after_first_write")
         if fail_at == "after_nth_write" and written == fail_after_writes:
             raise RuntimeError("injected failure after_nth_write")
     for name in (PROJECT_FILE, REPO_PROFILE_FILE, LOCK_FILE):
-        write_bytes(contain(repo, f".ges/{name}"), (stage / ".ges" / name).read_bytes())
+        ledger.write_file(repo, f".ges/{name}", (stage / ".ges" / name).read_bytes())
         written += 1
         if fail_at == "after_nth_write" and written == fail_after_writes:
             raise RuntimeError("injected failure after_nth_write")
     if fail_at == "before_receipt":
         raise RuntimeError("injected failure before_receipt")
-    write_bytes(contain(repo, f".ges/{RECEIPT_FILE}"), (stage / ".ges" / RECEIPT_FILE).read_bytes())
+    ledger.write_file(repo, f".ges/{RECEIPT_FILE}", (stage / ".ges" / RECEIPT_FILE).read_bytes())
 
 
-def _apply_removes(repo: Path, plan: InstallPlan) -> None:
+def _apply_removes(repo: Path, plan: InstallPlan, *, ledger: MutationLedger) -> None:
     for entry in plan.entries:
         if entry.action != REMOVE:
             continue
-        target = contain(repo, entry.path)
-        if target.is_file():
-            target.unlink()
+        target = ledger.remove_file(repo, entry.path)
+        if not target.exists():
             _prune_empty(repo, target.parent)
 
 

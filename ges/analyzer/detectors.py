@@ -3,6 +3,39 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from ges.analyzer.git_index import GitFileIndex, prune_walk
+
+_INDEX: GitFileIndex | None = None
+_WALK_PATHS: list[str] | None = None
+IGNORED_TREE_VISITS = 0
+
+
+def use_file_inventory(
+    *,
+    index: GitFileIndex | None = None,
+    paths: list[str] | None = None,
+    ignored_visits: int = 0,
+) -> None:
+    global _INDEX, _WALK_PATHS, IGNORED_TREE_VISITS
+    _INDEX = index
+    _WALK_PATHS = paths
+    IGNORED_TREE_VISITS = ignored_visits
+
+
+def clear_file_inventory() -> None:
+    use_file_inventory()
+
+
+def _candidate_paths(repo: Path) -> list[str]:
+    if _INDEX is not None:
+        return _INDEX.visible_paths()
+    if _WALK_PATHS is not None:
+        return list(_WALK_PATHS)
+    paths, visits = prune_walk(repo)
+    global IGNORED_TREE_VISITS
+    IGNORED_TREE_VISITS = visits
+    return paths
+
 
 def exists(repo: Path, rel: str) -> bool:
     return (repo / rel).exists()
@@ -21,26 +54,27 @@ def detect_agents(repo: Path) -> list[str]:
 
 def tsconfig_evidence(repo: Path) -> list[str]:
     found: list[str] = []
-    for path in repo.rglob("tsconfig*.json"):
-        rel = path.relative_to(repo).as_posix()
-        if any(part.startswith(".") and part not in {".", ".."} for part in path.relative_to(repo).parts[:-1]):
+    for rel in _candidate_paths(repo):
+        name = Path(rel).name
+        if not name.startswith("tsconfig") or not name.endswith(".json"):
             continue
-        if "node_modules" in path.parts or ".git" in path.parts:
+        parts = Path(rel).parts[:-1]
+        if any(part.startswith(".") and part not in {".", ".."} for part in parts):
+            continue
+        if "node_modules" in Path(rel).parts or ".git" in Path(rel).parts:
             continue
         found.append(rel)
     return sorted(found)
 
 
 def typescript_source_evidence(repo: Path) -> list[str]:
-    hits: list[str] = []
-    for ext in ("*.ts", "*.tsx"):
-        for path in repo.rglob(ext):
-            if "node_modules" in path.parts or ".git" in path.parts:
-                continue
-            hits.append(path.relative_to(repo).as_posix())
-            if len(hits) >= 5:
-                return hits
-    return hits
+    hits = [
+        rel
+        for rel in _candidate_paths(repo)
+        if rel.endswith(".ts") or rel.endswith(".tsx")
+        if "node_modules" not in Path(rel).parts and ".git" not in Path(rel).parts
+    ]
+    return sorted(hits)[:5]
 
 
 def detect_languages(repo: Path) -> list[str]:
@@ -63,11 +97,13 @@ def detect_languages(repo: Path) -> list[str]:
 
 def iter_package_json(repo: Path) -> list[Path]:
     found: list[Path] = []
-    for path in repo.rglob("package.json"):
-        if "node_modules" in path.parts or ".git" in path.parts:
+    for rel in _candidate_paths(repo):
+        if Path(rel).name != "package.json":
             continue
-        found.append(path)
-    return found
+        if "node_modules" in Path(rel).parts or ".git" in Path(rel).parts:
+            continue
+        found.append(repo / rel)
+    return sorted(found, key=lambda item: item.relative_to(repo).as_posix())
 
 
 def _package_data(path: Path) -> dict:
