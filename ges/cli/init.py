@@ -74,7 +74,9 @@ def _refresh_install_version(repo) -> bool:
         and lock.get("distribution_version") == __distribution_version__
         and receipt.get("distribution_version") == __distribution_version__
     )
-    fingerprint_fresh = is_overlay_fingerprint(lock.get("business_source_fingerprint"))
+    fingerprint_fresh = is_overlay_fingerprint(lock.get("business_source_fingerprint")) and lock.get(
+        "business_source_fingerprint"
+    ) == current_fp
     if version_fresh and fingerprint_fresh:
         return False
     if lock:

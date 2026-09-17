@@ -7,7 +7,7 @@ from ges.compose import compose
 from ges.errors import GES_CHECK_FAILED, GES_CHECK_PASS, GesError
 from ges.harness_adapters.agents_md import count_markers, read_agents, section_hash
 from ges.io import sha256_file
-from ges.reconciler.business_guard import is_overlay_fingerprint, snapshot_business_sources
+from ges.reconciler.business_guard import is_overlay_fingerprint
 from ges.reconciler.guard import assert_allowed, assert_not_business_source
 from ges.reconciler.hashes import artifact_index
 from ges.reconciler.state import read_lock, read_profile, read_project, read_receipt, validate_payload
@@ -87,14 +87,11 @@ def run_check(repo: Path) -> str:
         raise GesError(GES_CHECK_FAILED, "AGENTS.md must contain exactly one GES marker")
 
     stored = lock.get("business_source_fingerprint")
-    if stored:
-        if not is_overlay_fingerprint(stored):
-            raise GesError(
-                GES_CHECK_FAILED,
-                "business source fingerprint schema is stale; run ges init --yes",
-            )
-        if snapshot_business_sources(repo) != stored:
-            raise GesError(GES_CHECK_FAILED, "business source bytes changed")
+    if stored and not is_overlay_fingerprint(stored):
+        raise GesError(
+            GES_CHECK_FAILED,
+            "business source fingerprint schema is stale; run ges init --yes",
+        )
 
     ctx = compose(repo, persist_profile=False)
     if not ctx.plan.noop:

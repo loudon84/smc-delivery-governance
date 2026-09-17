@@ -73,6 +73,7 @@ def run_doctor(repo: Path) -> dict[str, Any]:
         "matt_project_bootstrap": PENDING,
         "superpowers_skills": FAIL,
     }
+    core_error = ""
     try:
         run_check(repo)
         checks["ges_core"] = PASS
@@ -80,6 +81,7 @@ def run_doctor(repo: Path) -> dict[str, Any]:
         if exc.code != GES_CHECK_FAILED:
             raise
         checks["ges_core"] = FAIL
+        core_error = f"{exc.code}: {exc.message}"
 
     catalog = load_catalog()
     project = read_project(repo) or {}
@@ -102,6 +104,8 @@ def run_doctor(repo: Path) -> dict[str, Any]:
     plan = build_capability_plan(facts, closed)
     status = probe_rtk()
     warnings: list[str] = []
+    if core_error:
+        warnings.append(core_error)
     if RTK_ID in plan.get("recommended", []):
         if status["status"] == "missing":
             warnings.append(f"RECOMMENDED_PROVIDER_MISSING: {RTK_ID}")

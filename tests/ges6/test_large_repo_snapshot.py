@@ -462,3 +462,14 @@ def test_init_noop_refreshes_overlay_fingerprint(brownfield, offline_cache, monk
     assert fingerprint.get("strategy")
     assert "snapshot_digest" in fingerprint
     assert run_check(brownfield) == GES_CHECK_PASS
+
+
+# @lat: [[large-repo-tests#Upgrade#Post-install business commits do not fail check]]
+def test_post_install_business_commits_do_not_fail_check(brownfield, offline_cache):
+    apply_recommended(brownfield)
+    (brownfield / "apps" / "work" / "src" / "main.ts").write_text("export const app = 2;\n", encoding="utf-8")
+    assert run_check(brownfield) == GES_CHECK_PASS
+    from ges.doctor import run_doctor
+
+    payload = run_doctor(brownfield)
+    assert payload["checks"]["ges_core"] == "PASS"

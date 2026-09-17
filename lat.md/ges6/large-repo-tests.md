@@ -122,6 +122,10 @@ A path-map fingerprint fails check with a stale-schema message, not a silent byt
 
 Same-set `ges init --yes` rewrites the lock fingerprint to the current overlay snapshot.
 
+### Post-install business commits do not fail check
+
+After install, ordinary business-source commits or untracked files must not fail `ges check` or `ges_core`.
+
 ## Analyzer
 
 Detectors must not walk ignored trees.
