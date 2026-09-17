@@ -6,7 +6,9 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from ges.analyzer.source_roots import is_skipped_business_path
 from ges.errors import BUSINESS_GIT_INDEX_UNAVAILABLE, GesError
+from ges.paths import BUSINESS_SOURCE_SKIP_PREFIXES
 from ges.stagelog import FILE_INDEX, emit
 
 ANALYZER_PRUNE_NAMES = {
@@ -59,13 +61,21 @@ class GitFileIndex:
         for item in self.status:
             if item.kind in {"untracked", "changed", "renamed", "unmerged"}:
                 paths.add(item.path)
-        return sorted(paths)
+        return sorted(path for path in paths if not is_skipped_business_path(path))
 
     def business_tracked(self, roots: list[str]) -> list[TrackedEntry]:
-        return [item for item in self.tracked if _under_roots(item.path, roots)]
+        return [
+            item
+            for item in self.tracked
+            if _under_roots(item.path, roots) and not is_skipped_business_path(item.path)
+        ]
 
     def business_status(self, roots: list[str]) -> list[StatusEntry]:
-        return [item for item in self.status if _under_roots(item.path, roots)]
+        return [
+            item
+            for item in self.status
+            if _under_roots(item.path, roots) and not is_skipped_business_path(item.path)
+        ]
 
 
 def is_git_repo(repo: Path) -> bool:
@@ -192,7 +202,12 @@ def prune_walk(repo: Path) -> tuple[list[str], int]:
         names = set(dirs)
         if names & ANALYZER_PRUNE_NAMES:
             ignored_visits += len(names & ANALYZER_PRUNE_NAMES)
-        dirs[:] = [name for name in dirs if name not in ANALYZER_PRUNE_NAMES]
+        dirs[:] = [
+            name
+            for name in dirs
+            if name not in ANALYZER_PRUNE_NAMES
+            and not is_skipped_business_path(name if rel_dir == "." else f"{rel_dir}/{name}")
+        ]
         for name in files:
             rel = name if rel_dir == "." else f"{rel_dir}/{name}"
             found.append(rel.replace("\\", "/"))
@@ -209,8 +224,11 @@ def _git_bytes(repo: Path, args: list[str]) -> subprocess.CompletedProcess[bytes
 
 def _pathspec(repo: Path, roots: list[str] | None) -> list[str]:
     if not roots:
-        return ["."]
-    return [name for name in roots if (repo / name).exists()] or ["."]
+        specs = ["."]
+    else:
+        specs = [name for name in roots if (repo / name).exists()] or ["."]
+    specs.extend(f":(exclude){prefix}" for prefix in BUSINESS_SOURCE_SKIP_PREFIXES)
+    return specs
 
 
 def _under_roots(path: str, roots: list[str]) -> bool:

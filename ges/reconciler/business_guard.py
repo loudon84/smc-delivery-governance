@@ -14,7 +14,7 @@ from ges.analyzer.git_index import (
     digest_bytes,
     is_git_repo,
 )
-from ges.analyzer.source_roots import business_source_roots, iter_business_files
+from ges.analyzer.source_roots import business_source_roots, is_skipped_business_path, iter_business_files
 from ges.errors import (
     BUSINESS_GIT_HEAD_CHANGED_DURING_APPLY,
     BUSINESS_GIT_INDEX_CHANGED_DURING_APPLY,
@@ -251,7 +251,11 @@ def _full_fallback_snapshot(repo: Path, roots: list[str], reason: str) -> dict[s
 
 
 def _worktree_record(repo: Path, rel: str, tracked: TrackedEntry | None) -> tuple[str, int, int, bool]:
+    if is_skipped_business_path(rel):
+        return f"S\0{rel.rstrip('/')}\n", 0, 0, False
     path = repo / rel
+    if path.is_dir() and not path.is_symlink():
+        return f"S\0{rel.rstrip('/')}\n", 0, 0, False
     if not path.exists() and not path.is_symlink():
         return f"D\0{rel}\n", 0, 0, False
     if path.is_symlink() or (tracked and _mode_int(tracked.mode) == SYMLINK_MODE):

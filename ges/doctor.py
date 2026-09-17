@@ -8,10 +8,14 @@ from pathlib import Path
 from typing import Any
 
 from ges import __product_version__
+from ges.analyzer.repo_profile import analyze_repo
 from ges.catalog.loader import load_catalog
+from ges.catalog.providers import RTK_ID
 from ges.check import run_check
-from ges.errors import BOOTSTRAP_PREREQUISITE_FAILED, GES_CHECK_FAILED, GesError
-from ges.reconciler.state import read_lock, read_project
+from ges.errors import BOOTSTRAP_PREREQUISITE_FAILED, GES_CHECK_FAILED, REPO_NOT_SUPPORTED, GesError
+from ges.providers.resolve import build_capability_plan
+from ges.providers.rtk import probe_rtk
+from ges.reconciler.state import read_lock, read_profile, read_project
 from ges.source_adapters.speckit_render import SELECTED_COMMANDS, leftover_tokens, skill_rel
 from ges.stagelog import DOCTOR, PREFLIGHT, emit
 
@@ -94,6 +98,15 @@ def run_doctor(repo: Path) -> dict[str, Any]:
         checks["matt_project_bootstrap"] = FAIL
 
     overall = _overall(checks)
+    facts = _repo_facts(repo)
+    plan = build_capability_plan(facts, closed)
+    status = probe_rtk()
+    warnings: list[str] = []
+    if RTK_ID in plan.get("recommended", []):
+        if status["status"] == "missing":
+            warnings.append(f"RECOMMENDED_PROVIDER_MISSING: {RTK_ID}")
+        elif status["status"] == "NOT_READY":
+            warnings.append(f"RECOMMENDED_PROVIDER_NOT_READY: {RTK_ID}")
     payload = {
         "schema": "ges.readiness.v1",
         "ges_version": __product_version__,
@@ -101,9 +114,21 @@ def run_doctor(repo: Path) -> dict[str, Any]:
         "checked_at": datetime.now(timezone.utc).isoformat(),
         "overall": overall,
         "checks": checks,
+        "warnings": warnings,
+        "capabilities": [status],
     }
     emit(DOCTOR, "complete", overall=overall)
     return payload
+
+
+def _repo_facts(repo: Path) -> dict[str, Any]:
+    stored = read_profile(repo) or {}
+    try:
+        return analyze_repo(repo)
+    except GesError as exc:
+        if exc.code != REPO_NOT_SUPPORTED:
+            raise
+        return stored
 
 
 def _overall(checks: dict[str, str]) -> str:

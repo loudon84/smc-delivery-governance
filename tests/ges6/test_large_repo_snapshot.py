@@ -218,6 +218,30 @@ def test_dirty_submodule_blocks(tmp_path):
     assert captured.value.code in {SUBMODULE_SOURCE_STATE_UNRESOLVED, BUSINESS_GIT_INDEX_UNAVAILABLE}
 
 
+# @lat: [[large-repo-tests#Special paths#Knowledge tree is skipped]]
+def test_knowledge_tree_is_skipped(tmp_path):
+    repo = _repo(tmp_path / "skip-knowledge")
+    _commit_src(repo, "apps/other/app.ts", "ok\n")
+    _write(repo / "apps" / "knowledge" / "secret.ts", "nope\n")
+    reset_hash_stats()
+    snap = capture_business_snapshot(repo)
+    assert snap["strategy"] == "git-index-overlay"
+    assert all(not path.replace("\\", "/").startswith("apps/knowledge") for path in HASH_STATS["paths"])
+
+
+# @lat: [[large-repo-tests#Special paths#Composer writes are skipped]]
+def test_composer_writes_are_skipped(tmp_path):
+    repo = _repo(tmp_path / "skip-composer")
+    _commit_src(repo, "README.md", "product\n")
+    before = snapshot_business_sources(repo)
+    _write(repo / "AGENTS.md", "stack\n")
+    _write(repo / ".ges" / "project.yaml", "schema: ges.project.v2\n")
+    _write(repo / ".agents" / "skills" / "grilling" / "SKILL.md", "grill\n")
+    _write(repo / ".specify" / "memory" / "constitution.md", "const\n")
+    after = snapshot_business_sources(repo)
+    assert before == after
+
+
 # @lat: [[large-repo-tests#Consistency#HEAD race blocks]]
 def test_head_race_blocks(tmp_path):
     repo = _repo(tmp_path / "head")

@@ -17,6 +17,16 @@ AGENTS_BEGIN = "<!-- ges:v6:engineering-stack:begin -->"
 AGENTS_END = "<!-- ges:v6:engineering-stack:end -->"
 
 BUSINESS_SOURCE_ROOTS = ("apps", "services", "src", "packages", "contracts")
+BUSINESS_SOURCE_SKIP_PREFIXES = (
+    "apps/knowledge",
+    ".ges",
+    ".agents/skills",
+    ".specify",
+    ".cursor",
+    ".codex",
+    "AGENTS.md",
+    ".gitignore",
+)
 
 WRITE_ALLOW_PREFIXES = (
     ".ges/",

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ges.catalog.providers import RTK_ID
 from ges.compose import ComposeContext
 from ges.legacy.v5 import LegacyReport
 
@@ -59,6 +60,39 @@ def render_init(ctx: ComposeContext, legacy: LegacyReport) -> str:
         for item in ctx.resolution.conflicts:
             lines.append(f"  {item['left']} vs {item['right']}")
     return "\n".join(lines) + "\n"
+
+
+def render_capability_plan(plan: dict[str, Any], status: dict[str, Any] | None = None) -> str:
+    mark = _rtk_mark(plan, status)
+    reason = (plan.get("reasons") or {}).get(RTK_ID, "")
+    recommended = plan.get("recommended") or []
+    optional = plan.get("optional") or []
+    rec_line = "  (none)"
+    if RTK_ID in recommended:
+        rec_line = f"  {mark} {RTK_ID}" + (f"    (reason: {reason})" if reason else "")
+    opt_line = "  (none)"
+    if RTK_ID in optional:
+        opt_line = f"  ○ {RTK_ID}"
+    required = "  ✓ Spec Kit" if "speckit" in (plan.get("required") or []) else "  (none)"
+    return (
+        "Capability Recommendation\n"
+        "-------------------------\n"
+        "\n"
+        "Required:\n"
+        f"{required}\n"
+        "\n"
+        "Recommended:\n"
+        f"{rec_line}\n"
+        "\n"
+        "Optional:\n"
+        f"{opt_line}\n"
+    )
+
+
+def _rtk_mark(plan: dict[str, Any], status: dict[str, Any] | None) -> str:
+    if status and status.get("status") == "READY":
+        return "✓"
+    return "○"
 
 
 def render_plan(plan_dict: dict[str, Any]) -> str:

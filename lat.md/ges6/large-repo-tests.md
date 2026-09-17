@@ -62,6 +62,14 @@ External target bytes may change; only a changed link string changes the snapsho
 
 An unresolvable dirty gitlink raises SUBMODULE_SOURCE_STATE_UNRESOLVED.
 
+### Knowledge tree is skipped
+
+`apps/knowledge` must not be content-hashed or walked; snapshot continues without reading that tree.
+
+### Composer writes are skipped
+
+Empty-root repos may still write `.ges`, skills, Spec Kit, and `AGENTS.md` without changing the business snapshot.
+
 ## Consistency
 
 HEAD, index, and protected-byte races rollback or block.
