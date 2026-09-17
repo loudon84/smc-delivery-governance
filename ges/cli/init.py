@@ -13,6 +13,7 @@ from ges import __distribution_version__, __product_version__
 from ges.errors import GES_RECONCILE_NOOP, GesError
 from ges.legacy.v5 import inspect_legacy
 from ges.reconciler.apply import apply_plan
+from ges.reconciler.business_guard import is_overlay_fingerprint, snapshot_business_sources
 from ges.reconciler.state import read_lock, read_receipt, write_lock, write_receipt
 
 
@@ -66,16 +67,20 @@ def _completion_report(overall: str) -> str:
 def _refresh_install_version(repo) -> bool:
     lock = read_lock(repo) or {}
     receipt = read_receipt(repo) or {}
-    if (
+    current_fp = snapshot_business_sources(repo)
+    version_fresh = (
         lock.get("ges_version") == __product_version__
         and receipt.get("ges_version") == __product_version__
         and lock.get("distribution_version") == __distribution_version__
         and receipt.get("distribution_version") == __distribution_version__
-    ):
+    )
+    fingerprint_fresh = is_overlay_fingerprint(lock.get("business_source_fingerprint"))
+    if version_fresh and fingerprint_fresh:
         return False
     if lock:
         lock["ges_version"] = __product_version__
         lock["distribution_version"] = __distribution_version__
+        lock["business_source_fingerprint"] = current_fp
         write_lock(repo, lock)
     if receipt:
         receipt["ges_version"] = __product_version__

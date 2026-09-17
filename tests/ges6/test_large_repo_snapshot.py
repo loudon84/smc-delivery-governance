@@ -1,21 +1,28 @@
 from __future__ import annotations
 
 import subprocess
+from argparse import Namespace
 from pathlib import Path
 
 import pytest
 
+from ges.acceptance.harness import apply_recommended
 from ges.analyzer import detectors
 from ges.analyzer.git_index import build_git_file_index, parse_ls_files_stage_z, parse_porcelain_v2_z, prune_walk
 from ges.analyzer.repo_profile import analyze_repo
+from ges.check import run_check
+from ges.cli import init as init_cli
 from ges.errors import (
     BUSINESS_GIT_HEAD_CHANGED_DURING_APPLY,
     BUSINESS_GIT_INDEX_CHANGED_DURING_APPLY,
     BUSINESS_GIT_INDEX_UNAVAILABLE,
     BUSINESS_SOURCE_MODIFICATION_FORBIDDEN,
+    GES_CHECK_FAILED,
+    GES_CHECK_PASS,
     SUBMODULE_SOURCE_STATE_UNRESOLVED,
     GesError,
 )
+from ges.reconciler.state import read_lock, write_lock
 from ges.reconciler.business_guard import (
     HASH_STATS,
     capture_business_snapshot,
@@ -428,3 +435,30 @@ def test_synthetic_operation_budget(tmp_path):
     assert HASH_STATS["calls"] <= 40
     assert all("generated" not in path for path in HASH_STATS["paths"])
     assert snap["counts"]["overlay_content_hashed"] <= 200
+
+
+# @lat: [[large-repo-tests#Upgrade#Legacy fingerprint is stale]]
+def test_legacy_fingerprint_is_stale(brownfield, offline_cache):
+    apply_recommended(brownfield)
+    lock = read_lock(brownfield) or {}
+    lock["business_source_fingerprint"] = {"apps/work/src/main.ts": {"size": 1, "sha256": "aa"}}
+    write_lock(brownfield, lock)
+    with pytest.raises(GesError) as exc:
+        run_check(brownfield)
+    assert exc.value.code == GES_CHECK_FAILED
+    assert "stale" in exc.value.message
+
+
+# @lat: [[large-repo-tests#Upgrade#Init noop refreshes overlay fingerprint]]
+def test_init_noop_refreshes_overlay_fingerprint(brownfield, offline_cache, monkeypatch):
+    apply_recommended(brownfield)
+    lock = read_lock(brownfield) or {}
+    lock["business_source_fingerprint"] = {"apps/work/src/main.ts": {"size": 1, "sha256": "aa"}}
+    write_lock(brownfield, lock)
+    monkeypatch.setattr(init_cli, "_confirm", lambda _args: True)
+    args = Namespace(repo=str(brownfield), exclude=[], enable=[], yes=True, non_interactive=True)
+    assert init_cli.run(args) == 0
+    fingerprint = (read_lock(brownfield) or {}).get("business_source_fingerprint") or {}
+    assert fingerprint.get("strategy")
+    assert "snapshot_digest" in fingerprint
+    assert run_check(brownfield) == GES_CHECK_PASS

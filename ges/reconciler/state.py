@@ -7,7 +7,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from ges.errors import DESIRED_STATE_INVALID, GES_CHECK_FAILED, REPO_PROFILE_INVALID, GesError
-from ges.io import read_json, read_yaml, write_json, write_yaml
+from ges.io import read_json, read_yaml, write_json_atomic, write_yaml
 from ges.paths import (
     LOCK_FILE,
     PROJECT_FILE,
@@ -53,14 +53,14 @@ def write_profile(repo: Path, payload: dict[str, Any]) -> Path:
 def write_lock(repo: Path, payload: dict[str, Any]) -> Path:
     validate_payload("ges.lock.v1.json", payload, code=GES_CHECK_FAILED)
     path = repo_ges_dir(repo) / LOCK_FILE
-    write_json(path, payload)
+    write_json_atomic(path, payload)
     return path
 
 
 def write_receipt(repo: Path, payload: dict[str, Any]) -> Path:
     validate_payload("ges.install-receipt.v2.json", payload, code=GES_CHECK_FAILED)
     path = repo_ges_dir(repo) / RECEIPT_FILE
-    write_json(path, payload)
+    write_json_atomic(path, payload)
     return path
 
 

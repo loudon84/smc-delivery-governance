@@ -110,6 +110,18 @@ A non-Git fixture uses `full-sha256-fallback` and still detects byte changes.
 
 Injected Git inventory failure activates fallback and does not skip the guard.
 
+## Upgrade
+
+Older locks stored a per-file hash map. Check must not treat that as a current overlay snapshot.
+
+### Legacy fingerprint is stale
+
+A path-map fingerprint fails check with a stale-schema message, not a silent byte mismatch.
+
+### Init noop refreshes overlay fingerprint
+
+Same-set `ges init --yes` rewrites the lock fingerprint to the current overlay snapshot.
+
 ## Analyzer
 
 Detectors must not walk ignored trees.

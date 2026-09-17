@@ -100,6 +100,10 @@ def snapshot_business_sources(repo: Path) -> dict[str, Any]:
     return comparable_snapshot(snap)
 
 
+def is_overlay_fingerprint(payload: Any) -> bool:
+    return isinstance(payload, dict) and isinstance(payload.get("strategy"), str) and "snapshot_digest" in payload
+
+
 def comparable_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
     payload = {key: snapshot[key] for key in COMPARABLE_KEYS if key in snapshot}
     payload["elapsed_ms"] = 0
