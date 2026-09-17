@@ -14,6 +14,8 @@ Operator CLI and consumer `ges init` commands for the current 6.x release live i
 - [[capability-catalog]] — capability graph, owners, conflicts
 - [[capability-resolver]] — Alpha.3 parallel provider discovery and RTK verify
 - [[capability-resolver-tests]] — resolver, probe, doctor warning, and freeze oracles
+- [[capability-governance]] — Alpha.4 overlay and `ges capability` for RTK only
+- [[capability-governance-tests]] — overlay, CLI, policy override, and freeze oracles
 - [[source-resolve]] — pinned upstream SHAs and cache
 - [[harness-projection]] — Cursor, Codex and AGENTS.md markers
 - [[reconcile]] — desired-state apply, check, remove

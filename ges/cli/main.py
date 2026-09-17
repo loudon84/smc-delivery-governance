@@ -4,7 +4,7 @@ import argparse
 import sys
 
 from ges import __distribution_version__, __product_version__, __version__
-from ges.cli import analyze, apply, artifact, check, diff, doctor, evidence, gate, governance, init, legacy, remove, trace, work
+from ges.cli import analyze, apply, artifact, capability, check, diff, doctor, evidence, gate, governance, init, legacy, remove, trace, work
 from ges.errors import GesError
 
 
@@ -40,6 +40,25 @@ def build_parser() -> argparse.ArgumentParser:
     check_p = sub.add_parser("check", help="validate composed project state")
     _repo(check_p)
     check_p.set_defaults(func=check.run)
+
+    cap_p = sub.add_parser("capability", help="parallel provider overlay")
+    cap_sub = cap_p.add_subparsers(dest="capability_command", required=True)
+    cap_list = cap_sub.add_parser("list")
+    _repo(cap_list)
+    cap_list.add_argument("--json", action="store_true")
+    cap_list.set_defaults(func=capability.run_list)
+    cap_add = cap_sub.add_parser("add")
+    cap_add.add_argument("id")
+    _repo(cap_add)
+    cap_add.set_defaults(func=capability.run_add)
+    cap_rm = cap_sub.add_parser("remove")
+    cap_rm.add_argument("id")
+    _repo(cap_rm)
+    cap_rm.set_defaults(func=capability.run_remove)
+    cap_doc = cap_sub.add_parser("doctor")
+    cap_doc.add_argument("id")
+    _repo(cap_doc)
+    cap_doc.set_defaults(func=capability.run_doctor)
 
     doctor_p = sub.add_parser("doctor", help="runtime readiness observation")
     _repo(doctor_p)

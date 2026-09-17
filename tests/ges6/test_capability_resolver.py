@@ -184,7 +184,9 @@ def test_init_prints_recommendation(brownfield, offline_cache, capsys, monkeypat
     assert init_cli.run(args) == 0
     output = capsys.readouterr().out
     assert "Capability Recommendation" in output
-    assert "FAIL" not in render_capability_plan(build_capability_plan(BROWNFIELD))
+    text = render_capability_plan(build_capability_plan(BROWNFIELD))
+    assert "FAIL" not in text
+    text.encode("gbk")
 
 
 # @lat: [[capability-resolver-tests#Isolation#Evidence snapshot unchanged]]

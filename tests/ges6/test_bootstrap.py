@@ -382,7 +382,7 @@ def test_a_pkg_001_version_identity(brownfield, offline_cache):
     receipt = read_receipt(brownfield)
     assert receipt["ges_version"] == __product_version__
     assert receipt["distribution_version"] == __distribution_version__
-    assert __product_version__ == "6.0.0-alpha.3"
+    assert __product_version__ == "6.0.0-alpha.4"
     assert __distribution_version__ == "1.2.1"
 
 

@@ -72,8 +72,8 @@ def render_capability_plan(plan: dict[str, Any], status: dict[str, Any] | None =
         rec_line = f"  {mark} {RTK_ID}" + (f"    (reason: {reason})" if reason else "")
     opt_line = "  (none)"
     if RTK_ID in optional:
-        opt_line = f"  ○ {RTK_ID}"
-    required = "  ✓ Spec Kit" if "speckit" in (plan.get("required") or []) else "  (none)"
+        opt_line = f"  [ ] {RTK_ID}"
+    required = "  [ok] Spec Kit" if "speckit" in (plan.get("required") or []) else "  (none)"
     return (
         "Capability Recommendation\n"
         "-------------------------\n"
@@ -91,8 +91,8 @@ def render_capability_plan(plan: dict[str, Any], status: dict[str, Any] | None =
 
 def _rtk_mark(plan: dict[str, Any], status: dict[str, Any] | None) -> str:
     if status and status.get("status") == "READY":
-        return "✓"
-    return "○"
+        return "[ok]"
+    return "[ ]"
 
 
 def render_plan(plan_dict: dict[str, Any]) -> str:

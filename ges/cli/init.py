@@ -9,9 +9,11 @@ from ges.compose import compose, prepare_apply
 from ges.providers.resolve import build_capability_plan
 from ges.providers.rtk import probe_rtk
 from ges.doctor import BOOTSTRAP_PENDING, run_doctor
+from ges import __distribution_version__, __product_version__
 from ges.errors import GES_RECONCILE_NOOP, GesError
 from ges.legacy.v5 import inspect_legacy
 from ges.reconciler.apply import apply_plan
+from ges.reconciler.state import read_lock, read_receipt, write_lock, write_receipt
 
 
 def run(args: Namespace) -> int:
@@ -34,6 +36,8 @@ def run(args: Namespace) -> int:
         apply_plan(repo, ctx.plan, ctx.desired, project=ctx.project, profile=ctx.profile, lock=ctx.lock)
     except GesError as exc:
         if exc.code == GES_RECONCILE_NOOP:
+            if _refresh_install_version(repo):
+                print(f"ges_version: {__product_version__}")
             print(GES_RECONCILE_NOOP)
             return 0
         raise
@@ -57,6 +61,27 @@ def _completion_report(overall: str) -> str:
         "  run setup-matt-pocock-skills\n"
         "  then run ges doctor\n"
     )
+
+
+def _refresh_install_version(repo) -> bool:
+    lock = read_lock(repo) or {}
+    receipt = read_receipt(repo) or {}
+    if (
+        lock.get("ges_version") == __product_version__
+        and receipt.get("ges_version") == __product_version__
+        and lock.get("distribution_version") == __distribution_version__
+        and receipt.get("distribution_version") == __distribution_version__
+    ):
+        return False
+    if lock:
+        lock["ges_version"] = __product_version__
+        lock["distribution_version"] = __distribution_version__
+        write_lock(repo, lock)
+    if receipt:
+        receipt["ges_version"] = __product_version__
+        receipt["distribution_version"] = __distribution_version__
+        write_receipt(repo, receipt)
+    return bool(lock or receipt)
 
 
 def _confirm(args: Namespace) -> bool:

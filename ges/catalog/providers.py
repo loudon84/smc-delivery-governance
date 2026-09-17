@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from ges.errors import DESIRED_STATE_INVALID, GesError
 from ges.io import read_yaml
 from ges.paths import CATALOG_DIR
 
@@ -24,8 +25,11 @@ def load_providers(path: Path | None = None) -> dict[str, Provider]:
     payload = read_yaml(path or PROVIDERS_FILE) or {}
     out: dict[str, Provider] = {}
     for item in payload.get("providers") or []:
+        cap_id = item["id"]
+        if cap_id in out:
+            raise GesError(DESIRED_STATE_INVALID, f"duplicate provider id: {cap_id}")
         provider = Provider(
-            id=item["id"],
+            id=cap_id,
             category=item["category"],
             provider=item["provider"],
             default_level=item.get("default_level") or "optional",
