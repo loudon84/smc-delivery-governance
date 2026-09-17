@@ -68,7 +68,7 @@ An unresolvable dirty gitlink raises SUBMODULE_SOURCE_STATE_UNRESOLVED.
 
 ### Composer writes are skipped
 
-Empty-root repos may still write `.ges`, skills, Spec Kit, and `AGENTS.md` without changing the business snapshot.
+Empty-root repos may still write `.ges`, skills, Spec Kit, `docs/agents`, and `AGENTS.md` without changing the business snapshot.
 
 ## Consistency
 

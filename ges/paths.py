@@ -24,7 +24,9 @@ BUSINESS_SOURCE_SKIP_PREFIXES = (
     ".specify",
     ".cursor",
     ".codex",
+    "docs/agents",
     "AGENTS.md",
+    "CLAUDE.md",
     ".gitignore",
 )
 

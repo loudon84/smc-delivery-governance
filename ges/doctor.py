@@ -146,7 +146,7 @@ def _skills_present(repo: Path, closed: list[str], prefix: str) -> bool:
     catalog = load_catalog()
     hits = [cap_id for cap_id in closed if cap_id.startswith(prefix)]
     if not hits:
-        return False
+        return True
     for cap_id in hits:
         cap = catalog.get(cap_id)
         if cap.projection_type == "virtual" or not cap.skill_name:

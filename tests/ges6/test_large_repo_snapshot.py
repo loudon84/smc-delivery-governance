@@ -235,9 +235,11 @@ def test_composer_writes_are_skipped(tmp_path):
     _commit_src(repo, "README.md", "product\n")
     before = snapshot_business_sources(repo)
     _write(repo / "AGENTS.md", "stack\n")
+    _write(repo / "CLAUDE.md", "claude\n")
     _write(repo / ".ges" / "project.yaml", "schema: ges.project.v2\n")
     _write(repo / ".agents" / "skills" / "grilling" / "SKILL.md", "grill\n")
     _write(repo / ".specify" / "memory" / "constitution.md", "const\n")
+    _write(repo / "docs" / "agents" / "domain.md", "domain\n")
     after = snapshot_business_sources(repo)
     assert before == after
 

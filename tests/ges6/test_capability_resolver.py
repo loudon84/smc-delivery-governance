@@ -150,6 +150,33 @@ def test_missing_is_warning_not_blocked(brownfield, offline_cache, monkeypatch):
     assert run_check(brownfield) == GES_CHECK_PASS
 
 
+def test_excluded_superpowers_does_not_fail_doctor(brownfield, offline_cache, monkeypatch):
+    monkeypatch.setattr("ges.providers.rtk.shutil.which", lambda _name: None)
+    from ges.compose import compose, prepare_apply
+    from ges.reconciler.apply import apply_plan
+
+    ctx = compose(
+        brownfield,
+        exclude=[
+            "superpowers.execution",
+            "superpowers.finishing-a-development-branch",
+            "superpowers.receiving-code-review",
+            "superpowers.requesting-code-review",
+            "superpowers.subagent-driven-development",
+            "superpowers.systematic-debugging",
+            "superpowers.test-driven-development",
+            "superpowers.using-git-worktrees",
+            "superpowers.verification-before-completion",
+            "superpowers.writing-plans",
+        ],
+    )
+    prepare_apply(ctx)
+    apply_plan(brownfield, ctx.plan, ctx.desired, project=ctx.project, profile=ctx.profile, lock=ctx.lock)
+    payload = run_doctor(brownfield)
+    assert payload["checks"]["superpowers_skills"] == "PASS"
+    assert payload["overall"] != BLOCKED
+
+
 # @lat: [[capability-resolver-tests#Init#Init prints recommendation]]
 def test_init_prints_recommendation(brownfield, offline_cache, capsys, monkeypatch):
     monkeypatch.setattr(init_cli, "_confirm", lambda _args: False)
