@@ -129,6 +129,25 @@ def test_ready_version(monkeypatch):
     assert status["status"] == "READY"
     assert status["version"]
     assert all(row["status"] == "PASS" for row in status["health_checks"])
+    names = [row["name"] for row in status["health_checks"]]
+    assert names == list(load_providers()[RTK_ID].health_checks)
+    assert "integration" not in names
+
+
+def test_ready_does_not_fabricate_integration(monkeypatch):
+    monkeypatch.setattr("ges.providers.rtk.shutil.which", lambda _name: r"C:\fake\rtk.exe")
+    monkeypatch.setattr(
+        "ges.providers.rtk.subprocess.run",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess(
+            ["rtk", "--version"],
+            returncode=0,
+            stdout="rtk 1.2.3\n",
+            stderr="",
+        ),
+    )
+    status = probe_rtk()
+    assert not any(row["name"] == "integration" for row in status["health_checks"])
+    assert list(load_providers()[RTK_ID].health_checks) == ["binary", "version"]
 
 
 # @lat: [[capability-resolver-tests#Doctor#Doctor lists capabilities]]

@@ -11,6 +11,7 @@ from ges.errors import (
     POLICY_SCHEMA_INVALID,
     WORK_ALREADY_EXISTS,
     WORK_NOT_FOUND,
+    WORK_SCHEMA_INVALID,
     GesError,
 )
 from ges.governance.paths import governance_dir, policy_path, work_path, works_dir
@@ -41,6 +42,8 @@ DEFAULT_POLICY: dict[str, Any] = {
         },
     },
 }
+
+EXECUTION_HOSTS = ("cursor", "codex", "hermes")
 
 
 def now_rfc3339() -> str:
@@ -93,6 +96,19 @@ def policy_digest(repo: Path) -> str:
     return sha256_file(policy_path(repo))
 
 
+def work_schema_name(payload: dict[str, Any]) -> str:
+    schema = str(payload.get("schema") or "")
+    if schema == "ges.work.v2":
+        return "ges.work.v2.json"
+    if schema == "ges.work.v1":
+        return "ges.work.v1.json"
+    raise GesError(WORK_SCHEMA_INVALID, f"unsupported work schema: {schema}")
+
+
+def validate_work_payload(payload: dict[str, Any]) -> None:
+    validate_payload(work_schema_name(payload), payload, code=WORK_SCHEMA_INVALID)
+
+
 def load_work(repo: Path, work_id: str) -> dict[str, Any]:
     emit(WORK_LOAD, "start", work_id=work_id)
     require_governance(repo)
@@ -100,14 +116,14 @@ def load_work(repo: Path, work_id: str) -> dict[str, Any]:
     if not path.is_file():
         raise GesError(WORK_NOT_FOUND, f"work not found: {work_id}")
     payload = read_yaml(path) or {}
-    validate_payload("ges.work.v1.json", payload)
+    validate_work_payload(payload)
     emit(WORK_LOAD, "complete", work_id=work_id)
     return payload
 
 
 def write_work(repo: Path, payload: dict[str, Any], *, create: bool = False) -> Path:
     require_governance(repo)
-    validate_payload("ges.work.v1.json", payload)
+    validate_work_payload(payload)
     path = work_path(repo, payload["id"])
     if create and path.exists():
         raise GesError(WORK_ALREADY_EXISTS, f"work already exists: {payload['id']}")

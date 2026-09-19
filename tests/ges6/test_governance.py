@@ -61,7 +61,7 @@ def _gov_repo(tmp_path: Path, *, risk: str = "LOW", with_plan: bool = True) -> P
     if with_plan:
         (repo / "specs" / "plan.md").write_bytes(b"plan-bytes")
     init_governance(repo)
-    create_work(repo, work_id="WI-WORK-0001", title="demo", owner="team", risk=risk)
+    create_work(repo, work_id="WI-WORK-0001", title="demo", owner="team", risk=risk, host="cursor")
     link_artifact(repo, "WI-WORK-0001", artifact_type="SPEC", path="specs/spec.md")
     if with_plan:
         link_artifact(repo, "WI-WORK-0001", artifact_type="PLAN", path="specs/plan.md")
@@ -107,7 +107,7 @@ def test_create_valid_work(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
     init_governance(repo)
-    payload = create_work(repo, work_id="WI-WORK-0001", title="demo", owner="team", risk="LOW")
+    payload = create_work(repo, work_id="WI-WORK-0001", title="demo", owner="team", risk="LOW", host="cursor")
     assert payload["kind"] == "FEATURE"
     assert payload["status"] == "OPEN"
 
@@ -117,10 +117,10 @@ def test_duplicate_work_is_rejected(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
     init_governance(repo)
-    create_work(repo, work_id="WI-WORK-0001", title="demo", owner="team", risk="LOW")
+    create_work(repo, work_id="WI-WORK-0001", title="demo", owner="team", risk="LOW", host="cursor")
     original = work_path(repo, "WI-WORK-0001").read_bytes()
     with pytest.raises(GesError) as captured:
-        create_work(repo, work_id="WI-WORK-0001", title="other", owner="team", risk="LOW")
+        create_work(repo, work_id="WI-WORK-0001", title="other", owner="team", risk="LOW", host="cursor")
     assert captured.value.code == WORK_ALREADY_EXISTS
     assert work_path(repo, "WI-WORK-0001").read_bytes() == original
 
@@ -130,7 +130,7 @@ def test_closed_work_cannot_update(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
     init_governance(repo)
-    create_work(repo, work_id="WI-WORK-0001", title="demo", owner="team", risk="LOW")
+    create_work(repo, work_id="WI-WORK-0001", title="demo", owner="team", risk="LOW", host="cursor")
     close_work(repo, "WI-WORK-0001")
     with pytest.raises(GesError) as captured:
         update_work(repo, "WI-WORK-0001", title="nope")
@@ -142,7 +142,7 @@ def test_closed_cannot_reopen(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
     init_governance(repo)
-    create_work(repo, work_id="WI-WORK-0001", title="demo", owner="team", risk="LOW")
+    create_work(repo, work_id="WI-WORK-0001", title="demo", owner="team", risk="LOW", host="cursor")
     close_work(repo, "WI-WORK-0001")
     with pytest.raises(GesError) as captured:
         close_work(repo, "WI-WORK-0001")
@@ -324,7 +324,7 @@ def test_intake_does_not_write(tmp_path):
 def test_remove_preserves_governance(brownfield, offline_cache):
     apply_recommended(brownfield)
     init_governance(brownfield)
-    create_work(brownfield, work_id="WI-WORK-0001", title="demo", owner="team", risk="LOW")
+    create_work(brownfield, work_id="WI-WORK-0001", title="demo", owner="team", risk="LOW", host="cursor")
     run_remove(brownfield)
     assert work_path(brownfield, "WI-WORK-0001").is_file()
 
@@ -333,7 +333,7 @@ def test_remove_preserves_governance(brownfield, offline_cache):
 def test_snapshot_excludes_governance(brownfield, offline_cache):
     apply_recommended(brownfield)
     init_governance(brownfield)
-    create_work(brownfield, work_id="WI-WORK-0001", title="demo", owner="team", risk="LOW")
+    create_work(brownfield, work_id="WI-WORK-0001", title="demo", owner="team", risk="LOW", host="cursor")
     snap = snapshot_managed_scope(brownfield, {}, InstallPlan())
     assert not any(rel.startswith(".ges/governance/") for rel in snap)
 
@@ -379,7 +379,7 @@ def test_cli_work_and_intake(tmp_path):
     (repo / "specs" / "spec.md").write_text("s", encoding="utf-8")
     (repo / "specs" / "plan.md").write_text("p", encoding="utf-8")
     assert main(["governance", "init", str(repo)]) == 0
-    assert main(["work", "create", str(repo), "--id", "WI-WORK-0001", "--title", "t", "--owner", "o", "--risk", "LOW"]) == 0
+    assert main(["work", "create", str(repo), "--id", "WI-WORK-0001", "--title", "t", "--owner", "o", "--risk", "LOW", "--host", "cursor"]) == 0
     assert main(["artifact", "link", str(repo), "WI-WORK-0001", "--type", "SPEC", "--path", "specs/spec.md"]) == 0
     assert main(["artifact", "link", str(repo), "WI-WORK-0001", "--type", "PLAN", "--path", "specs/plan.md"]) == 0
     assert main(["gate", "intake", str(repo), "WI-WORK-0001"]) == 0

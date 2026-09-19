@@ -16,6 +16,8 @@ Operator CLI and consumer `ges init` commands for the current 6.x release live i
 - [[capability-resolver-tests]] — resolver, probe, doctor warning, and freeze oracles
 - [[capability-governance]] — Alpha.4 overlay and `ges capability` for RTK only
 - [[capability-governance-tests]] — overlay, CLI, policy override, and freeze oracles
+- [[work-execution]] — Alpha.5 Work v2, host binding, Execution Gate, closure/release markers
+- [[work-execution-tests]] — Work v2, binding, execution gate, and Alpha.4/5 marker oracles
 - [[source-resolve]] — pinned upstream SHAs and cache
 - [[harness-projection]] — Cursor, Codex and AGENTS.md markers
 - [[reconcile]] — desired-state apply, check, remove

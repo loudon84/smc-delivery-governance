@@ -4,7 +4,7 @@ import shutil
 import subprocess
 from typing import Any
 
-from ges.catalog.providers import RTK_ID
+from ges.catalog.providers import RTK_ID, rtk_provider
 from ges.reconciler.state import validate_payload
 
 PASS = "PASS"
@@ -12,15 +12,14 @@ FAIL = "FAIL"
 
 
 def probe_rtk() -> dict[str, Any]:
+    names = list(rtk_provider().health_checks) or ["binary", "version"]
+    checks = [{"name": name, "status": FAIL} for name in names]
+    by_name = {row["name"]: row for row in checks}
     binary = shutil.which("rtk")
-    checks = [
-        {"name": "binary", "status": FAIL},
-        {"name": "version", "status": FAIL},
-        {"name": "integration", "status": FAIL},
-    ]
     if not binary:
         return _status("missing", "", checks)
-    checks[0]["status"] = PASS
+    if "binary" in by_name:
+        by_name["binary"]["status"] = PASS
     result = subprocess.run(
         [binary, "--version"],
         capture_output=True,
@@ -31,8 +30,8 @@ def probe_rtk() -> dict[str, Any]:
     version = text.splitlines()[0].strip() if text else ""
     if result.returncode != 0 or not version:
         return _status("NOT_READY", version, checks)
-    checks[1]["status"] = PASS
-    checks[2]["status"] = PASS
+    if "version" in by_name:
+        by_name["version"]["status"] = PASS
     return _status("READY", version, checks)
 
 

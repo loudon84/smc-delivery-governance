@@ -24,7 +24,7 @@ Work IDs are explicit and CLOSED work is immutable.
 
 ### Create valid work
 
-create with id/title/owner/risk writes ges.work.v1 FEATURE/OPEN.
+create with id/title/owner/risk/--host writes ges.work.v2 FEATURE/OPEN.
 
 ### Duplicate work is rejected
 
